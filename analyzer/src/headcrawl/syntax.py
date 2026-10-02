@@ -20,7 +20,13 @@ from .text import clean, first_sentence, strip_comment_markers
 TAGS = ("TODO", "FIXME", "HACK", "XXX")
 # TODO, TODO: x, TODO(bob): x, FIXME - x
 _TAG = re.compile(r"\b(TODO|FIXME|HACK|XXX)\b(?:\([^)]*\))?[:\s-]*(.*)")
-_LEGAL = re.compile(r"copyright|license|licence|spdx|all rights reserved", re.I)
+# License headers often span lines, and each line is its own comment, so match
+# the opening lines too ("Use of this source code is governed by...").
+_LEGAL = re.compile(
+    r"copyright|license|licence|spdx|all rights reserved|governed by|use of this source|permission is hereby|"
+    r"licensed under|warranty|redistribution",
+    re.I,
+)
 
 
 @dataclass(frozen=True)

@@ -102,7 +102,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     h("p", null, h("b", null, "arrows hjkl yubn"), " move, bump to attack"),
     h("p", null, h("b", null, "x"), " explore  ", h("b", null, "z"), " rest  ", h("b", null, "."), " wait"),
     h("p", null, h("b", null, ">"), " descend  ", h("b", null, "q"), " drink  ", h("b", null, "r"), " read"),
-    h("p", null, h("b", null, "?"), " help  ", h("b", null, "esc"), " menu  ", h("b", null, "m"), " sound"),
+    h("p", null, h("b", null, "?"), " help  ", h("b", null, "esc"), " menu  ", h("b", null, "m"), " sound  ", h("b", null, ","), " settings"),
     h("p", null, h("b", null, "click"), " walk there, ", h("b", null, "hover"), " inspect"),
   );
 

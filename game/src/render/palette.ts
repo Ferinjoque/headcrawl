@@ -22,7 +22,7 @@ export function oklch(l: number, c: number, hDeg: number): RGB {
   return [Math.round(gamma(lin[0]) * 255), Math.round(gamma(lin[1]) * 255), Math.round(gamma(lin[2]) * 255)];
 }
 
-export const C = {
+const GLOW = {
   ink: oklch(0.14, 0.02, 20),
   ember: oklch(0.66, 0.17, 45),
   brick: oklch(0.8, 0.15, 62),
@@ -42,9 +42,14 @@ export const C = {
   violet: oklch(0.7, 0.2, 300),
   steel: oklch(0.88, 0.06, 220),
   coffee: oklch(0.72, 0.12, 60),
-} as const;
+};
 
-export const ARCHETYPE: Record<string, RGB> = {
+export type ColorRole = keyof typeof GLOW;
+
+/** The colors in use right now. setColors() swaps them in place. */
+export const C: Record<ColorRole, RGB> = { ...GLOW };
+
+const GLOW_ARCHETYPE: Record<string, RGB> = {
   tangle: oklch(0.72, 0.24, 330),
   nest: oklch(0.72, 0.2, 35),
   hydra: oklch(0.82, 0.14, 200),
@@ -52,8 +57,55 @@ export const ARCHETYPE: Record<string, RGB> = {
   imp: oklch(0.88, 0.17, 100),
   bug: oklch(0.85, 0.2, 130),
   spawn: oklch(0.75, 0.15, 340),
-  boss: C.boss,
+  boss: GLOW.boss,
 };
+
+export const ARCHETYPE: Record<string, RGB> = { ...GLOW_ARCHETYPE };
+
+// Okabe-Ito colors, picked to stay apart for the common kinds of color
+// blindness, lifted a little to read on the dark background.
+const CB = {
+  orange: [230, 159, 0],
+  sky: [86, 180, 233],
+  green: [0, 190, 140],
+  yellow: [240, 228, 66],
+  blue: [90, 150, 230],
+  vermillion: [240, 110, 30],
+  purple: [220, 130, 180],
+} satisfies Record<string, RGB>;
+
+const PALETTES: Record<string, { roles: Partial<Record<ColorRole, RGB>>; archetypes: Record<string, RGB> }> = {
+  glow: { roles: {}, archetypes: {} },
+  colorblind: {
+    roles: { hp: CB.sky, danger: CB.vermillion, loot: CB.yellow, boss: CB.purple, shrine: CB.green, gold: CB.orange },
+    archetypes: {
+      tangle: CB.purple,
+      nest: CB.vermillion,
+      hydra: CB.sky,
+      wall: CB.blue,
+      imp: CB.yellow,
+      bug: CB.green,
+      spawn: [200, 160, 190],
+      boss: CB.purple,
+    },
+  },
+  contrast: {
+    roles: {
+      ink: [8, 6, 6],
+      dim: oklch(0.85, 0.03, 60),
+      floor: oklch(0.75, 0.2, 345),
+      passage: oklch(0.78, 0.05, 255),
+      text: oklch(0.98, 0.01, 70),
+    },
+    archetypes: {},
+  },
+};
+
+export function setColors(name: string): void {
+  const p = PALETTES[name] ?? PALETTES.glow;
+  Object.assign(C, GLOW, p.roles);
+  Object.assign(ARCHETYPE, GLOW_ARCHETYPE, p.archetypes);
+}
 
 export const LANGUAGE: Record<string, RGB> = {
   python: oklch(0.7, 0.13, 250),

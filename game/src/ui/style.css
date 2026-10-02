@@ -18,14 +18,37 @@
   --lore: oklch(0.8 0.08 230);
 
   --font: "VT323", ui-monospace, "Cascadia Mono", Consolas, monospace;
-  --fs-xs: 16px;
-  --fs-s: 20px;
-  --fs-m: 24px;
-  --fs-l: 32px;
-  --fs-xl: 48px;
+  --ui-scale: 1;
+  --fs-xs: calc(16px * var(--ui-scale));
+  --fs-s: calc(20px * var(--ui-scale));
+  --fs-m: calc(24px * var(--ui-scale));
+  --fs-l: calc(32px * var(--ui-scale));
+  --fs-xl: calc(48px * var(--ui-scale));
   --panel-w: clamp(300px, 26vw, 380px);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: dark;
+}
+
+html[data-text="small"] {
+  --ui-scale: 0.85;
+}
+html[data-text="large"] {
+  --ui-scale: 1.2;
+}
+/* Okabe-Ito colors, the same ones the canvas uses in this mode. */
+html[data-colors="colorblind"] {
+  --hp: rgb(86 180 233);
+  --danger: rgb(240 110 30);
+  --loot: rgb(240 228 66);
+  --boss: rgb(220 130 180);
+  --gold: rgb(230 159 0);
+}
+html[data-colors="contrast"] {
+  --ink: oklch(0.08 0.01 20);
+  --ink-raised: oklch(0.12 0.015 20);
+  --text: oklch(0.98 0.01 70);
+  --text-dim: oklch(0.86 0.02 60);
+  --text-faint: oklch(0.76 0.02 50);
 }
 
 * {
@@ -519,6 +542,16 @@ body.dragging #screen::after {
 }
 #tip .tip-name {
   font-size: var(--fs-s);
+}
+
+.settings .row button {
+  all: unset;
+  cursor: pointer;
+  color: var(--text);
+}
+.settings .row button:hover,
+.settings .row button:focus-visible {
+  color: var(--gold);
 }
 
 /* Touch controls */

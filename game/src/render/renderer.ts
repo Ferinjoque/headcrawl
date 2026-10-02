@@ -49,6 +49,9 @@ export class Renderer {
   private camY = 0;
   private camReady = false;
   reduced = false;
+  /** From settings: text size multiplier and how bright the rock letters are. */
+  textScale = 1;
+  rockBase = 0.15;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -72,7 +75,7 @@ export class Renderer {
     this.bloomB.height = Math.ceil(h / 2);
     const byWidth = rect.width / (64 * 0.62);
     const byHeight = rect.height / (30 * 0.92);
-    this.fontPx = Math.round(Math.max(15, Math.min(34, byWidth, byHeight)) * this.dpr);
+    this.fontPx = Math.round(Math.max(15, Math.min(34, byWidth, byHeight)) * this.textScale * this.dpr);
     this.cellW = Math.round(this.fontPx * 0.62);
     this.cellH = Math.round(this.fontPx * 0.92);
   }
@@ -187,7 +190,7 @@ export class Renderer {
         if (inside && known && grid.tiles[i] !== Tile.Rock) continue;
         const ch = this.rockChar(scene, ((x % 997) + 997) % 997, ((y % grid.height) + grid.height) % grid.height);
         if (ch === " ") continue;
-        const a = 0.15 + this.glowAt(scene, x, y);
+        const a = this.rockBase + this.glowAt(scene, x, y) * (this.rockBase / 0.15);
         lctx.fillStyle = rgba(C.ember, a);
         lctx.fillText(ch, ox + x * cellW + cellW / 2, oy + y * cellH + cellH / 2);
       }

@@ -40,6 +40,15 @@ export class Hints {
     }
   }
 
+  reset(): void {
+    this.seen.clear();
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      // Nothing stored to clear.
+    }
+  }
+
   /** Tips that apply to the state the game is in right now. */
   check(game: Game): string[] {
     const out: string[] = [];

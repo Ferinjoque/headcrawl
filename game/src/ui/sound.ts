@@ -20,6 +20,10 @@ export class Sound {
     }
   }
 
+  set(on: boolean): void {
+    if (on !== this.enabled) this.toggle();
+  }
+
   /** Must run inside a key or click handler, browsers block audio otherwise. */
   toggle(): boolean {
     this.enabled = !this.enabled;

@@ -5,6 +5,7 @@ import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
 import type { Recent } from "./recent";
 import type { SavedRun } from "./save";
+import type { Settings } from "./settings";
 
 // The wordmark is a 5x5 pixel font drawn with full blocks.
 const LETTERS: Record<string, string[]> = {
@@ -40,6 +41,7 @@ export interface TitleHandlers {
   reopen(r: Recent): void;
   resume(s: SavedRun): void;
   code(text: string): void;
+  settings(): void;
   open(): void;
   help(): void;
 }
@@ -123,6 +125,7 @@ export function titleScreen(
       daily ? btn("d", `daily run: ${daily.repo}, ${daily.label}`, on.daily) : null,
       btn("o", "open a dungeon.json", on.open),
       btn("?", "how it works", on.help),
+      btn(",", "settings", on.settings),
     ),
     h(
       "form",
@@ -222,6 +225,7 @@ export function helpScreen(close: () => void) {
     row("click or tap", "walk to that spot"),
     row("tab", "show or hide the side panel"),
     row("m", "sound on or off"),
+    row(",", "settings: text size, colorblind colors, calm motion"),
     h("h2", null, "leveling up"),
     row("1, 2, 3", "each level you pick one of three tools: Linter, Type checker, Caffeine, Rubber duck and more"),
     h("h2", null, "monster types"),
@@ -297,9 +301,44 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
   );
 }
 
+export interface SettingsHandlers {
+  sound(): void;
+  text(): void;
+  colors(): void;
+  motion(): void;
+  tips(): void;
+  close(): void;
+}
+
+const COLOR_NAMES = { glow: "glow (default)", colorblind: "colorblind friendly", contrast: "high contrast" } as const;
+
+export function settingsScreen(s: Settings, on: SettingsHandlers, note = "") {
+  const row = (key: string, label: string, value: string, act: () => void) =>
+    h(
+      "p",
+      { class: "row" },
+      h("span", { class: "t-loot" }, `[${key}] ${label}`),
+      h("button", { type: "button", onclick: act }, value),
+    );
+  return h(
+    "div",
+    { class: "page settings" },
+    h("h1", null, "settings"),
+    h("p", { class: "dim" }, "Press the key or click the value to change it. Saved in this browser."),
+    row("1", "sound", s.sound ? "on" : "off", on.sound),
+    row("2", "text size", s.text, on.text),
+    row("3", "colors", COLOR_NAMES[s.colors], on.colors),
+    row("4", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
+    row("5", "tips", "show them again", on.tips),
+    note ? h("p", { class: "t-good", role: "status" }, note) : null,
+    h("div", { class: "actions" }, btn("esc", "back", on.close)),
+  );
+}
+
 export interface PauseHandlers {
   resume(): void;
   restart(): void;
+  settings(): void;
   menu(): void;
 }
 
@@ -317,6 +356,7 @@ export function pauseScreen(on: PauseHandlers, code: string | null = null) {
       { class: "actions" },
       btn("esc", "resume", on.resume),
       btn("n", "start a new run", on.restart),
+      btn(",", "settings", on.settings),
       btn("m", "back to the repo list", on.menu),
     ),
   );

@@ -44,6 +44,7 @@ export class Effects {
   }
 
   flash(x: number, y: number, color: RGB, now: number): void {
+    if (this.reduced) return;
     this.flashes.push({ x, y, color, born: now, life: 160 });
   }
 

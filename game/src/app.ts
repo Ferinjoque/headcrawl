@@ -17,7 +17,9 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { endScreen, helpScreen, pauseScreen, perkCard, titleScreen } from "./ui/screens";
+import { endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen } from "./ui/screens";
+import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
+import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { parseCode, runCode } from "./ui/codes";
@@ -32,7 +34,7 @@ import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
 import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, type PlayRoute, type Route } from "./ui/share";
 
-type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "end" | "loading";
+type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "end" | "loading";
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -63,13 +65,72 @@ export class App {
   private watching: { actions: Action[]; at: number; perSecond: number; paused: boolean; timer: number } | null = null;
   private copied = false;
   private lastDraw = 0;
-  private reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private osReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private reduced = this.osReduced;
+  private settings: Settings;
 
   constructor() {
     this.renderer = new Renderer($("view") as HTMLCanvasElement);
     this.renderer.reduced = this.reduced;
     this.fx.reduced = this.reduced;
     this.log = new Log($("log"));
+    this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
+    this.applySettings();
+  }
+
+  private applySettings(): void {
+    const s = this.settings;
+    document.documentElement.dataset.text = s.text;
+    document.documentElement.dataset.colors = s.colors;
+    setColors(s.colors);
+    this.reduced = this.osReduced || s.motion === "calm";
+    this.renderer.reduced = this.reduced;
+    this.fx.reduced = this.reduced;
+    this.renderer.textScale = TEXT_SCALE[s.text];
+    this.renderer.rockBase = s.colors === "contrast" ? 0.07 : 0.15;
+    this.renderer.resize();
+    saveSettings(s);
+  }
+
+  private openSettings(note = ""): void {
+    if (this.mode !== "settings") this.returnMode = this.mode === "dying" ? "play" : this.mode;
+    this.mode = "settings";
+    this.showScreen(
+      settingsScreen(this.settings, {
+        sound: () => this.changeSetting("sound"),
+        text: () => this.changeSetting("text"),
+        colors: () => this.changeSetting("colors"),
+        motion: () => this.changeSetting("motion"),
+        tips: () => this.changeSetting("tips"),
+        close: () => this.closeOverlay(),
+      }, note),
+    );
+  }
+
+  private changeSetting(which: "sound" | "text" | "colors" | "motion" | "tips"): void {
+    const s = this.settings;
+    let note = "";
+    if (which === "sound") s.sound = this.sound.toggle();
+    if (which === "text") s.text = cycle(["small", "normal", "large"] as const, s.text);
+    if (which === "colors") s.colors = cycle(["glow", "colorblind", "contrast"] as const, s.colors);
+    if (which === "motion") s.motion = cycle(["full", "calm"] as const, s.motion);
+    if (which === "tips") {
+      this.hints.reset();
+      note = "Tips will show up again as things happen.";
+    }
+    this.applySettings();
+    this.openSettings(note);
+    if (this.game) this.refreshUi();
+  }
+
+  private settingsKey(e: KeyboardEvent): void {
+    const keys = { "1": "sound", "2": "text", "3": "colors", "4": "motion", "5": "tips" } as const;
+    const which = keys[e.key as keyof typeof keys];
+    if (which) this.changeSetting(which);
+    else if (e.key === "Escape" || e.key === ",") {
+      e.preventDefault();
+      this.closeOverlay();
+    }
   }
 
   async start(): Promise<void> {
@@ -273,6 +334,7 @@ export class App {
         },
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
+        settings: () => this.openSettings(),
       },
       recentBuilds(),
       listSaves(),
@@ -345,13 +407,14 @@ export class App {
   }
 
   private openPause(): void {
-    this.returnMode = "play";
+    this.returnMode = this.game?.outcome === "playing" ? "play" : "end";
     this.mode = "pause";
     this.scheduleSave(true);
     this.showScreen(
       pauseScreen({
         resume: () => this.closeOverlay(),
         restart: () => this.restart(),
+        settings: () => this.openSettings(),
         menu: () => this.navigate({ kind: "title" }),
       }, this.code()),
     );
@@ -363,6 +426,7 @@ export class App {
 
   private closeOverlay(): void {
     if (this.returnMode === "title" || !this.game) return this.showTitle();
+    if (this.returnMode === "pause") return this.openPause();
     if (this.returnMode === "end") return this.showEnd();
     this.mode = "play";
     this.showScreen(null);
@@ -487,6 +551,8 @@ export class App {
     }
     if (c.kind === "sound") {
       const on = this.sound.toggle();
+      this.settings.sound = on;
+      saveSettings(this.settings);
       this.log.push(on ? "Sound on. m turns it off." : "Sound off.", "info");
       this.log.render();
       return;
@@ -658,6 +724,12 @@ export class App {
 
   private onKey(e: KeyboardEvent): void {
     this.sound.wake();
+    if (this.mode === "settings") return this.settingsKey(e);
+    const typing = e.target instanceof HTMLInputElement;
+    if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
+      e.preventDefault();
+      return this.openSettings();
+    }
     if (this.mode === "title") return this.titleKey(e);
     if (this.mode === "watch") return this.watchKey(e);
     if (this.mode === "dying" || this.mode === "loading") return;
