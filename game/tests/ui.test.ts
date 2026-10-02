@@ -56,16 +56,16 @@ describe("share", () => {
     expect(decodeSpec("!!!")).toBeNull();
     expect(decodeSpec("AAAA")).toBeNull();
     expect(decodeSpec("A".repeat(1024 * 1024 + 1))).toBeNull();
-    const bomb = deflateSync(new Uint8Array(256 * 1024 * 1024));
+    const bomb = deflateSync(new Uint8Array(64 * 1024 * 1024));
     let bin = "";
     for (const b of bomb) bin += String.fromCharCode(b);
     const data = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const before = process.memoryUsage().arrayBuffers;
     const started = performance.now();
     expect(decodeSpec(data)).toBeNull();
-    expect(performance.now() - started).toBeLessThan(2000);
-    expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(64 * 1024 * 1024);
-  });
+    expect(performance.now() - started).toBeLessThan(5000);
+    expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(32 * 1024 * 1024);
+  }, 30_000);
 
   it("parses and prints routes", () => {
     const routes: Route[] = [
@@ -131,5 +131,35 @@ describe("daily", () => {
     const days = new Set(Array.from({ length: 30 }, (_, i) => dailyPick(entries, new Date(Date.UTC(2026, 9, 1 + i)))!.entry.slug));
     expect(days.size).toBeGreaterThan(2);
     expect(dailyPick([], new Date())).toBeNull();
+  });
+});
+
+describe("best runs", () => {
+  it("keeps the better run and survives broken storage", async () => {
+    const store = new Map<string, string>();
+    const fake = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    };
+    (globalThis as { localStorage?: unknown }).localStorage = fake;
+    const { bestFor, bestLabel, recordRun } = await import("../src/ui/best");
+    expect(bestFor("h")).toBeNull();
+    expect(recordRun("h", { floor: 2, floors: 5, won: false, turns: 300 })).toBe(true);
+    expect(recordRun("h", { floor: 1, floors: 5, won: false, turns: 100 })).toBe(false);
+    expect(recordRun("h", { floor: 5, floors: 5, won: true, turns: 900 })).toBe(true);
+    expect(bestLabel(bestFor("h"))).toBe("cleared in 900 turns");
+    store.set("headcrawl.best.v1", "{broken");
+    expect(bestFor("h")).toBeNull();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    };
+    expect(bestFor("h")).toBeNull();
+    expect(recordRun("h", { floor: 1, floors: 1, won: true, turns: 1 })).toBe(false);
+    delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });

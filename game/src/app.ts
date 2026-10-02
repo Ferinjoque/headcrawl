@@ -17,6 +17,7 @@ import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens";
+import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
 
@@ -176,6 +177,14 @@ export class App {
   private showEnd(): void {
     const game = this.game;
     if (!game || game.outcome === "playing") return;
+    if (this.mode !== "end") {
+      recordRun(game.spec.repo.head, {
+        floor: game.floor.index + 1,
+        floors: game.spec.floors.length,
+        won: game.outcome === "won",
+        turns: game.player.turns,
+      });
+    }
     this.mode = "end";
     this.stopAuto();
     const share = resultText(game, location.href);

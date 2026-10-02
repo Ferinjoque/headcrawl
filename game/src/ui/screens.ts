@@ -1,5 +1,6 @@
 import type { Game } from "../game/game";
 import { h, plural } from "./dom";
+import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
 
 // The wordmark is a 5x5 pixel font drawn with full blocks.
@@ -66,7 +67,12 @@ export function titleScreen(
           h("span", { class: "mark" }, ">"),
           h("span", { class: "name" }, e.repo),
           h("span", { class: "lang" }, e.language),
-          h("span", { class: "meta" }, `${plural(e.floors, "floor")}, ${e.enemies} monsters. boss: ${e.boss}`),
+          h(
+            "span",
+            { class: "meta" },
+            `${plural(e.floors, "floor")}, ${e.enemies} monsters. boss: ${e.boss}`,
+            bestLabel(bestFor(e.head)) ? h("span", { class: "t-loot" }, `  ${bestLabel(bestFor(e.head))}`) : null,
+          ),
         ),
       ),
     ),

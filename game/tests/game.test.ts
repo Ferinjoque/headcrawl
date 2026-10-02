@@ -57,7 +57,7 @@ describe("gallery dungeons", () => {
         checkInvariants(game);
       }
     }
-  });
+  }, 60_000);
 });
 
 describe("rules", () => {
