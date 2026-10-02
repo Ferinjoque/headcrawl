@@ -85,14 +85,15 @@ async function pool<T>(items: T[], size: number, work: (item: T) => Promise<void
   await Promise.all(runners);
 }
 
-async function analyze(base: string, owner: string, repo: string): Promise<string> {
+async function analyze(base: string, owner: string, repo: string, sha?: string): Promise<string> {
   ready ??= boot(base);
   const py = await ready;
 
   say({ type: "progress", text: `Asking GitHub about ${owner}/${repo}` });
   const api = `https://api.github.com/repos/${owner}/${repo}`;
   const meta = (await (await gh(api)).json()) as { default_branch: string; full_name: string; private: boolean };
-  const commit = (await (await gh(`${api}/commits/${encodeURIComponent(meta.default_branch)}`)).json()) as {
+  const ref = sha && /^[0-9a-f]{40}$/.test(sha) ? sha : meta.default_branch;
+  const commit = (await (await gh(`${api}/commits/${encodeURIComponent(ref)}`)).json()) as {
     sha: string;
     commit: { committer: { date: string } };
   };
@@ -127,9 +128,9 @@ async function analyze(base: string, owner: string, repo: string): Promise<strin
 }
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { base, owner, repo } = event.data;
+  const { base, owner, repo, sha } = event.data;
   try {
-    say({ type: "done", json: await analyze(base, owner, repo) });
+    say({ type: "done", json: await analyze(base, owner, repo, sha) });
   } catch (err) {
     const text =
       err instanceof GitHubError

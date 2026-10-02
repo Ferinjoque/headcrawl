@@ -85,7 +85,17 @@ redraws the whole view at 20 fps when idle.
   Wordle-style floor row in the share text, items in the legend, one-time
   tips, difficulty rating in the gallery.
 
+- Later the same day: perks on level up (11 dev tools), TODO dates from
+  git blame ("a FIXME from 2012", shallow edge marked "or earlier"), the
+  last commit subject in the lair, and the big one: any public GitHub repo
+  becomes a dungeon in the browser (Pyodide worker running the real
+  analyzer, lite.py backend without tree-sitter). `npm run py` fetches the
+  Pyodide bundle into game/public/pyodide (gitignored, CI does it too).
+
 ## Next ideas
+
+- Browser mode has no git history: no churn, no TODO years. A few extra
+  GitHub API calls (commits?path=) for the lair candidates could fix churn.
 
 - Cache the static map layer in the renderer so idle frames are cheap.
 - Sound: a few short synth blips with WebAudio, off by default.

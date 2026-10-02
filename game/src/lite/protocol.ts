@@ -2,6 +2,8 @@ export interface WorkerRequest {
   base: string;
   owner: string;
   repo: string;
+  /** Pin a commit so a shared link rebuilds the same dungeon. */
+  sha?: string;
 }
 
 export type WorkerReply =

@@ -74,11 +74,15 @@ describe("share", () => {
       { kind: "gallery", slug: "flask", run: 0 },
       { kind: "gallery", slug: "flask", run: 42 },
       { kind: "custom", run: 3, data: "abc_-1" },
+      { kind: "github", owner: "pallets", repo: "flask", sha: "a".repeat(40), run: 0 },
+      { kind: "github", owner: "o", repo: "r.js", sha: "0123456789abcdef0123456789abcdef01234567", run: 9 },
     ];
     for (const r of routes) expect(parseRoute(routeHash(r))).toEqual(r);
     expect(parseRoute("#/play/../../etc")).toEqual({ kind: "title" });
     expect(parseRoute("#/play/<img>")).toEqual({ kind: "title" });
     expect(parseRoute("")).toEqual({ kind: "title" });
+    expect(parseRoute("#/gh/a/b@notasha")).toEqual({ kind: "title" });
+    expect(parseRoute(`#/gh/a/..@${"a".repeat(40)}`)).toEqual({ kind: "title" });
   });
 
   it("writes a result line people can paste", () => {

@@ -50,6 +50,7 @@ export class App {
   private endTimer = 0;
   /** Bumped on every navigation so a slow fetch can't replace a newer game. */
   private navSeq = 0;
+  private built = new Map<string, string>();
   private copied = false;
   private lastDraw = 0;
   private reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -96,6 +97,10 @@ export class App {
       text = known ? await loadGalleryDungeon(route.slug) : null;
       if (seq !== this.navSeq) return;
       if (!text) return this.failToTitle(`No dungeon called "${route.slug}" here.`);
+    } else if (route.kind === "github") {
+      text = await this.buildGitHub(route.owner, route.repo, route.sha);
+      if (seq !== this.navSeq) return;
+      if (!text) return;
     } else {
       text = decodeSpec(route.data);
       if (!text) return this.failToTitle("That link is broken or too big.");
@@ -168,24 +173,43 @@ export class App {
     if (this.game) downloadText(logFileName(this.game), runLog(this.game, location.href));
   }
 
-  private async buildFromGitHub(target: string): Promise<void> {
-    const say = (text: string, tone = "dim") => {
-      const el = document.getElementById("build-status");
-      if (!el) return;
-      el.className = tone;
-      el.textContent = text;
-    };
-    const repo = parseRepo(target);
-    if (!repo) return say("That doesn't look like owner/repo or a GitHub link.", "error");
-    say("Getting ready", "t-loot");
+  private buildStatus(text: string, tone = "dim"): void {
+    const el = document.getElementById("build-status");
+    if (!el) return;
+    el.className = tone;
+    el.textContent = text;
+  }
+
+  /** Runs the in-browser analyzer, remembering results so a link opens instantly. */
+  private async buildGitHub(owner: string, repo: string, sha?: string): Promise<string | null> {
+    const key = `${owner}/${repo}@${sha ?? "latest"}`.toLowerCase();
+    const cached = this.built.get(key);
+    if (cached) return cached;
+    if (this.mode !== "title") this.showTitle();
+    this.mode = "loading";
+    this.buildStatus(`Building ${owner}/${repo}`, "t-loot");
+    document.getElementById("build-status")?.scrollIntoView({ block: "center" });
     try {
-      const json = await analyzeInBrowser(repo.owner, repo.repo, (text) => say(text, "t-loot"));
-      const res = loadSpec(json);
-      if (!res.ok) return say(res.error, "error");
-      this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
+      const json = await analyzeInBrowser(owner, repo, (text) => this.buildStatus(text, "t-loot"), sha);
+      this.built.set(key, json);
+      return json;
     } catch (err) {
-      say(err instanceof Error ? err.message : String(err), "error");
+      this.mode = "title";
+      this.buildStatus(err instanceof Error ? err.message : String(err), "error");
+      return null;
     }
+  }
+
+  private async buildFromGitHub(target: string): Promise<void> {
+    const repo = parseRepo(target);
+    if (!repo) return this.buildStatus("That doesn't look like owner/repo or a GitHub link.", "error");
+    const json = await this.buildGitHub(repo.owner, repo.repo);
+    if (!json) return;
+    const res = loadSpec(json);
+    if (!res.ok) return this.buildStatus(res.error, "error");
+    const sha = res.spec.repo.head;
+    this.built.set(`${repo.owner}/${repo.repo}@${sha}`.toLowerCase(), json);
+    this.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0 });
   }
 
   private playDaily(): void {

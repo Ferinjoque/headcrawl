@@ -6,7 +6,12 @@ import type { WorkerReply, WorkerRequest } from "./protocol";
 let worker: Worker | null = null;
 let busy = false;
 
-export function analyzeInBrowser(owner: string, repo: string, onProgress: (text: string) => void): Promise<string> {
+export function analyzeInBrowser(
+  owner: string,
+  repo: string,
+  onProgress: (text: string) => void,
+  sha?: string,
+): Promise<string> {
   if (busy) return Promise.reject(new Error("Already analyzing a repo."));
   worker ??= new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   const w = worker;
@@ -26,7 +31,7 @@ export function analyzeInBrowser(owner: string, repo: string, onProgress: (text:
       worker = null;
       reject(new Error("The analyzer crashed. Reload the page and try again."));
     };
-    const request: WorkerRequest = { base: document.baseURI, owner, repo };
+    const request: WorkerRequest = { base: document.baseURI, owner, repo, sha };
     w.postMessage(request);
   });
 }

@@ -2,6 +2,7 @@
 //
 // Gallery dungeons:  #/play/<slug>?run=<n>
 // Your own dungeon:  #/x/<run>/<deflated spec, base64url>
+// Built in browser:  #/gh/<owner>/<repo>@<commit sha>?run=<n>  (rebuilt on open)
 // Everything lives after the #, so it never reaches a server.
 
 import { Inflate, deflateSync, strFromU8, strToU8 } from "fflate";
@@ -14,12 +15,17 @@ const STEP = 1024;
 export type Route =
   | { kind: "title" }
   | { kind: "gallery"; slug: string; run: number }
-  | { kind: "custom"; run: number; data: string };
+  | { kind: "custom"; run: number; data: string }
+  | { kind: "github"; owner: string; repo: string; sha: string; run: number };
 
 export function parseRoute(hash: string): Route {
   const h = hash.replace(/^#/, "");
   const play = h.match(/^\/play\/([a-z0-9._-]{1,60})(?:\?run=(\d{1,9}))?$/i);
   if (play) return { kind: "gallery", slug: play[1].toLowerCase(), run: Number(play[2] ?? 0) };
+  const gh = h.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{40})(?:\?run=(\d{1,9}))?$/);
+  if (gh && gh[2] !== "." && gh[2] !== "..") {
+    return { kind: "github", owner: gh[1], repo: gh[2], sha: gh[3], run: Number(gh[4] ?? 0) };
+  }
   const custom = h.match(/^\/x\/(\d{1,9})\/([A-Za-z0-9_-]{1,1400000})$/);
   if (custom) return { kind: "custom", run: Number(custom[1]), data: custom[2] };
   return { kind: "title" };
@@ -33,6 +39,8 @@ export function routeHash(route: Route): string {
       return `#/play/${route.slug}${route.run ? `?run=${route.run}` : ""}`;
     case "custom":
       return `#/x/${route.run}/${route.data}`;
+    case "github":
+      return `#/gh/${route.owner}/${route.repo}@${route.sha}${route.run ? `?run=${route.run}` : ""}`;
   }
 }
 
