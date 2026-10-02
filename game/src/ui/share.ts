@@ -86,22 +86,34 @@ export function decodeSpec(data: string): string | null {
   }
 }
 
-export function resultText(game: Game, link: string): string {
+/** One mark per floor, like a Wordle row: # cleared, x died there, @ still there, . not reached. */
+export function floorRow(game: Game): string {
+  const here = game.floor.index;
+  return game.spec.floors
+    .map((_, i) => {
+      if (i < here) return "#";
+      if (i > here) return ".";
+      return game.outcome === "won" ? "#" : game.outcome === "dead" ? "x" : "@";
+    })
+    .join(" ");
+}
+
+export function resultText(game: Game, link: string, label = ""): string {
   const p = game.player;
   const total = game.spec.floors.length;
   const f = game.floorSpec;
   const repo = `${game.spec.repo.name} @${game.spec.repo.head.slice(0, 7)}`;
-  const progress = "#".repeat(f.index + (game.outcome === "won" ? 1 : 0)) + "-".repeat(total - f.index - (game.outcome === "won" ? 1 : 0));
   const head =
     game.outcome === "won"
       ? `reached HEAD in ${p.turns} turns`
       : game.outcome === "dead"
-        ? `died on floor ${f.index + 1}/${total} (${f.name}) to ${game.killer}, turn ${p.turns}`
-        : `on floor ${f.index + 1}/${total} (${f.name}), turn ${p.turns}`;
+        ? `died to ${game.killer} on floor ${f.index + 1} of ${total}, turn ${p.turns}`
+        : `on floor ${f.index + 1} of ${total}, turn ${p.turns}`;
   return [
-    `HEADCRAWL  ${repo}`,
+    `HEADCRAWL${label ? ` ${label}` : ""}  ${repo}`,
+    floorRow(game),
     head,
-    `lv ${p.level}, ${p.kills} functions refactored, ${p.bosses}/${total} bosses  [${progress}]`,
+    `lv ${p.level}, ${p.kills} functions refactored, ${p.bosses} of ${total} bosses`,
     link,
   ].join("\n");
 }

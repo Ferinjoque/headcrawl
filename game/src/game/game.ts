@@ -25,6 +25,8 @@ export class Game {
   private events: GameEvent[] = [];
   private spawnCount = 0;
   private visited = new Set<string>();
+  /** Every message of the run with its turn, for the run log. */
+  readonly journal: string[] = [];
 
   constructor(spec: DungeonSpec, opts: GameOptions = {}) {
     this.spec = spec;
@@ -46,6 +48,8 @@ export class Game {
       scrolls: [],
       curses: 0,
       kills: 0,
+      killsBy: {},
+      bossNames: [],
       bosses: 0,
       turns: 0,
     };
@@ -70,6 +74,7 @@ export class Game {
 
   private say(text: string, tone: Tone = "info"): void {
     this.emit({ t: "msg", text, tone });
+    if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${text}`);
   }
 
   monsterAt(x: number, y: number): Monster | undefined {
@@ -222,9 +227,11 @@ export class Game {
     const p = this.player;
     this.floor.monsters = this.floor.monsters.filter((x) => x !== m);
     p.kills++;
+    p.killsBy[m.archetype] = (p.killsBy[m.archetype] ?? 0) + 1;
     this.emit({ t: "kill", x: m.x, y: m.y, name: m.name, boss: !!m.boss });
     if (m.boss) {
       p.bosses++;
+      p.bossNames.push(`${m.name}, ${m.boss.title}`);
       this.floor.bossDead = true;
       this.say(`${m.name} falls. ${m.boss.final ? "HEAD is yours." : "The way down opens."}`, "boss");
       if (m.boss.final) {
@@ -648,6 +655,7 @@ export class Game {
 }
 
 const CHASE_RANGE = 30;
+const JOURNAL_CAP = 5000;
 
 const KILL_VERB: Record<string, string> = {
   tangle: "You untangle",

@@ -154,6 +154,7 @@ export function helpScreen(close: () => void) {
 export interface EndHandlers {
   again(): void;
   copy(): void;
+  save(): void;
   menu(): void;
 }
 
@@ -183,6 +184,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
       { class: "actions" },
       btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
       btn("c", copied ? "copied" : "copy result", on.copy),
+      btn("s", "save run log", on.save),
       btn("esc", "pick another repo", on.menu),
     ),
   );

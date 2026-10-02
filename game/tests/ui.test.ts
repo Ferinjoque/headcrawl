@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import { autoAction } from "../src/game/auto";
 import { Game } from "../src/game/game";
 import { loadSpec } from "../src/spec";
-import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "../src/ui/share";
+import { logFileName, runLog } from "../src/ui/morgue";
+import { decodeSpec, encodeSpec, floorRow, parseRoute, resultText, routeHash, type Route } from "../src/ui/share";
 import { floor, room, spec } from "./fixtures";
 
 function files(dir: string): string[] {
@@ -82,10 +83,23 @@ describe("share", () => {
 
   it("writes a result line people can paste", () => {
     const game = new Game(spec([floor([room(), room({ kind: "lair" })], [[0, 1]])]));
-    const text = resultText(game, "https://x/#/play/t");
-    expect(text).toContain("test/repo @0123456");
-    expect(text).toContain("floor 1/1");
-    expect(text.split("\n")).toHaveLength(4);
+    const text = resultText(game, "https://x/#/play/t", "daily 2026-10-02");
+    expect(text).toContain("HEADCRAWL daily 2026-10-02  test/repo @0123456");
+    expect(text.split("\n")[1]).toBe("@");
+    expect(text).toContain("floor 1 of 1");
+    expect(text.split("\n")).toHaveLength(5);
+  });
+
+  it("writes a run log with everything that happened", () => {
+    const game = new Game(spec([floor([room(), room({ kind: "lair" })], [[0, 1]])]));
+    game.outcome = "dead";
+    game.killer = "parse_args";
+    expect(floorRow(game)).toBe("x");
+    const log = runLog(game, "https://x/");
+    expect(log).toContain("Killed by parse_args on floor 1");
+    expect(log).toContain("Everything that happened");
+    expect(log).toMatch(/\n\s+0 {2}Floor 1 of 1/);
+    expect(logFileName(game)).toBe("headcrawl-test-repo-0123456-run0.txt");
   });
 });
 

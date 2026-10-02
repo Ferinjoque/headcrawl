@@ -57,6 +57,8 @@ export interface Player {
   curses: number;
   kills: number;
   bosses: number;
+  killsBy: Record<string, number>;
+  bossNames: string[];
   turns: number;
 }
 

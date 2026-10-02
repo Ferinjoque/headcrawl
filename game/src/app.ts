@@ -21,6 +21,7 @@ import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens"
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { Sound } from "./ui/sound";
+import { downloadText, logFileName, runLog } from "./ui/morgue";
 import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
 
 type Mode = "title" | "play" | "dying" | "help" | "pause" | "end" | "loading";
@@ -152,6 +153,16 @@ export class App {
     current?.scrollIntoView({ block: "nearest" });
   }
 
+  private dailyLabel(): string {
+    const daily = dailyPick(this.gallery, new Date());
+    const r = this.route;
+    return daily && r.kind === "gallery" && r.slug === daily.entry.slug && r.run === daily.run ? `daily ${daily.label}` : "";
+  }
+
+  private saveLog(): void {
+    if (this.game) downloadText(logFileName(this.game), runLog(this.game, location.href));
+  }
+
   private playDaily(): void {
     const daily = dailyPick(this.gallery, new Date());
     if (daily) this.navigate({ kind: "gallery", slug: daily.entry.slug, run: daily.run });
@@ -190,11 +201,12 @@ export class App {
     }
     this.mode = "end";
     this.stopAuto();
-    const share = resultText(game, location.href);
+    const share = resultText(game, location.href, this.dailyLabel());
     this.showScreen(
       endScreen(game, share, this.copied, {
         again: () => this.again(),
         copy: () => this.copyResult(share),
+        save: () => this.saveLog(),
         menu: () => this.navigate({ kind: "title" }),
       }),
     );
@@ -422,7 +434,8 @@ export class App {
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
-      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href));
+      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href, this.dailyLabel()));
+      else if (e.key === "s" || e.key === "S") this.saveLog();
       else if (e.key === "Escape") this.navigate({ kind: "title" });
       return;
     }

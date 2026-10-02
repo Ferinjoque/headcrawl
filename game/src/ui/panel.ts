@@ -14,6 +14,14 @@ const ARCH_NAME: Record<string, string> = {
   boss: "boss",
 };
 
+const ITEM: Record<string, [string, string]> = {
+  potion: ["!", "TODO"],
+  blade: ["/", "FIXME"],
+  scroll: ["?", "HACK"],
+  curse: ["%", "XXX"],
+  coffee: ["c", "coffee"],
+};
+
 function foe(m: Monster) {
   const e = m.enemy;
   const stats = m.boss
@@ -55,11 +63,22 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     .filter((m) => game.isVisible(m.x, m.y))
     .sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p))
     .slice(0, 8);
+  const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y)).slice(0, 5);
   const sight = h(
     "section",
     { class: "pane" },
     h("h2", null, "in sight"),
     ...(seen.length ? seen.map(foe) : [h("p", { class: "dim" }, "nothing moving")]),
+    ...items.map((i) =>
+      h(
+        "div",
+        { class: "foe" },
+        h("span", { class: "t-loot" }, ITEM[i.kind][0]),
+        h("span", { class: "name t-loot" }, ITEM[i.kind][1]),
+        h("span", null, ""),
+        h("span", { class: "stats" }, i.loot ? `"${i.loot.text}"` : "still warm"),
+      ),
+    ),
   );
 
   const count = (n: number) => (n ? ` x${n}` : "");
