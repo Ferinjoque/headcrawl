@@ -3,6 +3,7 @@
 import { Rng } from "../core/rng";
 import type { Boss, Enemy, Floor } from "../spec";
 import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
+import { TUNING } from "./abilities";
 import { capsFor, depthScale, softCap } from "./balance";
 import type { Item, Monster } from "./types";
 
@@ -44,7 +45,12 @@ function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number, 
     hp,
     maxHp: hp,
     damage: Math.max(1, Math.round(softCap(e.damage, cap.damage) * k)),
-    speed: e.speed,
+    speed:
+      e.archetype === "imp"
+        ? Math.max(e.speed, TUNING.impSpeed)
+        : e.archetype === "wall"
+          ? Math.min(e.speed, TUNING.wallSpeed)
+          : e.speed,
     energy: 0,
     xp: e.xp,
     room,
@@ -53,6 +59,10 @@ function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number, 
     enemy: e,
     phase: 0,
     lastTaunt: -99,
+    threat: [],
+    turns: 0,
+    cooldown: 0,
+    split: false,
   };
 }
 
@@ -78,6 +88,10 @@ function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, fl
     enemy: null,
     phase: 0,
     lastTaunt: -99,
+    threat: [],
+    turns: 0,
+    cooldown: 0,
+    split: false,
   };
 }
 

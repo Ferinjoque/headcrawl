@@ -11,6 +11,18 @@ export function botAction(game: Game): Action {
   const p = game.player;
   const grid = game.floor.map.grid;
 
+  // Out of the red first, like anyone would.
+  const danger = game.threatened();
+  if (danger.has(grid.idx(p.x, p.y))) {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
+      const nx = p.x + dx;
+      const ny = p.y + dy;
+      if (walkable(grid.get(nx, ny)) && !game.monsterAt(nx, ny) && !danger.has(grid.idx(nx, ny))) {
+        return { type: "move", dx, dy };
+      }
+    }
+  }
+
   if (p.hp < p.maxHp * 0.35 && p.potions.length) return { type: "quaff" };
   if (p.hp < p.maxHp * 0.35 && p.scrolls.length) return { type: "read" };
 

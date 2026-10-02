@@ -5,6 +5,7 @@ import { Rng } from "../core/rng";
 import type { DungeonSpec } from "../spec";
 import { seeThrough, Tile, walkable } from "../map/grid";
 import { BOSS, COFFEE_HEAL, DROPS, HIT, PLAYER, WAKE_RANGE, bladeBonus, potionHeal, xpForLevel } from "./balance";
+import { TUNING } from "./abilities";
 import { buildFloor, type FloorState } from "./world";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
@@ -200,14 +201,21 @@ export class Game {
       this.say(`You miss ${m.name}.`);
       return;
     }
+    m.awake = true;
+    if (m.archetype === "bug" && this.rng.chance(TUNING.bugDodge)) {
+      this.emit({ t: "dodge", x: m.x, y: m.y });
+      this.say(`${m.name} dodges. Can't reproduce.`);
+      return;
+    }
     const crit = this.rng.chance(HIT.crit);
     let dmg = p.atk + p.blade + this.rng.int(0, 1 + Math.floor(p.level / 2));
     if (crit) dmg *= 2;
+    if (m.archetype === "wall") dmg = Math.max(1, dmg - TUNING.wallArmor);
     m.hp -= dmg;
-    m.awake = true;
     this.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
     if (m.hp <= 0) this.killMonster(m);
     else if (m.boss) this.bossPhase(m);
+    else if (m.archetype === "hydra" && !m.split) this.splitHydra(m);
   }
 
   private killMonster(m: Monster): void {
@@ -297,6 +305,32 @@ export class Game {
     }
   }
 
+  private freeNeighbour(x: number, y: number): [number, number] | null {
+    const grid = this.floor.map.grid;
+    for (const [dx, dy] of STEPS) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (grid.get(nx, ny) !== Tile.Floor || this.monsterAt(nx, ny)) continue;
+      if (nx === this.player.x && ny === this.player.y) continue;
+      return [nx, ny];
+    }
+    return null;
+  }
+
+  /** Too many parameters: hurt it and it comes apart into two smaller calls. */
+  private splitHydra(m: Monster): void {
+    m.split = true;
+    if (m.hp < TUNING.hydraMinHp) return;
+    const spot = this.freeNeighbour(m.x, m.y);
+    if (!spot) return;
+    const half = Math.ceil(m.hp / 2);
+    m.hp -= half;
+    const n = this.spawnCount++;
+    this.floor.monsters.push({ ...m, id: `h${n}`, name: `${m.name}'`, x: spot[0], y: spot[1], hp: half, threat: [], energy: 0 });
+    this.emit({ t: "split", x: spot[0], y: spot[1] });
+    this.say(`${m.name} splits in two.`, "bad");
+  }
+
   private spawnHelper(boss: Monster, x: number, y: number): Monster {
     const n = this.spawnCount++;
     const name = `_${boss.name}_helper${n ? n : ""}`.slice(0, 40);
@@ -319,6 +353,10 @@ export class Game {
       enemy: null,
       phase: 0,
       lastTaunt: 0,
+      threat: [],
+      turns: 0,
+      cooldown: 0,
+      split: true,
     };
   }
 
@@ -441,6 +479,7 @@ export class Game {
       if (!this.floor.monsters.includes(m)) continue;
       if (!m.awake && this.isVisible(m.x, m.y) && dist(m, this.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;
       if (!m.awake) continue;
+      if (m.archetype === "tangle" && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + TUNING.tangleRegen);
       m.energy += m.speed;
       while (m.energy >= 100 && this.outcome === "playing") {
         m.energy -= 100;
@@ -452,7 +491,23 @@ export class Game {
 
   private monsterTurn(m: Monster, chase: Int16Array, taken: Uint8Array): void {
     const p = this.player;
+    if (m.threat.length) {
+      this.releaseWindup(m);
+      return;
+    }
+    if (m.cooldown > 0) m.cooldown--;
+    if (m.boss) {
+      m.turns++;
+      if (m.turns % TUNING.bossSweepEvery === 0 && dist(m, p) <= TUNING.bossSweepRadius + 1) {
+        this.windUp(m, TUNING.bossSweepRadius, `${m.name} winds up. Get out of the red.`);
+        return;
+      }
+    }
     if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
+      if (m.archetype === "nest" && m.cooldown === 0) {
+        this.windUp(m, 1, `${m.name} digs in for a heavy hit.`);
+        return;
+      }
       this.monsterAttack(m);
       return;
     }
@@ -519,13 +574,53 @@ export class Game {
     return best;
   }
 
-  private monsterAttack(m: Monster): void {
+  /** Mark every open cell within `radius` as about to be hit. */
+  private windUp(m: Monster, radius: number, message: string): void {
+    const grid = this.floor.map.grid;
+    m.threat = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if ((dx || dy) && walkable(grid.get(m.x + dx, m.y + dy))) m.threat.push([m.x + dx, m.y + dy]);
+      }
+    }
+    this.emit({ t: "telegraph", x: m.x, y: m.y });
+    this.say(message, "bad");
+  }
+
+  private releaseWindup(m: Monster): void {
     const p = this.player;
-    if (!this.rng.chance(HIT.monster)) {
+    const hit = m.threat.some(([x, y]) => x === p.x && y === p.y);
+    m.threat = [];
+    // A wind-up you dodged leaves an opening: plain swings for a few turns.
+    m.cooldown = TUNING.windupCooldown;
+    if (!hit) {
+      this.emit({ t: "miss", x: m.x, y: m.y });
+      this.say(`${m.name} hits nothing but air.`);
+      return;
+    }
+    const mult = m.boss ? TUNING.bossSweepMultiplier : TUNING.nestWindupMultiplier;
+    this.monsterAttack(m, mult, true);
+  }
+
+  /** Cells some monster in sight will hit next turn. */
+  threatened(): Set<number> {
+    const grid = this.floor.map.grid;
+    const out = new Set<number>();
+    for (const m of this.floor.monsters) {
+      if (!m.threat.length || !this.isVisible(m.x, m.y)) continue;
+      for (const [x, y] of m.threat) out.add(grid.idx(x, y));
+    }
+    return out;
+  }
+
+  private monsterAttack(m: Monster, mult = 1, sure = false): void {
+    const p = this.player;
+    if (!sure && !this.rng.chance(HIT.monster)) {
       this.emit({ t: "miss", x: p.x, y: p.y });
       return;
     }
-    const dmg = this.rng.int(Math.max(1, Math.ceil(m.damage / 2)), m.damage);
+    const roll = this.rng.int(Math.max(1, Math.ceil(m.damage / 2)), m.damage);
+    const dmg = Math.round(roll * mult);
     p.hp -= dmg;
     this.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
     if (p.hp <= 0) {

@@ -1,5 +1,6 @@
 // Ties the rules, the renderer and the DOM together.
 
+import { ABILITY } from "./game/abilities";
 import { autoAction, type AutoMode } from "./game/auto";
 import { Game } from "./game/game";
 import type { GameEvent } from "./game/types";
@@ -19,6 +20,7 @@ import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
+import { Sound } from "./ui/sound";
 import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
 
 type Mode = "title" | "play" | "dying" | "help" | "pause" | "end" | "loading";
@@ -28,6 +30,7 @@ const $ = (id: string) => document.getElementById(id)!;
 export class App {
   private renderer: Renderer;
   private fx = new Effects();
+  private sound = new Sound();
   private log: Log;
   private mode: Mode = "loading";
   private returnMode: Mode = "title";
@@ -247,6 +250,12 @@ export class App {
       $("panel").classList.toggle("open");
       return;
     }
+    if (c.kind === "sound") {
+      const on = this.sound.toggle();
+      this.log.push(on ? "Sound on. m turns it off." : "Sound off.", "info");
+      this.log.render();
+      return;
+    }
     if (this.mode !== "play" || !this.game) return;
     this.stopAuto();
     switch (c.kind) {
@@ -319,6 +328,7 @@ export class App {
     const now = performance.now();
     const fx = this.fx;
     for (const e of events) {
+      this.sound.play(e);
       switch (e.t) {
         case "msg":
           this.log.push(e.text, e.tone);
@@ -327,13 +337,17 @@ export class App {
           fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);
           fx.flash(e.x, e.y, e.onPlayer ? C.danger : C.player, now);
           if (e.onPlayer && e.amount >= 5) fx.shake(4, now);
-          if (e.crit) fx.shake(3, now);
+          if (e.crit) {
+            fx.shake(3, now);
+            fx.burst(e.x, e.y, "*+*+", C.gold, now, 0.7);
+          }
           break;
         case "miss":
           fx.float(e.x, e.y, "miss", C.dim, now);
           break;
         case "kill":
           fx.flash(e.x, e.y, e.boss ? C.boss : C.ember, now);
+          fx.burst(e.x, e.y, e.name, e.boss ? C.boss : C.ember, now, e.boss ? 1.6 : 1);
           if (e.boss) fx.shake(9, now);
           break;
         case "heal":
@@ -362,6 +376,16 @@ export class App {
           break;
         case "death":
           fx.shake(10, now);
+          break;
+        case "telegraph":
+          fx.flash(e.x, e.y, C.danger, now);
+          break;
+        case "dodge":
+          fx.float(e.x, e.y, "dodge", C.dim, now);
+          break;
+        case "split":
+          fx.float(e.x, e.y, "split", C.danger, now);
+          fx.flash(e.x, e.y, C.danger, now);
           break;
         case "reveal":
         case "victory":
@@ -393,6 +417,7 @@ export class App {
 
 
   private onKey(e: KeyboardEvent): void {
+    this.sound.wake();
     if (this.mode === "title") return this.titleKey(e);
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
@@ -464,6 +489,7 @@ export class App {
         h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
         h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
         h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
+        h("div", { class: "t-lore" }, ABILITY[m.archetype]),
         e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
         m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
         m.awake ? null : h("div", { class: "faint" }, "asleep"),
@@ -564,7 +590,7 @@ export class App {
     if (this.game && this.mode !== "title") {
       const dim = this.mode === "play" || this.mode === "dying" ? 0 : 0.55;
       this.renderer.render(
-        { floor: this.game.floor, player: this.game.player, sight: PLAYER.sight, dim },
+        { floor: this.game.floor, player: this.game.player, sight: PLAYER.sight, dim, threat: this.game.threatened() },
         this.fx,
         now,
       );

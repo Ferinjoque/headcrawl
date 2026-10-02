@@ -169,6 +169,7 @@ describe("balance report", () => {
       for (const run of [0, 1, 2]) {
         const r = playOut(new Game(s, { run }));
         lines.push(`${name.padEnd(18)} run ${run}: ${r.outcome.padEnd(7)} floor ${r.floor + 1}/${s.floors.length} lv ${r.level} kills ${r.kills} turns ${r.turns}`);
+        expect(r.turns, `${name} run ${run} stalled`).toBeLessThan(20000);
       }
     }
     console.log(lines.join("\n"));

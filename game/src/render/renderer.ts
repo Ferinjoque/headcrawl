@@ -19,6 +19,8 @@ export interface Scene {
   revealAll?: boolean;
   /** Extra darkening for when a menu sits on top, 0..1. */
   dim?: number;
+  /** Cell indexes a monster will hit next turn. */
+  threat?: Set<number>;
 }
 
 export const FONT = "VT323";
@@ -133,6 +135,7 @@ export class Renderer {
     lctx.textBaseline = "middle";
 
     this.drawCells(scene, ox, oy, now);
+    this.drawThreat(scene, ox, oy, now);
     this.drawThings(scene, ox, oy, now);
     this.drawEffects(fx, ox, oy, now);
     this.composite(scene.dim ?? 0);
@@ -269,6 +272,19 @@ export class Renderer {
     }
   }
 
+  private drawThreat(scene: Scene, ox: number, oy: number, now: number): void {
+    if (!scene.threat?.size) return;
+    const { ctx, cellW, cellH } = this;
+    const width = scene.floor.map.grid.width;
+    const pulse = this.reduced ? 0.4 : 0.3 + 0.15 * Math.sin(now / 140);
+    ctx.fillStyle = rgba(C.danger, pulse);
+    for (const i of scene.threat) {
+      const x = i % width;
+      const y = (i - x) / width;
+      ctx.fillRect(ox + x * cellW + 1, oy + y * cellH + 1, cellW - 2, cellH - 2);
+    }
+  }
+
   private drawThings(scene: Scene, ox: number, oy: number, now: number): void {
     const { lctx, ctx, cellW, cellH } = this;
     const { floor } = scene;
@@ -328,6 +344,15 @@ export class Renderer {
       const k = 1 - (now - f.born) / f.life;
       ctx.fillStyle = rgba(f.color, 0.55 * k);
       ctx.fillRect(ox + f.x * cellW, oy + f.y * cellH, cellW, cellH);
+    }
+    for (const p of fx.particles) {
+      const age = now - p.born;
+      const t = age / p.life;
+      // Fast out, then drifting down a little, like sparks.
+      const px = p.x + p.vx * age;
+      const py = p.y + p.vy * age + 0.0000012 * age * age;
+      lctx.fillStyle = rgba(p.color, (1 - t) ** 1.5);
+      lctx.fillText(p.ch, ox + px * cellW, oy + py * cellH);
     }
     lctx.font = `${Math.round(this.fontPx * 0.9)}px ${FONT}`;
     for (const f of fx.floaters) {

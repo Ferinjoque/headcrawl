@@ -8,7 +8,8 @@ export type Command =
   | { kind: "rest" }
   | { kind: "help" }
   | { kind: "menu" }
-  | { kind: "panel" };
+  | { kind: "panel" }
+  | { kind: "sound" };
 
 const MOVES: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
@@ -71,6 +72,8 @@ export function keyToCommand(e: KeyboardEvent): Command | null {
       return { kind: "menu" };
     case "Tab":
       return { kind: "panel" };
+    case "m":
+      return { kind: "sound" };
   }
   if (e.code === "Numpad5") return { kind: "wait" };
   return null;

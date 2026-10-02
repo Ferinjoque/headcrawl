@@ -21,6 +21,13 @@ export interface Monster {
   enemy: Enemy | null;
   phase: number;
   lastTaunt: number;
+  /** Cells this monster will hit on its next turn. Empty when not winding up. */
+  threat: [number, number][];
+  /** Boss turns taken, for pacing the area attack. */
+  turns: number;
+  /** Turns until this monster may wind up again. */
+  cooldown: number;
+  split: boolean;
 }
 
 export type ItemKind = Loot["kind"] | "coffee";
@@ -66,6 +73,9 @@ export type GameEvent =
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
   | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean }
+  | { t: "telegraph"; x: number; y: number }
+  | { t: "dodge"; x: number; y: number }
+  | { t: "split"; x: number; y: number }
   | { t: "reveal" }
   | { t: "death"; killer: string }
   | { t: "victory" };
