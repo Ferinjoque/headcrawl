@@ -14,6 +14,7 @@ export interface FloorState {
   seen: Uint8Array;
   visible: Uint8Array;
   bossDead: boolean;
+  bossMet: boolean;
   shrinesUsed: Set<number>;
 }
 
@@ -90,9 +91,12 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     let cells = rng.shuffle(roomCells(map, rect));
     const room = rect.spec;
     if (rect === map.lair) {
-      // The boss waits deep in the room, off the doorway.
-      const off = (c: [number, number]) => Math.abs(c[0] - rect.cx) + Math.abs(c[1] - rect.cy);
-      const spot = [...cells].sort((a, b) => off(a) - off(b))[0] ?? [rect.cx, rect.cy];
+      // Near the middle of its room. If you start in the lair (a floor with
+      // one file), as far from you as the room allows instead.
+      const [sx, sy] = rect === map.entry ? map.start : [rect.cx, rect.cy];
+      const off = (c: [number, number]) => Math.abs(c[0] - sx) + Math.abs(c[1] - sy);
+      const sorted = [...cells].sort((a, b) => off(a) - off(b) || a[1] - b[1] || a[0] - b[0]);
+      const spot = (rect === map.entry ? sorted.at(-1) : sorted[0]) ?? [rect.cx, rect.cy];
       cells = cells.filter((c) => c !== spot);
       monsters.push(fromBoss(floor.boss, spot[0], spot[1], rect.index, floor.index, floors));
     }
@@ -116,6 +120,7 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     seen: new Uint8Array(size),
     visible: new Uint8Array(size),
     bossDead: false,
+    bossMet: false,
     shrinesUsed: new Set(),
   };
 }

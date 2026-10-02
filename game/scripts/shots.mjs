@@ -32,6 +32,29 @@ for (let i = 0; i < 12; i++) {
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${out}/3-explore.png` });
 
+// Walk up to the boss: put the player in a doorway of the lair and step in.
+await page.evaluate(() => {
+  const app = window.headcrawl;
+  const game = app.game;
+  const lair = game.floor.map.lair;
+  const g = game.floor.map.grid;
+  for (let x = lair.x; x < lair.x + lair.w; x++) {
+    for (let y = lair.y; y < lair.y + lair.h; y++) {
+      if (g.get(x, y) !== 4) continue;
+      const outside = [[1, 0], [-1, 0], [0, 1], [0, -1]].find(([dx, dy]) => g.get(x + dx, y + dy) === 3);
+      if (!outside) continue;
+      game.player.x = x + outside[0];
+      game.player.y = y + outside[1];
+      game.player.hp = game.player.maxHp;
+      app.step({ type: "move", dx: -outside[0], dy: -outside[1] });
+      return;
+    }
+  }
+});
+await page.waitForTimeout(700);
+await page.screenshot({ path: `${out}/3b-boss.png` });
+await page.mouse.move(10, 10);
+
 await page.keyboard.press("?");
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/4-help.png` });

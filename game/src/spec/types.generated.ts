@@ -30,6 +30,9 @@ export type B = string;
  */
 export type EdgeKind = "import" | "passage";
 export type Weight = number;
+/**
+ * @maxItems 160
+ */
 export type Edges = Edge[];
 export type Entry = string;
 export type Id1 = string;
@@ -39,6 +42,7 @@ export type Name1 = string;
 export type Path = string;
 /**
  * @minItems 1
+ * @maxItems 40
  */
 export type Rooms = [Room, ...Room[]];
 export type Blurb = string | null;
@@ -60,6 +64,9 @@ export type Params = number;
 export type Signature1 = string;
 export type Speed1 = number;
 export type Xp1 = number;
+/**
+ * @maxItems 12
+ */
 export type Enemies = Enemy[];
 export type Functions = number;
 export type Heat = number;
@@ -81,6 +88,9 @@ export type Line2 = number;
 export type Power = number;
 export type Tag = string;
 export type Text = string;
+/**
+ * @maxItems 8
+ */
 export type Loot = Loot1[];
 export type Name3 = string;
 export type Path1 = string;
@@ -88,6 +98,7 @@ export type Size = number;
 export type Wing = string;
 /**
  * @minItems 1
+ * @maxItems 40
  */
 export type Wings = [Wing1, ...Wing1[]];
 export type Id5 = string;
@@ -100,6 +111,9 @@ export type CommittedAt = number;
 export type Head = string;
 export type Loc1 = number;
 export type Name5 = string;
+/**
+ * @maxItems 32
+ */
 export type Languages = LanguageShare[];
 export type Name6 = string;
 export type Url = string | null;

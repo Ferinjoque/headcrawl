@@ -95,7 +95,9 @@ function placeRooms(floor: Floor, rng: Rng): Map<string, Box> {
     const pcx = p.x + p.w / 2;
     const pcy = p.y + p.h / 2;
     const base = (Math.max(p.w, p.h) + Math.max(w, h)) / 2 + GAP;
-    for (let attempt = 0; ; attempt++) {
+    // The search ring keeps growing, so this always ends. The cap is a guard
+    // against a broken spec, not something a real floor gets near.
+    for (let attempt = 0; attempt < 20000; attempt++) {
       const dist = base + attempt * 0.25;
       const angle = rng.next() * Math.PI * 2;
       // Cells are taller than wide, so spread further sideways.
@@ -109,6 +111,10 @@ function placeRooms(floor: Floor, rng: Rng): Map<string, Box> {
         placed.set(id, box);
         break;
       }
+    }
+    if (!placed.has(id)) {
+      const right = Math.max(...[...placed.values()].map((b) => b.x + b.w));
+      placed.set(id, { x: right + GAP * 2, y: p.y, w, h });
     }
   }
   return placed;
@@ -147,7 +153,10 @@ function isCorner(r: RoomRect, x: number, y: number): boolean {
 
 function digCorridors(grid: Grid, floor: Floor, rects: RoomRect[], byId: Map<string, RoomRect>): void {
   const edges = [...floor.edges].sort(
-    (a, b) => (a.kind === b.kind ? b.weight - a.weight : a.kind === "import" ? -1 : 1) || a.a.localeCompare(b.a),
+    (a, b) =>
+      (a.kind === b.kind ? b.weight - a.weight : a.kind === "import" ? -1 : 1) ||
+      (a.a < b.a ? -1 : a.a > b.a ? 1 : 0) ||
+      (a.b < b.b ? -1 : a.b > b.b ? 1 : 0),
   );
   for (const edge of edges) {
     const a = byId.get(edge.a)!;

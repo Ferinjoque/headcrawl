@@ -16,9 +16,9 @@ const ARCH_NAME: Record<string, string> = {
 function foe(m: Monster) {
   const e = m.enemy;
   const stats = m.boss
-    ? `${m.boss.title}. ${m.boss.ccn} branches, changed ${plural(m.boss.churn, "time")}`
+    ? `${m.boss.title}. ${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${ARCH_NAME[m.archetype]}. ${e.ccn} branches, depth ${e.nesting}, ${e.params} args, line ${e.line}`
+      ? `${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
       : ARCH_NAME[m.archetype];
   return h(
     "div",

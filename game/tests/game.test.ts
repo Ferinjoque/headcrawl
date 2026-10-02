@@ -174,3 +174,30 @@ describe("balance report", () => {
     console.log(lines.join("\n"));
   }, 120_000);
 });
+
+describe("edge cases", () => {
+  it("a one-file floor puts the boss away from you and still introduces it", () => {
+    const only = room({ kind: "lair", size: 3 });
+    const f = floor([only], []);
+    f.entry = only.id;
+    f.lair = only.id;
+    const game = new Game(spec([f]));
+    const boss = game.floor.monsters.find((m) => m.boss)!;
+    expect(Math.max(Math.abs(boss.x - game.player.x), Math.abs(boss.y - game.player.y))).toBeGreaterThan(2);
+    expect(game.drain().some((e) => e.t === "intro")).toBe(true);
+  });
+
+  it("monsters chase around each other instead of stacking", () => {
+    const pack = Array.from({ length: 6 }, () => enemy({ hp: 50, damage: 1, speed: 200 }));
+    const rooms = [room(), room({ enemies: pack, size: 4 }), room({ kind: "lair" })];
+    const game = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]));
+    for (const m of game.floor.monsters) m.awake = true;
+    for (let i = 0; i < 40 && game.outcome === "playing"; i++) {
+      game.player.hp = game.player.maxHp;
+      game.act({ type: "wait" });
+      checkInvariants(game);
+    }
+    const close = game.floor.monsters.filter((m) => !m.boss && Math.max(Math.abs(m.x - game.player.x), Math.abs(m.y - game.player.y)) <= 1);
+    expect(close.length).toBeGreaterThan(0);
+  });
+});

@@ -96,3 +96,12 @@ def test_corridors_connect_everything(paths: list[str], data: st.DataObject, rat
     assert len({(link.a, link.b) for link in links}) == len(links)
     assert len(links) <= len(paths) - 1 + int(len(paths) * ratio) + 1
     assert corridors(list(reversed(paths)), imports, ratio) == links
+
+
+def test_floor_names_never_collide() -> None:
+    paths = (
+        [f"src/a{i}.py" for i in range(3)] + [f"src/src/b{i}.py" for i in range(3)] + [f"lib/c{i}.py" for i in range(3)]
+    )
+    groups = group_floors(paths, 8, 18)
+    names = [g.name for g in groups]
+    assert len(names) == len(set(names))

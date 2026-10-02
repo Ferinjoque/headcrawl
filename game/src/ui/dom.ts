@@ -37,5 +37,6 @@ export function bar(value: number, max: number, width: number): string {
 }
 
 export function plural(n: number, word: string): string {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
+  const many = /(s|sh|ch|x)$/.test(word) ? `${word}es` : `${word}s`;
+  return `${n} ${n === 1 ? word : many}`;
 }

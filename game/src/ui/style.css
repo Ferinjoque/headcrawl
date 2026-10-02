@@ -372,6 +372,72 @@ body.dragging #screen::after {
   background: oklch(0.14 0.02 20 / 0.85);
 }
 
+/* Title cards for a new floor or a boss */
+#banner {
+  position: absolute;
+  inset: 9% 16px auto;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+#banner .card {
+  animation: card 3200ms var(--ease) forwards;
+  max-width: 60ch;
+}
+.card-kicker {
+  color: var(--text-dim);
+}
+.card-name {
+  font-size: clamp(36px, 5.5vw, 72px);
+  line-height: 1;
+  margin: 4px 0 6px;
+  overflow-wrap: anywhere;
+}
+.card-name.long {
+  font-size: clamp(28px, 3.4vw, 46px);
+}
+.card-name.boss {
+  color: var(--boss);
+  text-shadow: 0 0 14px var(--boss), 0 0 44px oklch(0.74 0.24 340 / 0.55);
+}
+.card-name.floor {
+  color: var(--ember);
+  text-shadow: 0 0 14px var(--ember), 0 0 44px oklch(0.66 0.17 45 / 0.5);
+}
+.card-sub {
+  font-size: var(--fs-m);
+}
+.card-quote {
+  color: var(--lore);
+  margin-top: 10px;
+}
+@keyframes card {
+  0% { opacity: 0; transform: translateY(10px); }
+  10% { opacity: 1; transform: none; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Hover details for monsters and items */
+#tip {
+  position: absolute;
+  z-index: 3;
+  max-width: 44ch;
+  padding: 6px 10px;
+  background: oklch(0.17 0.025 20 / 0.95);
+  border: 1px solid var(--ink-line);
+  pointer-events: none;
+  font-size: var(--fs-xs);
+  line-height: 1.25;
+}
+#tip[hidden] {
+  display: none;
+}
+#tip .tip-name {
+  font-size: var(--fs-s);
+}
+
 /* Touch controls */
 #touch {
   position: absolute;
@@ -432,6 +498,13 @@ body.dragging #screen::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #banner .card {
+    animation: card-still 3200ms linear forwards !important;
+  }
+  @keyframes card-still {
+    0%, 85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
   *,
   *::before,
   *::after {

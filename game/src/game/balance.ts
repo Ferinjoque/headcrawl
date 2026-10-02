@@ -1,4 +1,4 @@
-// Every tuning number for combat and items lives here.
+// Tuning numbers for combat, items and difficulty.
 
 export const PLAYER = {
   hp: 36,

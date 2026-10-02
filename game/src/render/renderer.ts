@@ -316,7 +316,6 @@ export class Renderer {
     lctx.fillStyle = rgba(col, m.awake ? Math.min(1, light + 0.2) : light * 0.75);
     lctx.fillText(m.glyph, px + cellW / 2, py + cellH / 2);
     if (m.hp < m.maxHp) {
-      // A thin health line under wounded monsters.
       const w = Math.max(1, Math.round((cellW - 2) * (m.hp / m.maxHp)));
       lctx.fillStyle = rgba(C.danger, 0.9);
       lctx.fillRect(px + 1, py + cellH - Math.max(2, this.dpr * 2), w, Math.max(1, this.dpr * 1.5));

@@ -201,3 +201,32 @@ def test_cli_reports_errors(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
     assert main(["analyze", str(tmp_path / "empty")]) == 1
     assert main(["analyze", "file:///etc/passwd"]) == 1
     assert "headcrawl:" in capsys.readouterr().err
+
+
+def test_local_vs_remote_targets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from headcrawl.cli import is_local
+
+    (tmp_path / "owner" / "repo").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    assert not is_local("owner/repo")
+    assert is_local("./owner/repo")
+    assert is_local(str(tmp_path))
+    assert not is_local("missing/dir/here")
+
+
+def test_invisible_names_and_empty_history(make_repo: MakeRepo, tmp_path: Path) -> None:
+    root = make_repo({"​/a.py": "def f():\n    return 1\n", "b/b.py": "x = 1\n", "b/c.py": "y = 2\n"}, git=False)
+    spec = analyze(root)
+    assert all(w.name for f in spec.floors for w in f.wings)
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    assert analyze(root).repo.committed_at == 0
+
+
+def test_subfolder_keeps_churn(make_repo: MakeRepo) -> None:
+    root = make_repo({"pkg/a.py": "x = 1\n", "pkg/b.py": "y = 1\n", "pkg/c.py": "z = 1\n"}, {"pkg/a.py": "x = 2\n"})
+    spec = analyze(root / "pkg")
+    churn = {r.path: r.churn for f in spec.floors for r in f.rooms}
+    assert churn["a.py"] == 2

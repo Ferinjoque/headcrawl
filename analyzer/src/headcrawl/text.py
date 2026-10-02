@@ -8,13 +8,18 @@ cap lengths so a weird repo can't blow up the UI or the JSON size.
 import re
 import unicodedata
 
-_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f​-‏‪-‮⁦-⁩]")
 _SPACES = re.compile(r"\s+")
+
+# Cc: control chars. Cf: invisible format chars (bidi overrides, zero width,
+# BOM, tags). Co/Cs/Cn: private use, lone surrogates, unassigned.
+_DROP = {"Cc", "Cf", "Co", "Cs", "Cn"}
 
 
 def clean(value: str, limit: int = 120) -> str:
     value = unicodedata.normalize("NFC", value)
-    value = _CONTROL.sub("", value)
+    value = "".join(
+        " " if ch in "\t\n\r" else ch for ch in value if ch in "\t\n\r" or unicodedata.category(ch) not in _DROP
+    )
     value = _SPACES.sub(" ", value).strip()
     if len(value) > limit:
         value = value[: limit - 1].rstrip() + "…"

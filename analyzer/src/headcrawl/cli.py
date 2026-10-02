@@ -9,11 +9,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from . import gitio
 from .build import AnalysisError, analyze
 from .languages import GRAMMARS
 from .limits import DEFAULT, Limits
-from .models import DungeonSpec
+from .models import MAX_FLOORS, MAX_ROOMS, DungeonSpec
+from .walk import wanted
 
 
 def _force_remove(func, path, _exc):  # type: ignore[no-untyped-def]
@@ -22,19 +25,33 @@ def _force_remove(func, path, _exc):  # type: ignore[no-untyped-def]
     func(path)
 
 
+def _cleanup(tmp: str) -> None:
+    try:
+        shutil.rmtree(tmp, onexc=_force_remove)
+    except OSError as exc:
+        print(f"headcrawl: could not remove {tmp}: {exc}", file=sys.stderr)
+
+
+def is_local(target: str) -> bool:
+    """`owner/repo` means GitHub even if a folder by that name exists here.
+    Write ./owner/repo to analyze the folder."""
+    if gitio.is_shorthand(target) and not target.startswith("."):
+        return False
+    return Path(target).exists()
+
+
 def analyze_target(target: str, limits: Limits = DEFAULT, name: str | None = None) -> DungeonSpec:
-    local = Path(target)
-    if local.exists():
-        return analyze(local, name=name, limits=limits)
+    if is_local(target):
+        return analyze(Path(target), name=name, limits=limits)
     url = gitio.normalize_url(target)
     tmp = tempfile.mkdtemp(prefix="headcrawl-")
     try:
         dest = Path(tmp) / "repo"
-        gitio.clone(url, dest, limits)
+        gitio.clone(url, dest, limits, keep=wanted)
         repo_name = name or url.rstrip("/").removesuffix(".git").split("/", 3)[-1]
         return analyze(dest, name=repo_name, url=url, limits=limits)
     finally:
-        shutil.rmtree(tmp, onexc=_force_remove)
+        _cleanup(tmp)
 
 
 def write_json(data: str, out: str | None) -> None:
@@ -43,18 +60,19 @@ def write_json(data: str, out: str | None) -> None:
         return
     path = Path(out)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(data + "\n", encoding="utf-8")
+    with path.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write(data + "\n")
 
 
 def _cmd_analyze(args: argparse.Namespace) -> int:
     limits = Limits(
-        max_floors=args.max_floors,
-        max_rooms_per_floor=args.max_rooms,
-        clone_depth=args.depth,
+        max_floors=max(1, min(args.max_floors, MAX_FLOORS)),
+        max_rooms_per_floor=max(1, min(args.max_rooms, MAX_ROOMS)),
+        clone_depth=max(1, args.depth),
     )
     try:
         spec = analyze_target(args.target, limits, args.name)
-    except (gitio.GitError, AnalysisError) as exc:
+    except (gitio.GitError, AnalysisError, ValidationError) as exc:
         print(f"headcrawl: {exc}", file=sys.stderr)
         return 1
     if args.flavor:

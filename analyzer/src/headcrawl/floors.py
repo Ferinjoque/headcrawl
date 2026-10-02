@@ -104,7 +104,25 @@ def group_floors(paths: list[str], max_floors: int, max_rooms: int, min_rooms: i
     ]
     groups = _split_big(groups, max_rooms, enough=max_floors * 2)
     groups = _fold(groups, max_floors, min_rooms)
-    return sorted([*groups, *side_floors], key=lambda g: g.name)
+    return _unique_names(sorted([*groups, *side_floors], key=lambda g: (g.name, g.prefix)))
+
+
+def _unique_names(groups: list[Group]) -> list[Group]:
+    """Loose files in src/ and a src/src/ folder would both be called "src"."""
+    seen: Counter[str] = Counter(g.name for g in groups)
+    out = []
+    for g in groups:
+        if seen[g.name] > 1:
+            g = Group(name=g.prefix or ROOT, prefix=g.prefix, paths=g.paths, tests=g.tests, parts=g.parts)
+        out.append(g)
+    taken: Counter[str] = Counter()
+    final = []
+    for g in out:
+        taken[g.name] += 1
+        if taken[g.name] > 1:
+            g = Group(name=f"{g.name} ({taken[g.name]})", prefix=g.prefix, paths=g.paths, tests=g.tests, parts=g.parts)
+        final.append(g)
+    return final
 
 
 def _split_big(groups: list[Group], max_rooms: int, enough: int) -> list[Group]:

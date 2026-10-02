@@ -1,14 +1,16 @@
 """All git calls go through here.
 
-The repo is untrusted. A cloned or local repo can carry config that runs
-programs (hooks, fsmonitor, textconv, external diff), so every call passes
-flags that turn those off, and we never use a shell.
+The repo is untrusted. A local repo can carry config that runs programs
+(hooks, fsmonitor, textconv, external diff, a gpg program for signature
+checks), so every call passes flags that turn those off, and we never use a
+shell. Clones fetch over https only and never lazily fetch more objects.
 """
 
 import os
 import re
 import subprocess
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -29,6 +31,10 @@ _SAFE_CONFIG = (
     "diff.external=",
     "-c",
     "core.pager=cat",
+    "-c",
+    "core.quotePath=false",
+    "-c",
+    "log.showSignature=false",
 )
 
 _URL = re.compile(r"^https://[A-Za-z0-9.-]+(?::\d{1,5})?/[A-Za-z0-9._~/-]+?(?:\.git)?/?$")
@@ -48,6 +54,10 @@ def _env() -> dict[str, str]:
         GIT_CONFIG_NOSYSTEM="1",
         GIT_CONFIG_GLOBAL=os.devnull,
         GIT_ASKPASS="echo",
+        GIT_ALLOW_PROTOCOL="https",
+        # Never fetch missing objects behind our back. A partial clone leaves
+        # big blobs out on purpose.
+        GIT_NO_LAZY_FETCH="1",
     )
     return env
 
@@ -72,17 +82,27 @@ def run(args: list[str], cwd: Path | None = None, timeout: int = 60, stdin: str 
     return out.stdout.decode("utf-8", "replace")
 
 
+def is_shorthand(target: str) -> bool:
+    return bool(_SHORTHAND.match(target.strip())) and ".." not in target
+
+
 def normalize_url(target: str) -> str:
     """Accept `owner/repo` or an https URL. Anything else is refused."""
     target = target.strip()
-    if _SHORTHAND.match(target) and ".." not in target:
+    if is_shorthand(target):
         return f"https://github.com/{target}"
     if _URL.match(target) and ".." not in target and "//" not in target[8:]:
         return target
     raise GitError(f"not a supported repo url: {target!r}")
 
 
-def clone(url: str, dest: Path, limits: Limits = DEFAULT) -> None:
+def clone(url: str, dest: Path, limits: Limits = DEFAULT, keep: Callable[[str], bool] = lambda _: True) -> int:
+    """Clone without a checkout, then check out only the files worth reading.
+
+    Nothing big lands on disk: blobs over the size limit are never fetched,
+    and the checkout is capped by file count and total bytes before it starts.
+    Returns how many files were checked out.
+    """
     url = normalize_url(url)
     if dest.exists() and any(dest.iterdir()):
         raise GitError(f"clone target is not empty: {dest}")
@@ -91,19 +111,77 @@ def clone(url: str, dest: Path, limits: Limits = DEFAULT) -> None:
         [
             "clone",
             "--quiet",
+            "--no-checkout",
             "--no-recurse-submodules",
             "--single-branch",
             f"--depth={limits.clone_depth}",
-            "--filter=blob:limit=1m",
+            f"--filter=blob:limit={limits.max_file_bytes}",
             "--",
             url,
             str(dest),
         ],
         timeout=limits.clone_timeout_s,
     )
-    size = sum(f.stat().st_size for f in dest.rglob("*") if f.is_file() and not f.is_symlink())
-    if size > limits.max_clone_bytes:
-        raise GitError(f"repo is too big: {size // (1024 * 1024)} MB")
+    return checkout_selected(dest, keep, limits)
+
+
+@dataclass(frozen=True)
+class TreeEntry:
+    mode: str
+    oid: str
+    path: str
+
+
+def tree_entries(path: Path) -> list[TreeEntry]:
+    out = run(["ls-tree", "-r", "-z", "--full-tree", "HEAD"], cwd=path, timeout=120)
+    entries = []
+    for item in out.split("\0"):
+        if not item:
+            continue
+        meta, name = item.split("\t", 1)
+        mode, _kind, oid = meta.split()
+        entries.append(TreeEntry(mode, oid, name))
+    return entries
+
+
+def blob_sizes(path: Path, oids: list[str]) -> dict[str, int]:
+    """Sizes of blobs we already have. Missing (filtered out) blobs are left out."""
+    if not oids:
+        return {}
+    out = run(["cat-file", "--batch-check"], cwd=path, stdin="\n".join(oids) + "\n", timeout=120)
+    sizes = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[1] == "blob":
+            sizes[parts[0]] = int(parts[2])
+    return sizes
+
+
+def checkout_selected(path: Path, keep: Callable[[str], bool], limits: Limits = DEFAULT) -> int:
+    entries = tree_entries(path)
+    if len(entries) > limits.max_tree_entries:
+        raise GitError(f"repo has too many files: {len(entries)}")
+    regular = [e for e in entries if e.mode in ("100644", "100755")]
+    wanted = [e for e in regular if keep(e.path) or e.path.rsplit("/", 1)[-1] in ("go.mod", ".gitattributes")]
+    sizes = blob_sizes(path, sorted({e.oid for e in wanted}))
+    picked: list[str] = []
+    total = 0
+    for e in sorted(wanted, key=lambda e: e.path):
+        size = sizes.get(e.oid)
+        if size is None or size > limits.max_file_bytes:
+            continue
+        if total + size > limits.max_clone_bytes or len(picked) >= limits.max_files:
+            break
+        picked.append(e.path)
+        total += size
+    if picked:
+        run(
+            ["--literal-pathspecs", "checkout", "HEAD", "--pathspec-from-file=-", "--pathspec-file-nul"],
+            cwd=path,
+            stdin="\0".join(picked) + "\0",
+            timeout=limits.clone_timeout_s,
+        )
+    return len(picked)
 
 
 def is_repo(path: Path) -> bool:
@@ -121,7 +199,7 @@ class Head:
 
 
 def head(path: Path) -> Head:
-    sha, ts = run(["log", "-1", "--format=%H %ct"], cwd=path).split()
+    sha, ts = run(["log", "-1", "--no-show-signature", "--format=%H %ct"], cwd=path).split()
     if not _SHA.match(sha):
         raise GitError(f"unexpected HEAD sha: {sha!r}")
     try:
@@ -179,8 +257,12 @@ def churn(path: Path, limits: Limits = DEFAULT) -> Counter[str]:
     out = run(
         [
             "log",
+            "--no-show-signature",
             f"--max-count={limits.churn_commits}",
             "--name-only",
+            # Paths relative to where we stand, so analyzing a subfolder of a
+            # repo still lines up with ls-files.
+            "--relative",
             "--no-renames",
             "--no-merges",
             "--no-ext-diff",

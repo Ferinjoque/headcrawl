@@ -10,16 +10,17 @@ import { Effects } from "./render/effects";
 import { C } from "./render/palette";
 import { Renderer } from "./render/renderer";
 import { loadSpec, type DungeonSpec } from "./spec";
-import { replace } from "./ui/dom";
+import { h, plural, replace } from "./ui/dom";
 import { loadGallery, loadGalleryDungeon, type GalleryEntry } from "./ui/gallery";
 import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens";
+import { dailyPick } from "./ui/daily";
 import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
 
-type Mode = "title" | "play" | "help" | "pause" | "end" | "loading";
+type Mode = "title" | "play" | "dying" | "help" | "pause" | "end" | "loading";
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -32,11 +33,14 @@ export class App {
   private gallery: GalleryEntry[] = [];
   private selected = 0;
   private titleError: string | null = null;
-  private game: Game | null = null;
+  game: Game | null = null;
   private route: Route = { kind: "title" };
   private demo: FloorState | null = null;
   private auto: AutoMode | null = null;
   private autoTimer = 0;
+  private endTimer = 0;
+  /** Bumped on every navigation so a slow fetch can't replace a newer game. */
+  private navSeq = 0;
   private copied = false;
   private lastDraw = 0;
   private reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -67,9 +71,10 @@ export class App {
     await this.follow(parseRoute(location.hash));
   }
 
-  // ---- routing -------------------------------------------------------------
 
   private async follow(route: Route): Promise<void> {
+    const seq = ++this.navSeq;
+    window.clearTimeout(this.endTimer);
     if (route.kind === "title") {
       this.game = null;
       this.showTitle();
@@ -80,6 +85,7 @@ export class App {
     if (route.kind === "gallery") {
       const known = !this.gallery.length || this.gallery.some((g) => g.slug === route.slug);
       text = known ? await loadGalleryDungeon(route.slug) : null;
+      if (seq !== this.navSeq) return;
       if (!text) return this.failToTitle(`No dungeon called "${route.slug}" here.`);
     } else {
       text = decodeSpec(route.data);
@@ -103,7 +109,6 @@ export class App {
     this.showTitle();
   }
 
-  // ---- screens -------------------------------------------------------------
 
   private showScreen(node: HTMLElement | null, clear = false): void {
     const screen = $("screen");
@@ -129,9 +134,11 @@ export class App {
   }
 
   private renderTitle(): void {
+    const daily = dailyPick(this.gallery, new Date());
     this.showScreen(
-      titleScreen(this.gallery, this.selected, this.titleError, {
+      titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label }, {
         play: (slug) => this.navigate({ kind: "gallery", slug, run: 0 }),
+        daily: () => this.playDaily(),
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
       }),
@@ -139,6 +146,11 @@ export class App {
     );
     const current = document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`);
     current?.scrollIntoView({ block: "nearest" });
+  }
+
+  private playDaily(): void {
+    const daily = dailyPick(this.gallery, new Date());
+    if (daily) this.navigate({ kind: "gallery", slug: daily.entry.slug, run: daily.run });
   }
 
   private openHelp(): void {
@@ -162,7 +174,8 @@ export class App {
   }
 
   private showEnd(): void {
-    const game = this.game!;
+    const game = this.game;
+    if (!game || game.outcome === "playing") return;
     this.mode = "end";
     this.stopAuto();
     const share = resultText(game, location.href);
@@ -185,15 +198,15 @@ export class App {
     void navigator.clipboard?.writeText(text).then(
       () => {
         this.copied = true;
-        this.showEnd();
+        if (this.mode === "end") this.showEnd();
       },
       () => undefined,
     );
   }
 
-  // ---- game ----------------------------------------------------------------
 
   private begin(spec: DungeonSpec, run: number): void {
+    window.clearTimeout(this.endTimer);
     this.titleError = null;
     this.copied = false;
     this.stopAuto();
@@ -206,6 +219,7 @@ export class App {
     this.mode = "play";
     this.showScreen(null);
     this.handleEvents(this.game.drain());
+    this.floorCard();
     this.refreshUi();
   }
 
@@ -251,14 +265,19 @@ export class App {
     }
   }
 
-  private step(action: Parameters<Game["act"]>[0]): boolean {
+  step(action: Parameters<Game["act"]>[0]): boolean {
     const game = this.game!;
     const took = game.act(action);
     this.handleEvents(game.drain());
     this.refreshUi();
-    if (game.outcome !== "playing") {
+    if (game.outcome !== "playing" && this.mode === "play") {
+      // A short beat to see the last hit land. Input stops right away.
+      this.mode = "dying";
       this.stopAuto();
-      window.setTimeout(() => this.showEnd(), this.reduced ? 200 : 900);
+      window.clearTimeout(this.endTimer);
+      this.endTimer = window.setTimeout(() => {
+        if (this.game === game) this.showEnd();
+      }, this.reduced ? 200 : 900);
     }
     return took;
   }
@@ -322,9 +341,15 @@ export class App {
         case "taunt":
           this.log.push(`${e.name}: "${e.text}"`, "boss");
           break;
+        case "intro":
+          this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
+          this.card(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text);
+          fx.shake(5, now);
+          break;
         case "descend":
           this.renderer.snapCamera();
           fx.clear();
+          this.floorCard();
           break;
         case "death":
           fx.shake(10, now);
@@ -336,10 +361,31 @@ export class App {
     }
   }
 
-  // ---- input ---------------------------------------------------------------
+  private card(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string): void {
+    const el = $("banner");
+    replace(
+      el,
+      h(
+        "div",
+        { class: "card" },
+        h("div", { class: "card-kicker" }, kicker),
+        h("div", { class: `card-name ${kind}${name.length > 14 ? " long" : ""}` }, name),
+        h("div", { class: "card-sub" }, sub),
+        quote ? h("div", { class: "card-quote" }, `"${quote}"`) : null,
+      ),
+    );
+  }
+
+  private floorCard(): void {
+    const game = this.game!;
+    const f = game.floorSpec;
+    this.card(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}.`);
+  }
+
 
   private onKey(e: KeyboardEvent): void {
     if (this.mode === "title") return this.titleKey(e);
+    if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
       else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href));
@@ -377,6 +423,9 @@ export class App {
     } else if (e.key === "o" || e.key === "O") {
       ($("file") as HTMLInputElement).click();
       return;
+    } else if (e.key === "d" || e.key === "D") {
+      this.playDaily();
+      return;
     } else if (e.key === "?") {
       this.openHelp();
       return;
@@ -385,8 +434,52 @@ export class App {
     this.renderTitle();
   }
 
+  private showTip(clientX: number, clientY: number): void {
+    const tip = $("tip");
+    const game = this.game;
+    if (this.mode !== "play" || !game) {
+      tip.hidden = true;
+      return;
+    }
+    const [x, y] = this.renderer.cellAt(clientX, clientY);
+    const m = game.isVisible(x, y) ? game.monsterAt(x, y) : undefined;
+    const item = game.isVisible(x, y) ? game.itemAt(x, y) : undefined;
+    if (!m && !item) {
+      tip.hidden = true;
+      return;
+    }
+    if (m) {
+      const e = m.enemy;
+      replace(
+        tip,
+        h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
+        h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
+        h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
+        e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
+        m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
+        m.awake ? null : h("div", { class: "faint" }, "asleep"),
+      );
+    } else if (item) {
+      const names = { potion: "TODO", blade: "FIXME", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
+      replace(
+        tip,
+        h("div", { class: "tip-name t-loot" }, names[item.kind]),
+        item.loot ? h("div", null, `"${item.loot.text}"`) : h("div", null, "Still warm."),
+        item.source ? h("div", { class: "faint" }, item.source) : null,
+      );
+    }
+    const stage = $("stage").getBoundingClientRect();
+    tip.hidden = false;
+    const left = Math.min(clientX - stage.left + 16, stage.width - tip.offsetWidth - 8);
+    const top = Math.min(clientY - stage.top + 16, stage.height - tip.offsetHeight - 8);
+    tip.style.left = `${Math.max(8, left)}px`;
+    tip.style.top = `${Math.max(8, top)}px`;
+  }
+
   private bindPointer(): void {
     const canvas = $("view");
+    canvas.addEventListener("mousemove", (e) => this.showTip(e.clientX, e.clientY));
+    canvas.addEventListener("mouseleave", () => ($("tip").hidden = true));
     canvas.addEventListener("click", (e) => {
       if (this.mode !== "play" || !this.game) return;
       const [x, y] = this.renderer.cellAt(e.clientX, e.clientY);
@@ -441,7 +534,6 @@ export class App {
     this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
   }
 
-  // ---- drawing -------------------------------------------------------------
 
   private async makeDemo(): Promise<void> {
     const entry = this.gallery[0];
@@ -458,10 +550,10 @@ export class App {
     if (document.hidden) return;
     const busy = this.fx.busy(now);
     // Ambient light still moves when idle, just at a calmer frame rate.
-    if (!busy && now - this.lastDraw < (this.reduced ? 250 : 33)) return;
+    if (!busy && now - this.lastDraw < (this.reduced ? 250 : 50)) return;
     this.lastDraw = now;
     if (this.game && this.mode !== "title") {
-      const dim = this.mode === "play" ? 0 : 0.55;
+      const dim = this.mode === "play" || this.mode === "dying" ? 0 : 0.55;
       this.renderer.render(
         { floor: this.game.floor, player: this.game.player, sight: PLAYER.sight, dim },
         this.fx,

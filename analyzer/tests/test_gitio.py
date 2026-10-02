@@ -108,3 +108,38 @@ def test_env_drops_inherited_git_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "GIT_DIR" not in env
     assert env["GIT_TERMINAL_PROMPT"] == "0"
     assert env["GIT_CONFIG_GLOBAL"] == os.devnull
+
+
+def test_checkout_selected_only_takes_wanted_small_files(make_repo: MakeRepo, tmp_path: Path) -> None:
+    import subprocess
+
+    from headcrawl.limits import Limits
+
+    src = make_repo({"a.py": "x = 1\n", "big.py": "y = 1\n" * 50_000, "notes.md": "hi\n", "go.mod": "module m\n"})
+    dest = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", "--no-checkout", str(src), str(dest)], check=True, capture_output=True)
+    picked = gitio.checkout_selected(dest, lambda p: p.endswith(".py"), Limits(max_file_bytes=1000))
+    assert picked == 2
+    assert sorted(p.name for p in dest.iterdir() if p.name != ".git") == ["a.py", "go.mod"]
+
+
+def test_checkout_selected_refuses_huge_trees(make_repo: MakeRepo, tmp_path: Path) -> None:
+    import subprocess
+
+    from headcrawl.limits import Limits
+
+    src = make_repo({f"f{i}.py": "x\n" for i in range(5)})
+    dest = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", "--no-checkout", str(src), str(dest)], check=True, capture_output=True)
+    with pytest.raises(gitio.GitError):
+        gitio.checkout_selected(dest, lambda p: True, Limits(max_tree_entries=3))
+
+
+def test_signature_config_is_ignored(make_repo: MakeRepo, tmp_path: Path) -> None:
+    root = make_repo({"a.py": "x = 1\n"})
+    marker = tmp_path / "gpg"
+    with open(root / ".git" / "config", "a") as fh:
+        fh.write(f"[log]\n\tshowSignature = true\n[gpg]\n\tprogram = \"sh -c 'echo x > {marker.as_posix()}'\"\n")
+    gitio.head(root)
+    gitio.churn(root)
+    assert not marker.exists()

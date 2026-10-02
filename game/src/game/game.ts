@@ -3,7 +3,6 @@
 import { FOV } from "rot-js";
 import { Rng } from "../core/rng";
 import type { DungeonSpec } from "../spec";
-import { findPath } from "../map/astar";
 import { seeThrough, Tile, walkable } from "../map/grid";
 import { BOSS, COFFEE_HEAL, DROPS, HIT, PLAYER, WAKE_RANGE, bladeBonus, potionHeal, xpForLevel } from "./balance";
 import { buildFloor, type FloorState } from "./world";
@@ -114,6 +113,8 @@ export class Game {
     this.player.turns++;
     const p = this.player;
     if (p.turns % PLAYER.regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
+    // Sight first, so monsters wake on what the player can see right now.
+    this.updateSight();
     this.monstersAct();
     this.updateSight();
     return true;
@@ -162,7 +163,19 @@ export class Game {
     const room = rect.spec;
     if (rect === this.floor.map.lair && !this.floor.bossDead) {
       const boss = this.floor.monsters.find((m) => m.boss);
-      if (boss) this.taunt(boss, 0);
+      if (boss?.boss && !this.floor.bossMet) {
+        this.floor.bossMet = true;
+        boss.awake = true;
+        boss.lastTaunt = this.player.turns;
+        this.emit({
+          t: "intro",
+          name: boss.name,
+          title: boss.boss.title,
+          where: `${room.path}:${boss.boss.line}`,
+          text: boss.boss.taunts[0],
+          final: Boolean(boss.boss.final),
+        });
+      } else if (boss) this.taunt(boss);
     }
     if (room.blurb) this.say(`${room.path}: ${room.blurb}`, "lore");
   }
@@ -411,12 +424,14 @@ export class Game {
     const total = this.spec.floors.length;
     this.say(`Floor ${f.index + 1} of ${total}: ${f.name}. Somewhere here waits ${f.boss.name}.`, "boss");
     const room = this.roomOfPlayer();
-    if (room) {
-      if (room.spec.blurb) this.say(`${room.spec.path}: ${room.spec.blurb}`, "lore");
-    }
+    if (room) this.enterRoom(room.index);
   }
 
   private monstersAct(): void {
+    const grid = this.floor.map.grid;
+    const chase = this.chaseMap();
+    const taken = new Uint8Array(grid.width * grid.height);
+    for (const m of this.floor.monsters) taken[grid.idx(m.x, m.y)] = 1;
     for (const m of [...this.floor.monsters]) {
       if (!this.floor.monsters.includes(m)) continue;
       if (!m.awake && this.isVisible(m.x, m.y) && dist(m, this.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;
@@ -424,37 +439,79 @@ export class Game {
       m.energy += m.speed;
       while (m.energy >= 100 && this.outcome === "playing") {
         m.energy -= 100;
-        this.monsterTurn(m);
+        this.monsterTurn(m, chase, taken);
       }
       if (this.outcome !== "playing") return;
     }
   }
 
-  private monsterTurn(m: Monster): void {
+  private monsterTurn(m: Monster, chase: Int16Array, taken: Uint8Array): void {
     const p = this.player;
     if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
       this.monsterAttack(m);
       return;
     }
     if (m.boss && p.turns - m.lastTaunt >= BOSS.tauntEvery && this.isVisible(m.x, m.y)) this.taunt(m);
-    const step = this.stepToward(m);
-    if (step) [m.x, m.y] = step;
+    const step = this.stepToward(m, chase, taken);
+    if (step) {
+      const grid = this.floor.map.grid;
+      taken[grid.idx(m.x, m.y)] = 0;
+      [m.x, m.y] = step;
+      taken[grid.idx(m.x, m.y)] = 1;
+    }
   }
 
-  private stepToward(m: Monster): [number, number] | null {
+  /**
+   * Steps from every walkable cell to the player, out to CHASE_RANGE. One
+   * breadth-first pass per turn serves every monster, instead of an A* each.
+   */
+  private chaseMap(): Int16Array {
     const grid = this.floor.map.grid;
-    const p = this.player;
-    // Only chase what is reasonably close; sleeping halls stay cheap.
-    if (dist(m, p) > 24) return null;
-    const path = findPath(grid.width, grid.height, [m.x, m.y], [p.x, p.y], (x, y) => {
-      if (!walkable(grid.get(x, y))) return Infinity;
-      if (x === p.x && y === p.y) return 1;
-      return this.monsterAt(x, y) ? 8 : 1;
-    });
-    if (!path || path.length < 2) return null;
-    const [nx, ny] = path[1];
-    if (this.monsterAt(nx, ny) || (nx === p.x && ny === p.y)) return null;
-    return [nx, ny];
+    const dist = new Int16Array(grid.width * grid.height).fill(-1);
+    const start = grid.idx(this.player.x, this.player.y);
+    dist[start] = 0;
+    const queue = [start];
+    for (let qi = 0; qi < queue.length; qi++) {
+      const i = queue[qi];
+      if (dist[i] >= CHASE_RANGE) continue;
+      const x = i % grid.width;
+      const y = (i - x) / grid.width;
+      for (const [dx, dy] of STEPS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!grid.inside(nx, ny) || !this.canStep(x, y, dx, dy)) continue;
+        const ni = grid.idx(nx, ny);
+        if (dist[ni] !== -1) continue;
+        dist[ni] = dist[i] + 1;
+        queue.push(ni);
+      }
+    }
+    return dist;
+  }
+
+  private canStep(x: number, y: number, dx: number, dy: number): boolean {
+    const grid = this.floor.map.grid;
+    if (!walkable(grid.get(x + dx, y + dy))) return false;
+    return !(dx && dy && !walkable(grid.get(x + dx, y)) && !walkable(grid.get(x, y + dy)));
+  }
+
+  private stepToward(m: Monster, chase: Int16Array, taken: Uint8Array): [number, number] | null {
+    const grid = this.floor.map.grid;
+    const here = chase[grid.idx(m.x, m.y)];
+    if (here === -1) return null;
+    let best: [number, number] | null = null;
+    let bestDist = here;
+    for (const [dx, dy] of STEPS) {
+      const nx = m.x + dx;
+      const ny = m.y + dy;
+      if (!grid.inside(nx, ny) || !this.canStep(m.x, m.y, dx, dy)) continue;
+      const ni = grid.idx(nx, ny);
+      const d = chase[ni];
+      if (d === -1 || d >= bestDist || taken[ni] || d === 0) continue;
+      best = [nx, ny];
+      bestDist = d;
+    }
+    return best;
   }
 
   private monsterAttack(m: Monster): void {
@@ -489,6 +546,19 @@ export class Game {
     });
   }
 }
+
+const CHASE_RANGE = 30;
+
+const STEPS = [
+  [0, -1],
+  [0, 1],
+  [-1, 0],
+  [1, 0],
+  [-1, -1],
+  [1, -1],
+  [-1, 1],
+  [1, 1],
+] as const;
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));

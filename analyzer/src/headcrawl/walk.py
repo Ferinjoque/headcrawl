@@ -86,8 +86,11 @@ def _skip_path(rel: str) -> bool:
 
 
 def _read(root: Path, rel: str, limits: Limits) -> str | None:
-    full = (root / rel).resolve()
-    if not full.is_relative_to(root.resolve()) or full.is_symlink() or not full.is_file():
+    raw = root / rel
+    if raw.is_symlink():
+        return None
+    full = raw.resolve()
+    if not full.is_relative_to(root.resolve()) or not full.is_file():
         return None
     if full.stat().st_size > limits.max_file_bytes:
         return None
@@ -103,9 +106,15 @@ def _read(root: Path, rel: str, limits: Limits) -> str | None:
     return text
 
 
+def wanted(rel: str) -> bool:
+    """Would walk() read this path? Used to decide what a clone checks out."""
+    return detect(rel) is not None and not _skip_path(rel)
+
+
 def walk(root: Path, limits: Limits = DEFAULT) -> WalkResult:
     paths, generated = _candidates(root)
     result = WalkResult()
+    budget = limits.max_read_bytes
     for rel in sorted(paths):
         lang = detect(rel)
         if lang is None:
@@ -113,12 +122,13 @@ def walk(root: Path, limits: Limits = DEFAULT) -> WalkResult:
         if rel in generated or _skip_path(rel):
             result.skipped += 1
             continue
-        if len(result.files) >= limits.max_files:
+        if len(result.files) >= limits.max_files or budget <= 0:
             result.skipped += 1
             continue
         text = _read(root, rel, limits)
         if text is None or not text.strip():
             result.skipped += 1
             continue
+        budget -= len(text)
         result.files.append(SourceFile(rel, lang, text))
     return result

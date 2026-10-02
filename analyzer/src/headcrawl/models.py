@@ -11,6 +11,12 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 SCHEMA_VERSION = 1
 
+# Hard caps the game relies on. The analyzer's Limits stay at or below these.
+MAX_FLOORS = 16
+MAX_ROOMS = 40
+MAX_ENEMIES = 12
+MAX_LOOT = 8
+
 Id = Annotated[str, StringConstraints(pattern=r"^[a-z][0-9]+$", max_length=12)]
 Sha = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{40}$")]
 Name = Annotated[str, StringConstraints(min_length=1, max_length=80)]
@@ -56,12 +62,12 @@ class Enemy(_Model):
     hp: int = Field(ge=1, le=999)
     damage: int = Field(ge=1, le=99)
     speed: int = Field(ge=25, le=400)
-    xp: int = Field(ge=1)
-    line: int = Field(ge=1)
-    ccn: int = Field(ge=1)
-    nesting: int = Field(ge=0)
-    params: int = Field(ge=0)
-    nloc: int = Field(ge=0)
+    xp: int = Field(ge=1, le=1_000_000)
+    line: int = Field(ge=1, le=10_000_000)
+    ccn: int = Field(ge=1, le=100_000)
+    nesting: int = Field(ge=0, le=1000)
+    params: int = Field(ge=0, le=1000)
+    nloc: int = Field(ge=0, le=10_000_000)
 
 
 class Loot(_Model):
@@ -69,7 +75,7 @@ class Loot(_Model):
     kind: LootKind
     tag: str = Field(pattern=r"^(TODO|FIXME|HACK|XXX)$")
     text: Line
-    line: int = Field(ge=1)
+    line: int = Field(ge=1, le=10_000_000)
     power: int = Field(ge=1, le=20)
 
 
@@ -78,13 +84,13 @@ class Boss(_Model):
     name: Name
     title: Name
     signature: Line
-    line: int = Field(ge=1)
+    line: int = Field(ge=1, le=10_000_000)
     hp: int = Field(ge=1, le=9999)
     damage: int = Field(ge=1, le=99)
     speed: int = Field(ge=25, le=400)
-    xp: int = Field(ge=1)
-    ccn: int = Field(ge=1)
-    churn: int = Field(ge=0)
+    xp: int = Field(ge=1, le=1_000_000)
+    ccn: int = Field(ge=1, le=100_000)
+    churn: int = Field(ge=0, le=1_000_000)
     taunts: list[Line] = Field(min_length=1, max_length=6)
     final: bool = False
 
@@ -102,31 +108,31 @@ class Room(_Model):
     language: str
     wing: Id
     kind: RoomKind
-    loc: int = Field(ge=0)
+    loc: int = Field(ge=0, le=1_000_000_000)
     size: int = Field(ge=1, le=5)
-    functions: int = Field(ge=0)
-    churn: int = Field(ge=0)
+    functions: int = Field(ge=0, le=1_000_000_000)
+    churn: int = Field(ge=0, le=1_000_000)
     heat: float = Field(ge=0, le=1)
     blurb: Line | None = None
-    enemies: list[Enemy]
-    loot: list[Loot]
+    enemies: list[Enemy] = Field(max_length=MAX_ENEMIES)
+    loot: list[Loot] = Field(max_length=MAX_LOOT)
 
 
 class Edge(_Model):
     a: Id
     b: Id
     kind: EdgeKind
-    weight: int = Field(ge=1)
+    weight: int = Field(ge=1, le=1_000_000)
 
 
 class Floor(_Model):
     id: Id
-    index: int = Field(ge=0)
+    index: int = Field(ge=0, le=15)
     name: Name
     path: Line
-    wings: list[Wing] = Field(min_length=1)
-    rooms: list[Room] = Field(min_length=1)
-    edges: list[Edge]
+    wings: list[Wing] = Field(min_length=1, max_length=MAX_ROOMS)
+    rooms: list[Room] = Field(min_length=1, max_length=MAX_ROOMS)
+    edges: list[Edge] = Field(max_length=MAX_ROOMS * 4)
     entry: Id
     lair: Id
     boss: Boss
@@ -150,7 +156,7 @@ class Floor(_Model):
 
 class LanguageShare(_Model):
     name: str
-    loc: int = Field(ge=0)
+    loc: int = Field(ge=0, le=1_000_000_000)
 
 
 class RepoInfo(_Model):
@@ -158,19 +164,19 @@ class RepoInfo(_Model):
     url: Line | None = None
     head: Sha
     branch: Name | None = None
-    committed_at: int = Field(ge=0)
-    commits_scanned: int = Field(ge=0)
-    languages: list[LanguageShare]
+    committed_at: int = Field(ge=0, le=2**40)
+    commits_scanned: int = Field(ge=0, le=1_000_000_000)
+    languages: list[LanguageShare] = Field(max_length=32)
 
 
 class Totals(_Model):
-    files: int = Field(ge=0)
-    rooms: int = Field(ge=0)
-    functions: int = Field(ge=0)
-    enemies: int = Field(ge=0)
-    loot: int = Field(ge=0)
-    loc: int = Field(ge=0)
-    skipped: int = Field(ge=0)
+    files: int = Field(ge=0, le=1_000_000_000)
+    rooms: int = Field(ge=0, le=1_000_000_000)
+    functions: int = Field(ge=0, le=1_000_000_000)
+    enemies: int = Field(ge=0, le=1_000_000_000)
+    loot: int = Field(ge=0, le=1_000_000_000)
+    loc: int = Field(ge=0, le=1_000_000_000)
+    skipped: int = Field(ge=0, le=1_000_000_000)
 
 
 class DungeonSpec(_Model):
@@ -178,7 +184,7 @@ class DungeonSpec(_Model):
     generator: str
     seed: Sha
     repo: RepoInfo
-    floors: list[Floor] = Field(min_length=1, max_length=16)
+    floors: list[Floor] = Field(min_length=1, max_length=MAX_FLOORS)
     totals: Totals
 
     @model_validator(mode="after")

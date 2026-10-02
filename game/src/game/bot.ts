@@ -1,6 +1,6 @@
-// A simple player used by tests and the balance script. Fights what is next to
-// it, drinks when low, heads for the nearest unexplored room, then the boss,
-// then the stairs.
+// A simple player for tests and the balance report. It fights whatever is
+// next to it, drinks or rests when low, then visits rooms it hasn't seen,
+// then the boss, then the stairs.
 
 import { findPath } from "../map/astar";
 import { Tile, walkable } from "../map/grid";

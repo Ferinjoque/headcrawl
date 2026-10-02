@@ -1,6 +1,7 @@
 """Repo on disk -> DungeonSpec."""
 
 import hashlib
+import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -128,13 +129,23 @@ def analyze(root: Path, *, name: str | None = None, url: str | None = None, limi
         raise AnalysisError("no source files to read in this repo")
 
     in_git = gitio.is_repo(root)
-    head = gitio.head(root) if in_git else _fake_head(walked.files)
+    try:
+        head = gitio.head(root) if in_git else _fake_head(walked.files)
+    except gitio.GitError:
+        # A repo with no commits yet.
+        in_git = False
+        head = _fake_head(walked.files)
     churn = gitio.churn(root, limits) if in_git else Counter()
     commits = gitio.commit_count(root, limits) if in_git else 0
 
     reports: dict[str, FileReport] = {}
     skipped = walked.skipped
+    deadline = time.monotonic() + limits.max_seconds
     for src in walked.files:
+        # Failing beats silently skipping files: a slower machine would
+        # otherwise produce a different dungeon for the same commit.
+        if time.monotonic() > deadline:
+            raise AnalysisError(f"analysis took longer than {limits.max_seconds:.0f}s, try a smaller repo or --depth")
         rep = _analyze_file(src, churn.get(src.path, 0))
         if rep is None:
             skipped += 1
@@ -167,7 +178,7 @@ def analyze(root: Path, *, name: str | None = None, url: str | None = None, limi
             name=clean(name or root.name, 80) or "repo",
             url=url,
             head=head.sha,
-            branch=clean(head.branch, 80) if head.branch else None,
+            branch=(clean(head.branch, 80) or None) if head.branch else None,
             committed_at=head.time,
             commits_scanned=commits,
             languages=[LanguageShare(name=k, loc=v) for k, v in sorted(langs.items(), key=lambda kv: (-kv[1], kv[0]))],
@@ -222,7 +233,7 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
         w = wing_of(r.path, group.prefix)
         if w not in wing_ids:
             wing_ids[w] = ctx.ids("w")
-            wings.append(Wing(id=wing_ids[w], path=clean(w, 200), name=clean(PurePosixPath(w).name or group.name, 80)))
+            wings.append(Wing(id=wing_ids[w], path=clean(w, 200), name=_label(PurePosixPath(w).name, group.name)))
 
     room_ids = {r.path: ctx.ids("r") for r in reps}
     shrines = _pick_shrines(ctx, reps, {lair.path, entry.path})
@@ -244,7 +255,7 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
     floor = Floor(
         id=ctx.ids("f"),
         index=index,
-        name=clean(group.name, 80),
+        name=_label(group.name, "floor"),
         path=clean(group.prefix or ".", 200),
         wings=wings,
         rooms=rooms,
@@ -256,6 +267,12 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
     return floor, local
 
 
+def _label(value: str, fallback: str) -> str:
+    """A name that survives cleaning. Some repos name things with only
+    invisible characters."""
+    return clean(value, 80) or clean(fallback, 80) or "?"
+
+
 def _is_anonymous(f: FunctionMetric) -> bool:
     return not f.name or f.name.startswith("(") or f.name == "anonymous"
 
@@ -263,7 +280,7 @@ def _is_anonymous(f: FunctionMetric) -> bool:
 def _display_name(f: FunctionMetric, path: str) -> str:
     if _is_anonymous(f):
         return f"{PurePosixPath(path).stem}@{f.start_line}"
-    return clean(f.name, 80)
+    return _label(f.name, f"{PurePosixPath(path).stem}@{f.start_line}")
 
 
 def _boss_function(rep: FileReport) -> FunctionMetric:
@@ -307,7 +324,7 @@ def _room(
     return Room(
         id=rid,
         path=clean(rep.path, 200),
-        name=clean(PurePosixPath(rep.path).name, 80) or "file",
+        name=_label(PurePosixPath(rep.path).name, "file"),
         language=rep.src.language.name,
         wing=wing,
         kind=kind,

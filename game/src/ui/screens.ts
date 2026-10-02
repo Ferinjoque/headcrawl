@@ -29,11 +29,23 @@ function btn(key: string, label: string, onclick: () => void) {
 
 export interface TitleHandlers {
   play(slug: string): void;
+  daily(): void;
   open(): void;
   help(): void;
 }
 
-export function titleScreen(entries: GalleryEntry[], selected: number, error: string | null, on: TitleHandlers) {
+export interface Daily {
+  repo: string;
+  label: string;
+}
+
+export function titleScreen(
+  entries: GalleryEntry[],
+  selected: number,
+  error: string | null,
+  daily: Daily | null,
+  on: TitleHandlers,
+) {
   const list = h(
     "ul",
     { class: "repos", role: "listbox", "aria-label": "Repos" },
@@ -75,6 +87,7 @@ export function titleScreen(entries: GalleryEntry[], selected: number, error: st
       "div",
       { class: "actions" },
       btn("enter", "descend", () => entries[selected] && on.play(entries[selected].slug)),
+      daily ? btn("d", `daily run: ${daily.repo}, ${daily.label}`, on.daily) : null,
       btn("o", "open a dungeon.json", on.open),
       btn("?", "how it works", on.help),
     ),

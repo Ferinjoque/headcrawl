@@ -13,6 +13,9 @@ class Limits:
     max_file_bytes: int = 512 * 1024
     max_line_length: int = 400
     max_files: int = 20_000
+    max_tree_entries: int = 300_000
+    max_read_bytes: int = 64 * 1024 * 1024
+    max_seconds: float = 300.0
     max_clone_bytes: int = 400 * 1024 * 1024
     clone_timeout_s: int = 180
     clone_depth: int = 500

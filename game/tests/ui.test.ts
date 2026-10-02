@@ -52,14 +52,19 @@ describe("share", () => {
     );
   });
 
-  it("refuses garbage and inflate bombs", () => {
+  it("refuses garbage and inflate bombs without inflating them", () => {
     expect(decodeSpec("!!!")).toBeNull();
     expect(decodeSpec("AAAA")).toBeNull();
-    const bomb = deflateSync(new Uint8Array(6 * 1024 * 1024));
+    expect(decodeSpec("A".repeat(1024 * 1024 + 1))).toBeNull();
+    const bomb = deflateSync(new Uint8Array(256 * 1024 * 1024));
     let bin = "";
     for (const b of bomb) bin += String.fromCharCode(b);
     const data = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const before = process.memoryUsage().arrayBuffers;
+    const started = performance.now();
     expect(decodeSpec(data)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(2000);
+    expect(process.memoryUsage().arrayBuffers - before).toBeLessThan(64 * 1024 * 1024);
   });
 
   it("parses and prints routes", () => {
@@ -111,5 +116,20 @@ describe("auto", () => {
       game.act(a);
     }
     expect([game.player.x, game.player.y]).toEqual([target.cx, target.cy]);
+  });
+});
+
+describe("daily", () => {
+  it("is stable for a day and moves on the next", async () => {
+    const { dailyPick } = await import("../src/ui/daily");
+    const entries = ["a", "b", "c", "d", "e"].map((slug) => ({ slug }));
+    const a = dailyPick(entries, new Date("2026-10-02T01:00:00Z"))!;
+    const b = dailyPick(entries, new Date("2026-10-02T23:00:00Z"))!;
+    expect(b).toEqual(a);
+    expect(a.run).toBe(20261002);
+    expect(a.label).toBe("2026-10-02");
+    const days = new Set(Array.from({ length: 30 }, (_, i) => dailyPick(entries, new Date(Date.UTC(2026, 9, 1 + i)))!.entry.slug));
+    expect(days.size).toBeGreaterThan(2);
+    expect(dailyPick([], new Date())).toBeNull();
   });
 });

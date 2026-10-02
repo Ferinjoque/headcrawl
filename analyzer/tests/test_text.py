@@ -4,8 +4,10 @@ from hypothesis import strategies as st
 from headcrawl.text import clean, first_sentence, strip_comment_markers
 
 
-def test_clean_strips_control_and_bidi_chars() -> None:
+def test_clean_strips_control_and_invisible_chars() -> None:
     assert clean("a\x00b\x1b[31mc‮d") == "ab[31mcd"
+    assert clean("﻿x​y⁠z\U000e0041") == "xyz"
+    assert clean("tab\there\nnext") == "tab here next"
 
 
 def test_clean_collapses_whitespace_and_caps_length() -> None:
@@ -18,7 +20,8 @@ def test_clean_collapses_whitespace_and_caps_length() -> None:
 def test_clean_never_exceeds_limit_or_keeps_controls(value: str, limit: int) -> None:
     out = clean(value, limit)
     assert len(out) <= limit
-    assert not any(ord(c) < 32 for c in out)
+    assert not any(ord(c) < 32 or 0x7F <= ord(c) <= 0x9F for c in out)
+    assert not any(c in out for c in "‪‫‬‭‮⁦⁧⁨⁩​﻿")
 
 
 def test_strip_comment_markers() -> None:
