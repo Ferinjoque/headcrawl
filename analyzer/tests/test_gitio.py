@@ -143,3 +143,15 @@ def test_signature_config_is_ignored(make_repo: MakeRepo, tmp_path: Path) -> Non
     gitio.head(root)
     gitio.churn(root)
     assert not marker.exists()
+
+
+def test_blame_reads_commits_not_the_working_tree(make_repo: MakeRepo, tmp_path: Path) -> None:
+    root = make_repo({"a.py": "# TODO: one\nx = 1\n", ".gitattributes": "*.py filter=evil\n"}, years=[2020])
+    marker = tmp_path / "filtered"
+    with open(root / ".git" / "config", "a") as fh:
+        fh.write(f"[filter \"evil\"]\n\tclean = sh -c 'echo x > {marker.as_posix()}; cat'\n")
+    (root / "a.py").write_text("# TODO: one\nx = 2\n")
+    ages = gitio.line_years(root, "a.py", {1})
+    assert ages[1].year == 2020
+    assert gitio.last_subject(root, "a.py")
+    assert not marker.exists()

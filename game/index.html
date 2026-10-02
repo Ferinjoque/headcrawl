@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      This policy covers the page only. The analyzer worker (src/lite/worker.ts)
+      gets no policy from a meta tag, and it needs api.github.com,
+      raw.githubusercontent.com and 'wasm-unsafe-eval'. Keep that in mind if
+      this ever moves to real response headers.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"

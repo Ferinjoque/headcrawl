@@ -108,13 +108,29 @@ def _messages(floor: Floor, boss: Boss) -> list[dict[str, str]]:
     return msgs
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+
+# No proxies from the environment and no redirects: prompts carry repo text
+# and must only ever reach the model on this machine.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
+
+
+def _check_host(host: str) -> None:
+    if urlparse(host).hostname not in LOCAL_HOSTS:
+        raise ValueError("flavor only talks to a model on this machine")
+
+
 def _ask(host: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
-    req = urllib.request.Request(  # noqa: S310 - host is checked to be local before this runs
+    _check_host(host)
+    req = urllib.request.Request(  # noqa: S310 - host is checked to be local just above
         f"{host}/api/chat",
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as res:  # noqa: S310
+    with _OPENER.open(req, timeout=timeout) as res:
         data: dict[str, Any] = json.loads(res.read(1_000_000))
         return data
 
@@ -206,8 +222,7 @@ def flavor_boss(
 def add_flavor(
     spec: DungeonSpec, model: str, cache_dir: Path, host: str = "http://127.0.0.1:11434", check: bool = True
 ) -> DungeonSpec:
-    if urlparse(host).hostname not in LOCAL_HOSTS:
-        raise ValueError("flavor only talks to a model on this machine")
+    _check_host(host)
     if check and not model_follows_prompts(model, host):
         print(
             f"headcrawl: {model} did not follow a simple prompt, so no flavor text this time. "

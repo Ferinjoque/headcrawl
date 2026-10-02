@@ -26,3 +26,13 @@ export function parseRepo(input: string): { owner: string; repo: string } | null
   if (!m || m[2] === "." || m[2] === "..") return null;
   return { owner: m[1], repo: m[2] };
 }
+
+/**
+ * Tree paths go straight into Pyodide's file system, next to its own
+ * site-packages. Python's choose() already refuses dot directories, but this
+ * check doesn't rely on that.
+ */
+export function safePath(path: string): boolean {
+  if (!path || path.length > 400 || path.startsWith("/") || path.includes("\\") || path.includes("\0")) return false;
+  return path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+}

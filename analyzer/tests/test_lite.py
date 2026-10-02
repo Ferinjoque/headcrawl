@@ -60,3 +60,28 @@ def test_whole_analysis_runs_on_lite(make_repo: MakeRepo, monkeypatch: pytest.Mo
     assert tags(light) == tags(full)
     edges = lambda s: sum(len(f.edges) for f in s.floors)  # noqa: E731
     assert edges(light) == edges(full)
+
+
+HOSTILE = {
+    "py-blank-lines": ("a.py", "\n" * 5000 + "x = 1\n"),
+    "py-space-lines": ("a.py", " \n" * 5000 + "x = 1\n"),
+    "py-open-from": ("a.py", "from x import (\n" * 20000),
+    "go-blank-lines": ("a.go", "\n" * 60000 + "package x\n"),
+    "go-open-import": ("a.go", "import (\n" * 20000),
+    "rust-open-use": ("a.rs", "use a::{\n" * 20000),
+    "rust-pub": ("a.rs", "pub(" * 20000),
+    "js-import-no-quote": ("a.js", "import x " * 30000),
+    "java-space-lines": ("a.java", " \n" * 60000),
+    "c-bad-include": ("a.c", "#include \n" * 40000),
+    "ruby-open-require": ("a.rb", "require (\n" * 40000),
+}
+
+
+@pytest.mark.parametrize("case", list(HOSTILE))
+def test_hostile_files_stay_fast(case: str) -> None:
+    import time
+
+    path, src = HOSTILE[case]
+    started = time.perf_counter()
+    lite.extract(_lang(path), src)
+    assert time.perf_counter() - started < 2.0

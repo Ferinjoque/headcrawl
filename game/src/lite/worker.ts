@@ -4,7 +4,7 @@
 // downloads for the contents. Nothing in the repo is ever executed; Python
 // only reads the text, same as the command line tool.
 
-import type { WorkerReply, WorkerRequest } from "./protocol";
+import { safePath, type WorkerReply, type WorkerRequest } from "./protocol";
 
 interface PyProxy {
   callKwargs(...args: unknown[]): Promise<unknown>;
@@ -86,7 +86,11 @@ async function pool<T>(items: T[], size: number, work: (item: T) => Promise<void
 }
 
 async function analyze(base: string, owner: string, repo: string, sha?: string): Promise<string> {
-  ready ??= boot(base);
+  // A failed boot (say, a network blip) must not poison every later try.
+  ready ??= boot(base).catch((err: unknown) => {
+    ready = null;
+    throw err;
+  });
   const py = await ready;
 
   say({ type: "progress", text: `Asking GitHub about ${owner}/${repo}` });
@@ -97,13 +101,17 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
     sha: string;
     commit: { committer: { date: string } };
   };
-  const tree = (await (await gh(`${api}/git/trees/${commit.sha}?recursive=1`)).json()) as { tree: TreeEntry[] };
+  const tree = (await (await gh(`${api}/git/trees/${commit.sha}?recursive=1`)).json()) as {
+    tree: TreeEntry[];
+    truncated?: boolean;
+  };
+  if (tree.truncated) say({ type: "progress", text: "Big repo: GitHub only listed part of it, using that part" });
   const blobs = tree.tree
-    .filter((e) => e.type === "blob" && e.mode !== "120000")
+    .filter((e) => e.type === "blob" && e.mode !== "120000" && safePath(e.path))
     .map((e) => ({ path: e.path, size: e.size ?? 0 }));
 
   const web = py.pyimport("headcrawl.web");
-  const paths = JSON.parse(String(web.choose(JSON.stringify(blobs)))) as string[];
+  const paths = (JSON.parse(String(web.choose(JSON.stringify(blobs)))) as string[]).filter(safePath);
   if (!paths.length) throw new GitHubError("No source files I can read in that repo.");
 
   const root = `/repo${++runs}`;
@@ -121,10 +129,14 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   });
 
   say({ type: "progress", text: "Turning the code into a dungeon" });
-  const json = String(
-    web.dungeon(root, meta.full_name, `https://github.com/${meta.full_name}`, commit.sha, commit.commit.committer.date),
-  );
-  return json;
+  try {
+    return String(
+      web.dungeon(root, meta.full_name, `https://github.com/${meta.full_name}`, commit.sha, commit.commit.committer.date),
+    );
+  } finally {
+    // Each build is a few MB in memory; don't keep old ones around.
+    py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);
+  }
 }
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {

@@ -1,7 +1,8 @@
 // Puts everything the in-browser analyzer needs into public/pyodide/:
 // the Pyodide runtime, the Pyodide packages we use, a few pure Python wheels
 // from PyPI, and our own analyzer wheel. Every download is checked against
-// the SHA-256 that Pyodide's lock file or PyPI publishes. Self-hosting means
+// a pinned SHA-256 (Pyodide core), the pinned lock file (Pyodide packages) or
+// PyPI's published digest (the rest). Self-hosting means
 // the live site loads no third-party code.
 //
 // Needs ../analyzer/dist/headcrawl-*.whl first: `cd ../analyzer && uv build --wheel`.
@@ -12,7 +13,15 @@ import { fileURLToPath } from "node:url";
 
 const VERSION = "314.0.7";
 const CDN = `https://cdn.jsdelivr.net/pyodide/v${VERSION}/full/`;
-const CORE = ["pyodide.mjs", "pyodide.asm.mjs", "pyodide.asm.wasm", "python_stdlib.zip", "pyodide-lock.json"];
+// Pinned when the version was picked (2026-10-02). The lock file is pinned too,
+// and every package hash below comes from it, so the whole chain is fixed.
+const CORE = {
+  "pyodide.mjs": "6f1d60f7bf529beb300f0f47983c921d3982363640ba20af0e38efdddbc66109",
+  "pyodide.asm.mjs": "f7cdc8ece80678ceb712f8e65ebe6d3a83203a180c399865f49612a051693635",
+  "pyodide.asm.wasm": "cc36e3cab04fdfc9a63ff13eb52eae2b911bf46c025cc7b281f394bd3de1d5e6",
+  "python_stdlib.zip": "fa1957e5777068fc4f7437f96d860ae2fbe9c19732ba06c84e004ec16dd7dd7a",
+  "pyodide-lock.json": "5dc2fc119108bc148c7457dc86e7675b5c87e1cafd420b9c34c1eaef7b36c010",
+};
 const WANT = ["micropip", "pydantic"];
 const PYPI = [
   ["lizard", "1.24.0"],
@@ -33,14 +42,14 @@ async function get(url) {
 
 async function save(name, url, expected) {
   const path = out + name;
-  if (existsSync(path) && (!expected || sha256(readFileSync(path)) === expected)) return;
+  if (existsSync(path) && sha256(readFileSync(path)) === expected) return;
   const buf = await get(url);
   if (expected && sha256(buf) !== expected) throw new Error(`${name}: checksum mismatch`);
   writeFileSync(path, buf);
   console.log(`  ${name} ${(buf.length / 1024).toFixed(0)} KB`);
 }
 
-for (const f of CORE) await save(f, CDN + f);
+for (const [name, hash] of Object.entries(CORE)) await save(name, CDN + name, hash);
 const lock = JSON.parse(readFileSync(out + "pyodide-lock.json", "utf8"));
 
 const need = new Set();

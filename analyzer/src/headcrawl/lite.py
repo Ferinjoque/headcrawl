@@ -126,7 +126,11 @@ def _tags(comments: list[Comment]) -> list[Tag]:
     return found
 
 
-_PY_DOC = re.compile(r'\A(?:\s*#[^\n]*\n|\s*\n)*\s*[rRuU]?("""|\'\'\')(.*?)\1', re.S)
+# Every pattern here runs on hostile input, so none of them nests quantifiers
+# over the same characters, line starts only skip spaces and tabs (never \s,
+# which would rescan newlines from every line), and multi-line groups are
+# bounded. tests/test_lite.py times them on pathological files.
+_PY_DOC = re.compile(r'\A(?:[ \t]*(?:#[^\n]*)?\n)*[ \t]*[rRuU]?("""|\'\'\')(.*?)\1', re.S)
 
 
 def _blurb(lang: Language, text: str, comments: list[Comment]) -> str | None:
@@ -147,19 +151,24 @@ def _blurb(lang: Language, text: str, comments: list[Comment]) -> str | None:
 _PY_IMPORT = re.compile(
     r"^[ \t]*import[ \t]+([\w.]+(?:[ \t]+as[ \t]+\w+)?(?:[ \t]*,[ \t]*[\w.]+(?:[ \t]+as[ \t]+\w+)?)*)", re.M
 )
-_PY_FROM = re.compile(r"^[ \t]*from[ \t]+(\.*)[ \t]*([\w.]*)[ \t]+import[ \t]+(\([^)]*\)|[^\n]+)", re.M)
+_PY_FROM = re.compile(r"^[ \t]*from[ \t]+(\.*)[ \t]*([\w.]*)[ \t]+import[ \t]+(\([^)]{0,4000}\)|[^\n]+)", re.M)
 _JS = re.compile(
-    r"""(?:\bimport\s[^'"`;]*?\bfrom\s*|\bexport\s[^'"`;]*?\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)(['"])([^'"\n]+)\1"""
+    r"""(?:\bimport\s[^'"`;]{0,400}?\bfrom\s{0,20}|\bexport\s[^'"`;]{0,400}?\bfrom\s{0,20}|\bimport\s{0,20}\(\s{0,20}|\bimport\s{1,20}|\brequire\s{0,20}\(\s{0,20})(['"])([^'"\n]{1,300})\1"""
 )
-_GO_SINGLE = re.compile(r'^\s*import\s+(?:\w+\s+)?"([^"]+)"', re.M)
-_GO_BLOCK = re.compile(r"^\s*import\s*\((.*?)\)", re.M | re.S)
-_GO_LINE = re.compile(r'"([^"]+)"')
-_RUST_USE = re.compile(r"^\s*(?:pub(?:\([^)]*\))?\s+)?use\s+([\w:]+?)(?:::\{([^;]*)\})?\s*(?:as\s+\w+)?;", re.M | re.S)
-_RUST_MOD = re.compile(r"^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;", re.M)
-_JAVA = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+(?:\.\*)?)\s*;?", re.M)
-_CSHARP = re.compile(r"^\s*using\s+(?:static\s+)?([\w.]+)\s*;", re.M)
-_C_INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"]+)"', re.M)
-_RUBY = re.compile(r"""^\s*(require|require_relative)\s*\(?\s*['"]([^'"]+)['"]""", re.M)
+_GO_SINGLE = re.compile(r'^[ \t]*import[ \t]+(?:\w+[ \t]+)?"([^"\n]+)"', re.M)
+_GO_BLOCK = re.compile(r"^[ \t]*import[ \t]*\(([^)]{0,4000})\)", re.M)
+_GO_LINE = re.compile(r'"([^"\n]+)"')
+_RUST_USE = re.compile(
+    r"^[ \t]*(?:pub(?:\([^)\n]{0,40}\))?[ \t]+)?use[ \t]+([\w:]+?)(?:::\{([^;]{0,2000})\})?[ \t]*(?:as[ \t]+\w+)?;",
+    re.M,
+)
+_RUST_MOD = re.compile(r"^[ \t]*(?:pub(?:\([^)\n]{0,40}\))?[ \t]+)?mod[ \t]+(\w+)[ \t]*;", re.M)
+_JAVA = re.compile(r"^[ \t]*import[ \t]+(?:static[ \t]+)?([\w.]+(?:\.\*)?)", re.M)
+_CSHARP = re.compile(r"^[ \t]*using[ \t]+(?:static[ \t]+)?([\w.]+)[ \t]*;", re.M)
+_C_INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]+"([^"\n]+)"', re.M)
+_RUBY = re.compile(r"""^[ \t]*(require|require_relative)[ \t]*\(?[ \t]*['"]([^'"\n]+)['"]""", re.M)
+# Imports live at the top of a file. Past this, don't look.
+_IMPORT_SCAN = 200_000
 
 
 def _imports(lang: str, code: str) -> list[ImportRef]:  # noqa: C901 - a flat list of languages
@@ -210,6 +219,6 @@ def extract(lang: Language, text: str) -> SyntaxInfo:
     return SyntaxInfo(
         tags=tuple(_tags(scanned.comments)),
         blurb=_blurb(lang, text, scanned.comments),
-        imports=tuple(_imports(lang.name, scanned.code)),
+        imports=tuple(_imports(lang.name, scanned.code[:_IMPORT_SCAN])),
         parse_errors=0,
     )

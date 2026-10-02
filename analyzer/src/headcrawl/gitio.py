@@ -294,7 +294,13 @@ def line_years(path: Path, rel: str, lines: set[int]) -> dict[int, LineAge]:
     if not lines:
         return {}
     try:
-        out = run(["blame", "--line-porcelain", "-w", "--", rel], cwd=path, timeout=60)
+        # Blame HEAD, not the working tree: reading the working file would run
+        # it through any clean filter a local repo's config defines.
+        out = run(
+            ["--literal-pathspecs", "blame", "--line-porcelain", "-w", "--no-textconv", "HEAD", "--", rel],
+            cwd=path,
+            timeout=60,
+        )
     except GitError:
         return {}
     ages: dict[int, LineAge] = {}
@@ -317,7 +323,7 @@ def line_years(path: Path, rel: str, lines: set[int]) -> dict[int, LineAge]:
 def last_subject(path: Path, rel: str) -> str | None:
     """Subject line of the last commit that touched a file."""
     try:
-        out = run(["log", "-1", "--no-show-signature", "--format=%s", "--", rel], cwd=path)
+        out = run(["--literal-pathspecs", "log", "-1", "--no-show-signature", "--format=%s", "--", rel], cwd=path)
     except GitError:
         return None
     return out.strip() or None

@@ -201,3 +201,13 @@ describe("repo input", () => {
     }
   });
 });
+
+describe("worker paths", () => {
+  it("only lets plain relative paths into the virtual file system", async () => {
+    const { safePath } = await import("../src/lite/protocol");
+    for (const ok of ["a.py", "src/a/b.ts", "x/.../y.go"]) expect(safePath(ok), ok).toBe(true);
+    for (const bad of ["", "/etc/x.py", "a/../b.py", "../a.py", "a//b.py", "./a.py", String.raw`a\b.py`, "a\u0000b", "a/./b", "x".repeat(401)]) {
+      expect(safePath(bad), bad).toBe(false);
+    }
+  });
+});
