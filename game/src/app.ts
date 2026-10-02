@@ -41,6 +41,9 @@ const $ = (id: string) => document.getElementById(id)!;
 /** A new run number for a fresh game. Shown to the player as part of the run code. */
 const freshRun = () => 1 + Math.floor(Math.random() * 9999);
 
+/** Frames per second when nothing is happening but the light still flickers. */
+const IDLE_FPS = 12;
+
 export class App {
   private renderer: Renderer;
   private fx = new Effects();
@@ -65,6 +68,7 @@ export class App {
   private watching: { actions: Action[]; at: number; perSecond: number; paused: boolean; timer: number } | null = null;
   private copied = false;
   private lastDraw = 0;
+  private dirty = true;
   private osReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   private reduced = this.osReduced;
   private settings: Settings;
@@ -89,6 +93,7 @@ export class App {
     this.renderer.textScale = TEXT_SCALE[s.text];
     this.renderer.rockBase = s.colors === "contrast" ? 0.07 : 0.15;
     this.renderer.resize();
+    this.touch();
     saveSettings(s);
   }
 
@@ -136,7 +141,10 @@ export class App {
   async start(): Promise<void> {
     await document.fonts.load("20px VT323").catch(() => undefined);
     this.renderer.resize();
-    new ResizeObserver(() => this.renderer.resize()).observe($("stage"));
+    new ResizeObserver(() => {
+      this.renderer.resize();
+      this.touch();
+    }).observe($("stage"));
     window.addEventListener("keydown", (e) => this.onKey(e));
     window.addEventListener("pagehide", () => this.scheduleSave(true));
     document.addEventListener("visibilitychange", () => {
@@ -290,6 +298,7 @@ export class App {
 
 
   private showScreen(node: HTMLElement | null, clear = false): void {
+    this.touch();
     const screen = $("screen");
     if (!node) {
       screen.hidden = true;
@@ -528,6 +537,7 @@ export class App {
   }
 
   private refreshUi(): void {
+    this.touch();
     if (!this.game) return;
     const card = $("banner").querySelector(".choice");
     if (this.game.perkChoice && !card) {
@@ -923,12 +933,20 @@ export class App {
     this.demo = buildFloor(floor, res.spec.seed, res.spec.floors.length);
   }
 
+  /** Ask for a fresh frame: something on screen changed. */
+  private touch(): void {
+    this.dirty = true;
+  }
+
   private frame(now: number): void {
     requestAnimationFrame((t) => this.frame(t));
     if (document.hidden) return;
-    const busy = this.fx.busy(now);
-    // Ambient light still moves when idle, just at a calmer frame rate.
-    if (!busy && now - this.lastDraw < (this.reduced ? 250 : 50)) return;
+    const moving = this.fx.busy(now) || this.renderer.settling || this.dirty;
+    // Idle frames only keep the ambient glow alive. With motion turned down
+    // there is nothing ambient to draw, so idle frames stop altogether.
+    const idleGap = this.reduced ? Infinity : 1000 / IDLE_FPS;
+    if (!moving && now - this.lastDraw < idleGap) return;
+    this.dirty = false;
     this.lastDraw = now;
     if (this.game && this.mode !== "title") {
       const dim = this.mode === "play" || this.mode === "dying" || this.mode === "watch" ? 0 : 0.55;

@@ -51,6 +51,8 @@ export class Renderer {
   reduced = false;
   /** From settings: text size multiplier and how bright the rock letters are. */
   textScale = 1;
+  /** True while the camera is still easing toward its target. */
+  settling = false;
   rockBase = 0.15;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -110,6 +112,7 @@ export class Renderer {
     } else {
       this.camX += (tx - this.camX) * 0.25;
       this.camY += (ty - this.camY) * 0.25;
+      this.settling = Math.abs(tx - this.camX) > 0.02 || Math.abs(ty - this.camY) > 0.02;
     }
   }
 
