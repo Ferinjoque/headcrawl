@@ -20,6 +20,12 @@ repos=(
   "bubbletea charmbracelet/bubbletea"
   "ripgrep BurntSushi/ripgrep"
   "jq jqlang/jq"
+  "jsoup jhy/jsoup"
+  "mediatr jbogard/MediatR"
+  "alamofire Alamofire/Alamofire"
+  "slim slimphp/Slim"
+  "sinatra sinatra/sinatra"
+  "moshi square/moshi"
   "headcrawl $root"
 )
 

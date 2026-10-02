@@ -19,7 +19,7 @@
     "rooms": 43,
     "enemies": 192,
     "boss": "run",
-    "difficulty": 4
+    "difficulty": 3
   },
   {
     "slug": "requests",
@@ -30,7 +30,7 @@
     "rooms": 27,
     "enemies": 107,
     "boss": "should_bypass_proxies",
-    "difficulty": 2
+    "difficulty": 1
   },
   {
     "slug": "express",
@@ -52,7 +52,7 @@
     "rooms": 58,
     "enemies": 123,
     "boss": "options",
-    "difficulty": 3
+    "difficulty": 2
   },
   {
     "slug": "gin",
@@ -63,7 +63,7 @@
     "rooms": 66,
     "enemies": 266,
     "boss": "Handle",
-    "difficulty": 3
+    "difficulty": 2
   },
   {
     "slug": "bubbletea",
@@ -74,7 +74,7 @@
     "rooms": 45,
     "enemies": 230,
     "boss": "Update",
-    "difficulty": 2
+    "difficulty": 1
   },
   {
     "slug": "ripgrep",
@@ -97,6 +97,72 @@
     "enemies": 108,
     "boss": "f_format",
     "difficulty": 5
+  },
+  {
+    "slug": "jsoup",
+    "repo": "jhy/jsoup",
+    "head": "088614f4a1454232a1f03c63b7f80742f1f2a854",
+    "language": "java",
+    "floors": 4,
+    "rooms": 34,
+    "enemies": 181,
+    "boss": "HtmlTreeBuilderState::inBodyStartTag",
+    "difficulty": 5
+  },
+  {
+    "slug": "mediatr",
+    "repo": "jbogard/MediatR",
+    "head": "916ef1b3d68ccdc96db8f914eaf1b32fc7db52c5",
+    "language": "csharp",
+    "floors": 8,
+    "rooms": 70,
+    "enemies": 189,
+    "boss": "Runner::Run",
+    "difficulty": 3
+  },
+  {
+    "slug": "alamofire",
+    "repo": "Alamofire/Alamofire",
+    "head": "bda9ed57d72988a3a2ada33d824583541f86eac6",
+    "language": "swift",
+    "floors": 7,
+    "rooms": 64,
+    "enemies": 273,
+    "boss": "refresh",
+    "difficulty": 3
+  },
+  {
+    "slug": "slim",
+    "repo": "slimphp/Slim",
+    "head": "3675bf6baac66b07032575b7bef4200b60b7974b",
+    "language": "php",
+    "floors": 8,
+    "rooms": 81,
+    "enemies": 212,
+    "boss": "CallableResolver::assertCallable",
+    "difficulty": 4
+  },
+  {
+    "slug": "sinatra",
+    "repo": "sinatra/sinatra",
+    "head": "cb22afd7902b566b6eaba6c4ea89739494a65d12",
+    "language": "ruby",
+    "floors": 5,
+    "rooms": 58,
+    "enemies": 218,
+    "boss": "attachment",
+    "difficulty": 2
+  },
+  {
+    "slug": "moshi",
+    "repo": "square/moshi",
+    "head": "889013ec2edb8d8034902662a1dc8c4f3b3f8111",
+    "language": "kotlin",
+    "floors": 8,
+    "rooms": 88,
+    "enemies": 314,
+    "boss": "peekNumber",
+    "difficulty": 4
   },
   {
     "slug": "headcrawl",
