@@ -92,12 +92,20 @@ redraws the whole view at 20 fps when idle.
   analyzer, lite.py backend without tree-sitter). `npm run py` fetches the
   Pyodide bundle into game/public/pyodide (gitignored, CI does it too).
 
+- Round 3 (owner approved PRODUCT/DESIGN, no GitHub yet): runs save as an
+  action log and resume, replay links (?watch=), run codes (flask-4821),
+  settings screen (text size, Okabe-Ito colorblind palette, high contrast,
+  calm motion, tips reset), tap to inspect on phones, render only when
+  needed, actions pinned to SHAs + npm ci --ignore-scripts + dependabot,
+  six more gallery languages, GitHub history for browser builds, then vs
+  now comparisons (#/vs/owner/repo@a..b).
+
 ## Next ideas
 
-- Browser mode has no git history: no churn, no TODO years. A few extra
-  GitHub API calls (commits?path=) for the lair candidates could fix churn.
+- Browser mode still has no TODO years (blame needs the GraphQL API, which
+  needs a token).
+- PyPI release so `uvx headcrawl` works (needs the owner's account).
 
-- Cache the static map layer in the renderer so idle frames are cheap.
 - Sound: a few short synth blips with WebAudio, off by default.
 - Mini-map of the floor graph in the side panel.
 - Better flavor text needs a bigger local model; gemma4 lines get rejected

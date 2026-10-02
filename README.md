@@ -55,19 +55,30 @@ Pick a repo from the gallery, or bring your own (below). Arrows, `hjkl` or
 `yubn` move and attack. `x` explores until something shows up, `z` rests,
 `>` takes the stairs once the boss is dead, `?` shows everything else.
 There is a daily run: same repo and same rolls for everyone that day.
-`m` turns on sound (synthesized, no files). When a run ends you can copy a
-spoiler-free result or save the whole run log as a text file.
+`,` opens settings (sound, text size, colorblind friendly or high contrast
+colors, calm motion). On a phone, tap a monster to see what it is.
+
+Runs save themselves in the browser; close the tab and pick it up later
+under "continue". Every run has a code like `flask-4821`: give it to a
+friend and they get the same dungeon with the same rolls. When a run ends
+you can copy a spoiler-free result, save the whole run log as text, or copy
+a replay link that plays your run back move by move.
 
 ## Your own repo
 
 Paste any public GitHub repo on the title screen and the game builds the
 dungeon right there: the same Python analyzer runs in your browser through
 Pyodide, files come straight from GitHub, and nothing in the repo is ever
-executed. It takes about ten seconds. GitHub allows 60 anonymous API calls
-an hour and each repo uses three.
+executed. It takes about ten seconds and a handful of GitHub's 60 hourly
+anonymous API calls. The link it gives you (`#/gh/owner/repo@commit`)
+rebuilds the same dungeon for anyone.
 
-The command line version also reads git history, so bosses know which files
-keep changing and every TODO knows how old it is:
+Give a repo and an old tag instead and you get **then vs now**: both
+versions built and compared, which functions grew, which got simpler, which
+notes appeared, and you can play either one.
+
+The command line version reads the full git history, so every TODO also
+knows how old it is:
 
 ```
 cd analyzer
