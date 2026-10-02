@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from . import gitio
 from .build import AnalysisError, analyze
+from .flavor import DEFAULT_MODEL
 from .languages import GRAMMARS
 from .limits import DEFAULT, Limits
 from .models import MAX_FLOORS, MAX_ROOMS, DungeonSpec
@@ -132,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--depth", type=int, default=DEFAULT.clone_depth, help="commits to clone")
     a.add_argument("--compact", action="store_true", help="no indentation in the json")
     a.add_argument("--flavor", action="store_true", help="boss names and taunts from a local ollama model")
-    a.add_argument("--model", default="gemma4")
+    a.add_argument("--model", default=DEFAULT_MODEL)
     a.add_argument("--cache", default=".cache/flavor")
     a.set_defaults(fn=_cmd_analyze)
 

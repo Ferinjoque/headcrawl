@@ -29,7 +29,7 @@ def test_flavor_uses_the_model_and_caches(make_repo: MakeRepo, tmp_path: Path, m
         return _reply({"title": "the Unkillable‮", "taunts": taunts})
 
     monkeypatch.setattr(flavor, "_ask", fake)
-    out = flavor.add_flavor(spec, "test-model", tmp_path)
+    out = flavor.add_flavor(spec, "test-model", tmp_path, check=False)
     boss = out.floors[-1].boss
     assert boss.title == "the Unkillable"
     assert boss.taunts[0].endswith("has outlived three rewrites.")
@@ -38,7 +38,7 @@ def test_flavor_uses_the_model_and_caches(make_repo: MakeRepo, tmp_path: Path, m
     assert len(calls) == len(spec.floors)
     assert calls[0]["format"]["required"] == ["title", "taunts"]
 
-    again = flavor.add_flavor(spec, "test-model", tmp_path)
+    again = flavor.add_flavor(spec, "test-model", tmp_path, check=False)
     assert again == out
     assert len(calls) == len(spec.floors)
 
@@ -50,24 +50,60 @@ def test_flavor_falls_back_on_any_failure(make_repo: MakeRepo, tmp_path: Path, m
         raise OSError("connection refused")
 
     monkeypatch.setattr(flavor, "_ask", down)
-    assert flavor.add_flavor(spec, "m", tmp_path) == spec
+    assert flavor.add_flavor(spec, "m", tmp_path, check=False) == spec
 
     monkeypatch.setattr(flavor, "_ask", lambda *a: {"message": {"content": "not json at all"}})
-    assert flavor.add_flavor(spec, "m", tmp_path) == spec
+    assert flavor.add_flavor(spec, "m", tmp_path, check=False) == spec
 
     junk = {"title": "​​​", "taunts": ["x"]}
     monkeypatch.setattr(flavor, "_ask", lambda *a: _reply(junk))
-    assert flavor.add_flavor(spec, "m", tmp_path) == spec
+    assert flavor.add_flavor(spec, "m", tmp_path, check=False) == spec
 
     generic = {"title": "the Wise", "taunts": ["Debugging is an art form, not a science."]}
     monkeypatch.setattr(flavor, "_ask", lambda *a: _reply(generic))
-    assert flavor.add_flavor(spec, "m", tmp_path) == spec
+    assert flavor.add_flavor(spec, "m", tmp_path, check=False) == spec
 
     placeholder = {"title": "the Sample Title", "taunts": ["Sample taunt 1 for run here"]}
     monkeypatch.setattr(flavor, "_ask", lambda *a: _reply(placeholder))
-    assert flavor.add_flavor(spec, "m", tmp_path) == spec
+    assert flavor.add_flavor(spec, "m", tmp_path, check=False) == spec
 
 
 def test_flavor_refuses_remote_hosts(make_repo: MakeRepo, tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         flavor.add_flavor(_spec(make_repo), "m", tmp_path, host="https://api.example.com")
+
+
+def test_canary_skips_models_that_ignore_prompts(
+    make_repo: MakeRepo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    spec = _spec(make_repo)
+    calls: list[dict[str, Any]] = []
+
+    def noisy(host: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        calls.append(payload)
+        return {"message": {"content": '{"echo": "wikipedia"}'}}
+
+    monkeypatch.setattr(flavor, "_ask", noisy)
+    assert flavor.add_flavor(spec, "broken", tmp_path) == spec
+    assert len(calls) == 1
+
+    monkeypatch.setattr(flavor, "_ask", lambda *a: {"message": {"content": '{"echo": "Lantern"}'}})
+    assert flavor.model_follows_prompts("ok", "http://127.0.0.1:11434")
+
+
+def test_retries_once_with_another_seed(make_repo: MakeRepo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    spec = _spec(make_repo)
+    seeds: list[int] = []
+
+    def flaky(host: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        seeds.append(payload["options"]["seed"])
+        name = payload["messages"][-1]["content"].split("\n")[0].removeprefix("function: ")
+        if len(seeds) % 2:
+            return _reply({"title": "the Wise", "taunts": ["Life is long, friend."]})
+        return _reply({"title": "the Stubborn", "taunts": [f"{name} refuses to go quietly."]})
+
+    monkeypatch.setattr(flavor, "_ask", flaky)
+    out = flavor.add_flavor(spec, "m", tmp_path, check=False)
+    assert all(f.boss.title == "the Stubborn" for f in out.floors)
+    assert seeds[1] == seeds[0] + 1
+    assert flavor._messages(spec.floors[0], spec.floors[0].boss)[1]["role"] == "user"
