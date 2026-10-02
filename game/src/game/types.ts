@@ -1,4 +1,5 @@
 import type { Boss, Enemy, Loot } from "../spec";
+import type { PerkId } from "./perks";
 
 export type Archetype = Enemy["archetype"];
 
@@ -55,6 +56,7 @@ export interface Player {
   potions: Item[];
   scrolls: Item[];
   curses: number;
+  perks: PerkId[];
   kills: number;
   bosses: number;
   killsBy: Record<string, number>;
@@ -72,6 +74,7 @@ export type GameEvent =
   | { t: "heal"; x: number; y: number; amount: number }
   | { t: "pickup"; x: number; y: number; kind: ItemKind }
   | { t: "levelup"; level: number }
+  | { t: "perk"; id: PerkId }
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
   | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean }
@@ -87,6 +90,7 @@ export type Action =
   | { type: "wait" }
   | { type: "descend" }
   | { type: "quaff" }
-  | { type: "read" };
+  | { type: "read" }
+  | { type: "perk"; index: number };
 
 export type Outcome = "playing" | "dead" | "won";

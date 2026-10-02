@@ -5,13 +5,14 @@ export const PLAYER = {
   atk: 5,
   regenEvery: 4,
   sight: 9,
-  hpPerLevel: 8,
-  atkPerLevel: 1,
+  hpPerLevel: 5,
+  // Perks carry most of the growth now; raw attack only every other level.
+  atkEveryLevels: 2,
 };
 
 export const HIT = {
   player: 0.9,
-  monster: 0.68,
+  monster: 0.72,
   crit: 0.1,
 };
 
@@ -45,7 +46,7 @@ export const WAKE_RANGE = 5;
 
 /** Deeper floors hit a bit harder, on top of what the code says. */
 export function depthScale(floor: number): number {
-  return 0.8 + floor * 0.12;
+  return 0.9 + floor * 0.15;
 }
 
 /**

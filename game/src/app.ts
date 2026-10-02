@@ -17,7 +17,7 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens";
+import { endScreen, helpScreen, messageScreen, perkCard, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { Hints } from "./ui/hints";
@@ -249,8 +249,20 @@ export class App {
     this.refreshUi();
   }
 
+  private pickPerk(index: number): void {
+    const game = this.game;
+    if (!game?.perkChoice) return;
+    game.act({ type: "perk", index });
+    this.handleEvents(game.drain());
+    replace($("banner"));
+    this.refreshUi();
+  }
+
   private refreshUi(): void {
     if (!this.game) return;
+    if (this.game.perkChoice && !$("banner").querySelector(".choice")) {
+      replace($("banner"), perkCard(this.game.perkChoice, (i) => this.pickPerk(i)));
+    }
     for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
     renderHud($("hud"), this.game);
     renderPanel($("panel"), this.game);
@@ -273,6 +285,10 @@ export class App {
     }
     if (this.mode !== "play" || !this.game) return;
     this.stopAuto();
+    if (this.game.perkChoice) {
+      if (c.kind === "perk") this.pickPerk(c.index);
+      return;
+    }
     switch (c.kind) {
       case "move":
         this.step({ type: "move", dx: c.dx, dy: c.dy });

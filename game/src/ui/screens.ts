@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { PERKS, type PerkId } from "../game/perks";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
@@ -141,6 +142,8 @@ export function helpScreen(close: () => void) {
     row("click or tap", "walk to that spot"),
     row("tab", "show or hide the side panel"),
     row("m", "sound on or off"),
+    h("h2", null, "leveling up"),
+    row("1, 2, 3", "each level you pick one of three tools: Linter, Type checker, Caffeine, Rubber duck and more"),
     h("h2", null, "monster types"),
     row("tangle (capitals)", "lots of branches. Regrows, finish it fast."),
     row("nest", "deep nesting. Winds up a big hit: step out of the red."),
@@ -189,6 +192,23 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
       btn("c", copied ? "copied" : "copy result", on.copy),
       btn("s", "save run log", on.save),
       btn("esc", "pick another repo", on.menu),
+    ),
+  );
+}
+
+export function perkCard(ids: PerkId[], pick: (index: number) => void) {
+  return h(
+    "div",
+    { class: "card choice", role: "dialog", "aria-label": "Pick a tool" },
+    h("div", { class: "card-kicker" }, "level up. pick a tool"),
+    ...ids.map((id, i) =>
+      h(
+        "button",
+        { class: "perk", type: "button", onclick: () => pick(i) },
+        h("kbd", null, `[${i + 1}]`),
+        h("span", { class: "perk-name" }, PERKS[id].name),
+        h("span", { class: "perk-text" }, PERKS[id].text),
+      ),
     ),
   );
 }

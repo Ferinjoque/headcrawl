@@ -6,6 +6,7 @@ import type { DungeonSpec } from "../spec";
 import { seeThrough, Tile, walkable } from "../map/grid";
 import { BOSS, COFFEE_HEAL, DROPS, HIT, PLAYER, WAKE_RANGE, bladeBonus, potionHeal, xpForLevel } from "./balance";
 import { TUNING } from "./abilities";
+import { PERKS, available, type PerkId } from "./perks";
 import { buildFloor, type FloorState } from "./world";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
@@ -25,6 +26,9 @@ export class Game {
   private events: GameEvent[] = [];
   private spawnCount = 0;
   private visited = new Set<string>();
+  /** Three perks to pick from after a level up, or null. */
+  perkChoice: PerkId[] | null = null;
+  private perksOwed = 0;
   /** Every message of the run with its turn, for the run log. */
   readonly journal: string[] = [];
 
@@ -47,6 +51,7 @@ export class Game {
       potions: [],
       scrolls: [],
       curses: 0,
+      perks: [],
       kills: 0,
       killsBy: {},
       bossNames: [],
@@ -98,6 +103,11 @@ export class Game {
   /** Apply one player action. Returns false if it did not take a turn. */
   act(action: Action): boolean {
     if (this.outcome !== "playing") return false;
+    // A level-up choice has to be made before anything else happens.
+    if (this.perkChoice) {
+      if (action.type === "perk") this.choosePerk(action.index);
+      return false;
+    }
     let took = false;
     switch (action.type) {
       case "move":
@@ -115,11 +125,14 @@ export class Game {
       case "read":
         took = this.readScroll();
         break;
+      case "perk":
+        break;
     }
     if (!took || this.outcome !== "playing") return took;
     this.player.turns++;
     const p = this.player;
-    if (p.turns % PLAYER.regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
+    const regenEvery = this.has("caffeine") ? PLAYER.regenEvery - 1 : PLAYER.regenEvery;
+    if (p.turns % regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
     // Sight first, so monsters wake on what the player can see right now.
     this.updateSight();
     this.monstersAct();
@@ -208,20 +221,29 @@ export class Game {
       return;
     }
     m.awake = true;
-    if (m.archetype === "bug" && this.rng.chance(TUNING.bugDodge)) {
+    if (m.archetype === "bug" && !this.has("linter") && this.rng.chance(TUNING.bugDodge)) {
       this.emit({ t: "dodge", x: m.x, y: m.y });
       this.say(`${m.name} dodges. Can't reproduce.`);
       return;
     }
-    const crit = this.rng.chance(HIT.crit);
+    const crit = this.rng.chance(this.has("debugger") ? HIT.crit * 2 : HIT.crit);
     let dmg = p.atk + p.blade + this.rng.int(0, 1 + Math.floor(p.level / 2));
     if (crit) dmg *= 2;
-    if (m.archetype === "wall") dmg = Math.max(1, dmg - TUNING.wallArmor);
+    dmg += this.perkBonus(m);
+    if (m.archetype === "wall" && !this.has("typechecker")) dmg = Math.max(1, dmg - TUNING.wallArmor);
+    if (this.has("pairing") && this.rng.chance(0.2)) {
+      this.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
+      m.hp -= dmg;
+      if (m.hp <= 0) {
+        this.killMonster(m);
+        return;
+      }
+    }
     m.hp -= dmg;
     this.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
     if (m.hp <= 0) this.killMonster(m);
     else if (m.boss) this.bossPhase(m);
-    else if (m.archetype === "hydra" && !m.split) this.splitHydra(m);
+    else if (m.archetype === "hydra" && !m.split && !this.has("di")) this.splitHydra(m);
   }
 
   private killMonster(m: Monster): void {
@@ -278,11 +300,55 @@ export class Game {
       p.level++;
       p.nextXp = xpForLevel(p.level);
       p.maxHp += PLAYER.hpPerLevel;
-      p.atk += PLAYER.atkPerLevel;
-      p.hp = Math.min(p.maxHp, p.hp + PLAYER.hpPerLevel + Math.ceil(p.maxHp * 0.3));
+      if (p.level % PLAYER.atkEveryLevels === 0) p.atk++;
+      p.hp = Math.min(p.maxHp, p.hp + PLAYER.hpPerLevel + Math.ceil(p.maxHp * 0.2));
       this.emit({ t: "levelup", level: p.level });
       this.say(`Level ${p.level}. You understand this codebase a little better.`, "good");
+      this.perksOwed++;
     }
+    this.offerPerks();
+  }
+
+  private has(id: PerkId): boolean {
+    return this.player.perks.includes(id);
+  }
+
+  private offerPerks(): void {
+    if (this.perkChoice || this.perksOwed <= 0) return;
+    this.perksOwed--;
+    this.perkChoice = this.rng.shuffle(available(this.player.perks)).slice(0, 3);
+    this.say("Pick a tool: 1, 2 or 3.", "good");
+  }
+
+  private choosePerk(index: number): void {
+    const id = this.perkChoice?.[index];
+    if (!id) return;
+    const p = this.player;
+    this.perkChoice = null;
+    p.perks.push(id);
+    if (id === "refactoring") p.atk += 2;
+    if (id === "monorepo") {
+      p.maxHp += 12;
+      p.hp += 12;
+    }
+    if (id === "coverage") {
+      p.maxHp += 6;
+      p.hp += 6;
+      this.floor.shrinesUsed.clear();
+    }
+    this.emit({ t: "perk", id });
+    this.say(`${PERKS[id].name}: ${PERKS[id].text}.`, "good");
+    this.offerPerks();
+  }
+
+  /** Extra damage from perks against this kind of monster. */
+  private perkBonus(m: Monster): number {
+    const k = m.archetype;
+    if ((k === "bug" || k === "imp") && this.has("linter")) return 2;
+    if (k === "wall" && this.has("typechecker")) return 2;
+    if (k === "tangle" && this.has("ci")) return 2;
+    if (k === "hydra" && this.has("di")) return 2;
+    return 0;
   }
 
   private bossPhase(m: Monster): void {
@@ -402,7 +468,7 @@ export class Game {
         this.say(`XXX ${quote}. It bites. Attack +2, max HP -5.`, "bad");
         break;
       case "coffee":
-        this.heal(COFFEE_HEAL);
+        this.heal(this.has("caffeine") ? COFFEE_HEAL * 3 : COFFEE_HEAL);
         this.say("Coffee. Still warm.", "good");
         break;
     }
@@ -489,7 +555,7 @@ export class Game {
       if (!this.floor.monsters.includes(m)) continue;
       if (!m.awake && this.isVisible(m.x, m.y) && dist(m, this.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;
       if (!m.awake) continue;
-      if (m.archetype === "tangle" && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + TUNING.tangleRegen);
+      if (m.archetype === "tangle" && !this.has("ci") && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + TUNING.tangleRegen);
       m.energy += m.speed;
       while (m.energy >= 100 && this.outcome === "playing") {
         m.energy -= 100;
@@ -630,7 +696,8 @@ export class Game {
       return;
     }
     const roll = this.rng.int(Math.max(1, Math.ceil(m.damage / 2)), m.damage);
-    const dmg = Math.round(roll * mult);
+    let dmg = Math.round(roll * mult);
+    if (this.has("rubberduck") && p.hp < p.maxHp / 3) dmg = Math.max(1, dmg - 2);
     p.hp -= dmg;
     this.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
     if (p.hp <= 0) {

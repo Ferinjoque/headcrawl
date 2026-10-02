@@ -2,6 +2,7 @@
 // plain text, everything that happened, nice to diff against a friend's.
 
 import type { Game } from "../game/game";
+import { PERKS } from "../game/perks";
 import { floorRow } from "./share";
 
 const KIND_NAMES: Record<string, string> = {
@@ -41,6 +42,7 @@ export function runLog(game: Game, link: string): string {
     `level    ${p.level}, ${p.maxHp} max HP, attack ${p.atk + p.blade}`,
     `turns    ${p.turns}`,
     `cursed   ${p.curses}`,
+    `tools    ${p.perks.map((id) => PERKS[id].name).join(", ") || "none"}`,
     "",
     `Refactored ${p.kills} functions:`,
     ...(kills.length ? kills : ["  none"]),

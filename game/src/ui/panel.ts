@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
 import { bar, h, plural, replace } from "./dom";
@@ -91,6 +92,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     h("p", { class: p.scrolls.length ? "t-loot" : "faint" }, `? HACK${count(p.scrolls.length)}`, h("span", { class: "faint" }, "  r to read")),
     h("p", { class: p.blade ? "" : "faint" }, `/ FIXME ${p.blade ? `+${p.blade} attack` : "none yet"}`),
     p.curses ? h("p", { class: "t-bad" }, `% XXX x${p.curses}`) : null,
+    p.perks.length ? h("p", { class: "t-loot" }, `tools: ${p.perks.map((id) => PERKS[id].name).join(", ")}`) : null,
   );
 
   const keys = h(

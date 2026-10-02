@@ -64,7 +64,7 @@ function frontier(game: Game): [number, number] | null {
 }
 
 export function autoAction(game: Game, mode: AutoMode): Action | null {
-  if (game.outcome !== "playing") return null;
+  if (game.outcome !== "playing" || game.perkChoice) return null;
   const p = game.player;
   switch (mode.kind) {
     case "rest":

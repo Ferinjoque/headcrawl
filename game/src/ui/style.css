@@ -431,6 +431,50 @@ body.dragging #screen::after {
   100% { opacity: 0; }
 }
 
+#banner .card.choice {
+  animation: none;
+  pointer-events: auto;
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+  padding: 16px 18px;
+  min-width: min(560px, 92vw);
+  background: oklch(0.15 0.025 20 / 0.94);
+  border: 1px solid var(--ember);
+  box-shadow: 0 0 24px oklch(0.66 0.17 45 / 0.35);
+}
+.perk {
+  all: unset;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 4ch 18ch 1fr;
+  gap: 0 1ch;
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--text-dim);
+  transition: color 150ms var(--ease), background-color 150ms var(--ease);
+}
+.perk kbd {
+  font-family: inherit;
+  color: var(--ember);
+}
+.perk-name {
+  color: var(--gold);
+}
+.perk:hover,
+.perk:focus-visible {
+  color: var(--text);
+  background: oklch(0.66 0.17 45 / 0.12);
+}
+@media (max-width: 600px) {
+  .perk {
+    grid-template-columns: 4ch 1fr;
+  }
+  .perk-text {
+    grid-column: 2;
+  }
+}
+
 /* Hover details for monsters and items */
 #tip {
   position: absolute;
