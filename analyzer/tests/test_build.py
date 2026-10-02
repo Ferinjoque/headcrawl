@@ -168,7 +168,7 @@ def test_archetypes(kw: dict[str, int], arch: Archetype) -> None:
 def test_stat_curves_stay_in_range(ccn: int, nesting: int, params: int, nloc: int) -> None:
     f = _fn(ccn=ccn, nesting=nesting, params=params, nloc=nloc)
     assert 4 <= stats.enemy_hp(f) <= 80
-    assert 1 <= stats.enemy_damage(f) <= 12
+    assert 1 <= stats.enemy_damage(f) <= 9
     assert 60 <= stats.enemy_speed(f) <= 160
     for depth in (0, 3, 7):
         hp, dmg, speed, xp = stats.boss_stats(f, nloc, depth, final=depth == 7)

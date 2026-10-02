@@ -1,0 +1,32 @@
+{
+  "name": "headcrawl-game",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "spec": "node scripts/gen-spec.mjs",
+    "gallery": "node scripts/build-index.mjs",
+    "shots": "node scripts/shots.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@vitest/coverage-v8": "^5.0.3",
+    "ajv": "^8.20.0",
+    "fast-check": "^4.10.2",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@fontsource/vt323": "^5.3.0",
+    "fflate": "^0.8.3",
+    "rot-js": "^2.2.1"
+  }
+}

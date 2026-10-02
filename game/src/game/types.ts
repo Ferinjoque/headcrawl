@@ -1,0 +1,79 @@
+import type { Boss, Enemy, Loot } from "../spec";
+
+export type Archetype = Enemy["archetype"];
+
+export interface Monster {
+  id: string;
+  name: string;
+  glyph: string;
+  archetype: Archetype | "boss" | "spawn";
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  damage: number;
+  speed: number;
+  energy: number;
+  xp: number;
+  room: number;
+  awake: boolean;
+  boss: Boss | null;
+  enemy: Enemy | null;
+  phase: number;
+  lastTaunt: number;
+}
+
+export type ItemKind = Loot["kind"] | "coffee";
+
+export interface Item {
+  id: string;
+  kind: ItemKind;
+  x: number;
+  y: number;
+  loot: Loot | null;
+  /** Where it was found, for the pickup message. */
+  source: string;
+}
+
+export interface Player {
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  atk: number;
+  blade: number;
+  level: number;
+  xp: number;
+  nextXp: number;
+  potions: Item[];
+  scrolls: Item[];
+  curses: number;
+  kills: number;
+  bosses: number;
+  turns: number;
+}
+
+export type Tone = "info" | "good" | "bad" | "loot" | "boss" | "lore";
+
+export type GameEvent =
+  | { t: "msg"; text: string; tone: Tone }
+  | { t: "hit"; x: number; y: number; amount: number; crit: boolean; onPlayer: boolean }
+  | { t: "miss"; x: number; y: number }
+  | { t: "kill"; x: number; y: number; name: string; boss: boolean }
+  | { t: "heal"; x: number; y: number; amount: number }
+  | { t: "pickup"; x: number; y: number; kind: ItemKind }
+  | { t: "levelup"; level: number }
+  | { t: "descend"; floor: number }
+  | { t: "taunt"; name: string; text: string }
+  | { t: "reveal" }
+  | { t: "death"; killer: string }
+  | { t: "victory" };
+
+export type Action =
+  | { type: "move"; dx: number; dy: number }
+  | { type: "wait" }
+  | { type: "descend" }
+  | { type: "quaff" }
+  | { type: "read" };
+
+export type Outcome = "playing" | "dead" | "won";

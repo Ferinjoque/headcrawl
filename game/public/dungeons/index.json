@@ -1,0 +1,52 @@
+[
+  {
+    "slug": "itsdangerous",
+    "repo": "pallets/itsdangerous",
+    "head": "672971d66a2ef9f85151e53283113f33d642dabd",
+    "language": "python",
+    "floors": 2,
+    "rooms": 13,
+    "enemies": 56,
+    "boss": "__init__"
+  },
+  {
+    "slug": "flask",
+    "repo": "pallets/flask",
+    "head": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35",
+    "language": "python",
+    "floors": 5,
+    "rooms": 43,
+    "enemies": 192,
+    "boss": "run"
+  },
+  {
+    "slug": "express",
+    "repo": "expressjs/express",
+    "head": "7ef98448f8b38099ab1ded55e458538ad47a51e7",
+    "language": "javascript",
+    "floors": 3,
+    "rooms": 34,
+    "enemies": 176,
+    "boss": "send"
+  },
+  {
+    "slug": "gin",
+    "repo": "gin-gonic/gin",
+    "head": "43fe48e8a0f44af783116cdb010725e6bb50255f",
+    "language": "go",
+    "floors": 6,
+    "rooms": 66,
+    "enemies": 266,
+    "boss": "Handle"
+  },
+  {
+    "slug": "ripgrep",
+    "repo": "BurntSushi/ripgrep",
+    "head": "3fce3b5bb0236da2df6d99672afb8a719642eca7",
+    "language": "rust",
+    "floors": 8,
+    "rooms": 98,
+    "enemies": 433,
+    "boss": "main"
+  }
+]

@@ -19,3 +19,7 @@ coverage/
 work/
 *.log
 .env
+
+# playwright
+test-results/
+playwright-report/

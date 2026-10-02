@@ -1,0 +1,441 @@
+:root {
+  --ink: oklch(0.14 0.02 20);
+  --ink-raised: oklch(0.17 0.025 20);
+  --ink-line: oklch(0.3 0.04 30);
+  --text: oklch(0.92 0.02 70);
+  --text-dim: oklch(0.72 0.03 60);
+  --text-faint: oklch(0.58 0.03 50);
+  --ember: oklch(0.66 0.17 45);
+  --brick: oklch(0.8 0.15 62);
+  --floor: oklch(0.62 0.2 345);
+  --current: oklch(0.7 0.15 255);
+  --loot: oklch(0.86 0.22 140);
+  --hp: oklch(0.82 0.19 150);
+  --danger: oklch(0.7 0.22 25);
+  --boss: oklch(0.74 0.24 340);
+  --gold: oklch(0.88 0.16 90);
+  --violet: oklch(0.74 0.18 300);
+  --lore: oklch(0.8 0.08 230);
+
+  --font: "VT323", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --fs-xs: 16px;
+  --fs-s: 20px;
+  --fs-m: 24px;
+  --fs-l: 32px;
+  --fs-xl: 48px;
+  --panel-w: clamp(300px, 26vw, 380px);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-s);
+  line-height: 1.15;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  display: grid;
+  height: 100dvh;
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "hud hud"
+    "stage panel"
+    "log panel";
+}
+
+#hud {
+  grid-area: hud;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 1.4ch;
+  padding: 6px 14px 4px;
+  background: var(--ink);
+  border-bottom: 1px solid var(--ink-line);
+  white-space: nowrap;
+  min-height: 34px;
+}
+
+#stage {
+  grid-area: stage;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
+
+#view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#panel {
+  grid-area: panel;
+  overflow-y: auto;
+  padding: 10px 16px 16px;
+  background: var(--ink-raised);
+  border-left: 1px solid var(--ink-line);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-line) transparent;
+}
+
+#log {
+  grid-area: log;
+  min-width: 0;
+  overflow: hidden;
+  padding: 6px 14px 10px;
+  border-top: 1px solid var(--ink-line);
+  min-height: calc(5 * 1.15em + 16px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+#log p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 200ms var(--ease);
+}
+
+/* Tones shared by log, panel and screens */
+.t-info { color: var(--text); }
+.t-good { color: var(--hp); }
+.t-bad { color: var(--danger); }
+.t-loot { color: var(--loot); }
+.t-boss { color: var(--boss); }
+.t-lore { color: var(--lore); }
+.dim { color: var(--text-dim); }
+.faint { color: var(--text-faint); }
+.glow { text-shadow: 0 0 6px currentColor; }
+
+/* HUD bits */
+.hud-title {
+  color: var(--ember);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px var(--ember);
+}
+.hud-bar {
+  letter-spacing: -0.04em;
+}
+
+/* Side panel */
+.pane {
+  margin: 0 0 18px;
+}
+.pane h2 {
+  font-size: var(--fs-s);
+  font-weight: normal;
+  color: var(--ember);
+  margin: 0 0 4px;
+}
+.pane h2::before {
+  content: "> ";
+  color: var(--text-faint);
+}
+.pane p {
+  margin: 0 0 2px;
+}
+.path {
+  color: var(--text);
+  word-break: break-all;
+}
+.blurb {
+  color: var(--lore);
+  margin-top: 4px !important;
+}
+.foe {
+  display: grid;
+  grid-template-columns: 2ch 1fr auto;
+  gap: 0 8px;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+.foe .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.foe .stats {
+  grid-column: 2 / 4;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  margin-top: -2px;
+}
+.keys {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+}
+.keys p {
+  margin-bottom: 4px;
+}
+.keys b {
+  color: var(--text-dim);
+  font-weight: normal;
+}
+
+/* Full screen text pages: title, help, death, victory */
+#screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow-y: auto;
+  display: grid;
+  align-items: start;
+  padding: clamp(20px, 6vh, 72px) clamp(16px, 7vw, 120px);
+  background: oklch(0.14 0.02 20 / 0.92);
+  animation: fade-in 200ms var(--ease);
+}
+#screen[hidden] {
+  display: none;
+}
+#screen.clear {
+  background: linear-gradient(90deg, oklch(0.14 0.02 20 / 0.9) 0%, oklch(0.14 0.02 20 / 0.75) 55%, oklch(0.14 0.02 20 / 0.2) 100%);
+}
+
+/* On the title screen the map is only a backdrop. */
+body.titling #app {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "stage";
+}
+body.titling #hud,
+body.titling #panel,
+body.titling #log {
+  display: none;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page {
+  max-width: 78ch;
+}
+.wordmark {
+  margin: 0;
+  font-size: clamp(7px, 1.05vw, 15px);
+  line-height: 1.2;
+  color: var(--ember);
+  text-shadow: 0 0 10px var(--ember), 0 0 26px oklch(0.66 0.17 45 / 0.5);
+  white-space: pre;
+}
+.tagline {
+  font-size: var(--fs-m);
+  color: var(--text);
+  margin: 18px 0 30px;
+  max-width: 60ch;
+}
+.page h1 {
+  font-size: var(--fs-xl);
+  font-weight: normal;
+  margin: 0 0 10px;
+  line-height: 1;
+}
+.page h2 {
+  font-size: var(--fs-m);
+  font-weight: normal;
+  color: var(--ember);
+  margin: 28px 0 8px;
+}
+.page p {
+  margin: 0 0 8px;
+  max-width: 70ch;
+}
+.page .row {
+  display: grid;
+  grid-template-columns: minmax(12ch, 22ch) 1fr;
+  gap: 0 2ch;
+  margin: 0 0 4px;
+}
+
+.repos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.repos li button {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 2ch minmax(14ch, 22ch) 11ch 1fr;
+  gap: 0 1.5ch;
+  width: 100%;
+  padding: 3px 6px;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: color 150ms var(--ease), background-color 150ms var(--ease);
+}
+.repos li button .mark {
+  color: transparent;
+}
+.repos li button:hover,
+.repos li button:focus-visible,
+.repos li button[aria-current="true"] {
+  color: var(--text);
+  background: oklch(0.66 0.17 45 / 0.1);
+}
+.repos li button[aria-current="true"] .mark,
+.repos li button:focus-visible .mark {
+  color: var(--ember);
+  text-shadow: 0 0 6px var(--ember);
+}
+.repos .name {
+  color: var(--text);
+}
+.repos .meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.btn {
+  all: unset;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 2px 4px;
+  margin-right: 2ch;
+  transition: color 150ms var(--ease);
+}
+.btn kbd {
+  font-family: inherit;
+  color: var(--ember);
+}
+.btn:hover,
+.btn:focus-visible {
+  color: var(--text);
+}
+.btn:hover kbd,
+.btn:focus-visible kbd {
+  text-shadow: 0 0 6px var(--ember);
+}
+.btn:active {
+  color: var(--gold);
+}
+.actions {
+  margin-top: 26px;
+}
+
+pre.code {
+  font-family: inherit;
+  color: var(--current);
+  margin: 6px 0 10px;
+  white-space: pre-wrap;
+}
+.error {
+  color: var(--danger);
+  margin-top: 12px !important;
+}
+.tomb {
+  color: var(--text-dim);
+  white-space: pre;
+  margin: 0 0 18px;
+  line-height: 1;
+}
+.share {
+  white-space: pre-wrap;
+  color: var(--text);
+  border: 1px solid var(--ink-line);
+  padding: 10px 12px;
+  margin: 14px 0;
+  max-width: 60ch;
+}
+
+/* Dropping a file anywhere */
+body.dragging #screen::after {
+  content: "drop it";
+  position: fixed;
+  inset: 16px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--ember);
+  color: var(--ember);
+  font-size: var(--fs-xl);
+  background: oklch(0.14 0.02 20 / 0.85);
+}
+
+/* Touch controls */
+#touch {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  gap: 6px;
+  user-select: none;
+}
+#touch button {
+  all: unset;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  background: oklch(0.17 0.025 20 / 0.75);
+  border: 1px solid var(--ink-line);
+  font-size: var(--fs-m);
+}
+#touch button:active {
+  color: var(--ember);
+  border-color: var(--ember);
+}
+
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "hud"
+      "stage"
+      "log";
+  }
+  #panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(88vw, 360px);
+    z-index: 5;
+    transform: translateX(100%);
+    transition: transform 200ms var(--ease);
+    border-left: 1px solid var(--ink-line);
+  }
+  #panel.open {
+    transform: none;
+  }
+  #log {
+    min-height: calc(3 * 1.15em + 16px);
+  }
+  .repos li button {
+    grid-template-columns: 2ch 1fr;
+  }
+  .repos .lang,
+  .repos .meta {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

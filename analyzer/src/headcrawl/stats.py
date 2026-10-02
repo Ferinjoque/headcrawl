@@ -19,7 +19,7 @@ def enemy_hp(f: FunctionMetric) -> int:
 
 
 def enemy_damage(f: FunctionMetric) -> int:
-    return clamp(1 + f.nesting + f.nloc / 60, 1, 12)
+    return clamp(1 + f.nesting * 0.75 + f.nloc / 120, 1, 9)
 
 
 def enemy_speed(f: FunctionMetric) -> int:
@@ -70,9 +70,10 @@ def loot_power(tag: str, text: str) -> int:
 
 def boss_stats(f: FunctionMetric, churn: int, depth: int, final: bool) -> tuple[int, int, int, int]:
     """hp, damage, speed, xp. Deeper floors and hotter files hit harder."""
-    scale = 1 + depth * 0.35 + (0.6 if final else 0)
-    hp = clamp((30 + 6 * f.ccn**0.7 + 2 * math.sqrt(churn)) * scale, 20, 9999)
-    dmg = clamp((2 + f.nesting + depth * 0.8) * (1.2 if final else 1), 2, 40)
+    scale = 1 + depth * 0.3 + (0.4 if final else 0)
+    hp = clamp((24 + 5 * f.ccn**0.6 + 1.5 * math.sqrt(churn)) * scale, 20, 9999)
+    # Nesting can be huge in test code; cap by depth so floor 1 stays fair.
+    dmg = clamp(3 + f.nesting * 0.5 + depth, 3, 6 + depth * 2)
     speed = clamp(90 + 6 * f.params, 70, 180)
     xp = clamp((f.ccn * 4 + churn) * scale, 10, 5000)
     return hp, dmg, speed, xp
