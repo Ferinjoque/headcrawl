@@ -12,36 +12,65 @@ const MAX_INFLATED = 4 * 1024 * 1024;
 const MAX_LINK = 1024 * 1024;
 const STEP = 1024;
 
+// Any dungeon route can also carry ?watch=<deflated action log> to replay a run.
+interface Extra {
+  run: number;
+  watch?: string;
+}
+
 export type Route =
   | { kind: "title" }
-  | { kind: "gallery"; slug: string; run: number }
-  | { kind: "custom"; run: number; data: string }
-  | { kind: "github"; owner: string; repo: string; sha: string; run: number };
+  | ({ kind: "gallery"; slug: string } & Extra)
+  | ({ kind: "custom"; data: string } & Extra)
+  | ({ kind: "github"; owner: string; repo: string; sha: string } & Extra);
+
+export type PlayRoute = Exclude<Route, { kind: "title" }>;
+
+function parseExtra(query: string): Extra | null {
+  const params = new URLSearchParams(query);
+  const run = params.get("run") ?? "0";
+  const watch = params.get("watch");
+  if (!/^\d{1,9}$/.test(run)) return null;
+  if (watch !== null && !/^[A-Za-z0-9_-]{1,400000}$/.test(watch)) return null;
+  return watch ? { run: Number(run), watch } : { run: Number(run) };
+}
 
 export function parseRoute(hash: string): Route {
   const h = hash.replace(/^#/, "");
-  const play = h.match(/^\/play\/([a-z0-9._-]{1,60})(?:\?run=(\d{1,9}))?$/i);
-  if (play) return { kind: "gallery", slug: play[1].toLowerCase(), run: Number(play[2] ?? 0) };
-  const gh = h.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{40})(?:\?run=(\d{1,9}))?$/);
-  if (gh && gh[2] !== "." && gh[2] !== "..") {
-    return { kind: "github", owner: gh[1], repo: gh[2], sha: gh[3], run: Number(gh[4] ?? 0) };
-  }
-  const custom = h.match(/^\/x\/(\d{1,9})\/([A-Za-z0-9_-]{1,1400000})$/);
-  if (custom) return { kind: "custom", run: Number(custom[1]), data: custom[2] };
+  const q = h.indexOf("?");
+  const path = q < 0 ? h : h.slice(0, q);
+  const extra = parseExtra(q < 0 ? "" : h.slice(q + 1));
+  if (!extra) return { kind: "title" };
+  const play = path.match(/^\/play\/([a-z0-9._-]{1,60})$/i);
+  if (play) return { kind: "gallery", slug: play[1].toLowerCase(), ...extra };
+  const gh = path.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{40})$/);
+  if (gh && gh[2] !== "." && gh[2] !== "..") return { kind: "github", owner: gh[1], repo: gh[2], sha: gh[3], ...extra };
+  // Older custom links put the run number in the path.
+  const custom = path.match(/^\/x\/(\d{1,9})\/([A-Za-z0-9_-]{1,1400000})$/);
+  if (custom) return { kind: "custom", data: custom[2], ...extra, run: Number(custom[1]) };
   return { kind: "title" };
 }
 
 export function routeHash(route: Route): string {
+  if (route.kind === "title") return "#/";
+  const params = new URLSearchParams();
+  if (route.run && route.kind !== "custom") params.set("run", String(route.run));
+  if (route.watch) params.set("watch", route.watch);
+  const query = params.size ? `?${params}` : "";
   switch (route.kind) {
-    case "title":
-      return "#/";
     case "gallery":
-      return `#/play/${route.slug}${route.run ? `?run=${route.run}` : ""}`;
+      return `#/play/${route.slug}${query}`;
     case "custom":
-      return `#/x/${route.run}/${route.data}`;
+      return `#/x/${route.run}/${route.data}${query}`;
     case "github":
-      return `#/gh/${route.owner}/${route.repo}@${route.sha}${route.run ? `?run=${route.run}` : ""}`;
+      return `#/gh/${route.owner}/${route.repo}@${route.sha}${query}`;
   }
+}
+
+/** The same dungeon and run, without any replay attached. */
+export function playRoute(route: PlayRoute): PlayRoute {
+  const { watch: _, ...rest } = route;
+  return rest as PlayRoute;
 }
 
 function toBase64Url(bytes: Uint8Array): string {

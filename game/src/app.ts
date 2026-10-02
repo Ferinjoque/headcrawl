@@ -17,18 +17,21 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { endScreen, helpScreen, messageScreen, perkCard, titleScreen } from "./ui/screens";
+import { endScreen, helpScreen, pauseScreen, perkCard, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { analyzeInBrowser } from "./lite/client";
 import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
+import { dropSave, findSave, listSaves, putSave } from "./ui/save";
+import { decodeLog } from "./game/record";
+import type { Action } from "./game/types";
 import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
-import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
+import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, type PlayRoute, type Route } from "./ui/share";
 
-type Mode = "title" | "play" | "dying" | "help" | "pause" | "end" | "loading";
+type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "end" | "loading";
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -52,6 +55,8 @@ export class App {
   /** Bumped on every navigation so a slow fetch can't replace a newer game. */
   private navSeq = 0;
   private built = new Map<string, string>();
+  private saveTimer = 0;
+  private watching: { actions: Action[]; at: number; perSecond: number; paused: boolean; timer: number } | null = null;
   private copied = false;
   private lastDraw = 0;
   private reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -68,6 +73,10 @@ export class App {
     this.renderer.resize();
     new ResizeObserver(() => this.renderer.resize()).observe($("stage"));
     window.addEventListener("keydown", (e) => this.onKey(e));
+    window.addEventListener("pagehide", () => this.scheduleSave(true));
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.scheduleSave(true);
+    });
     window.addEventListener("hashchange", () => void this.follow(parseRoute(location.hash)));
     this.bindPointer();
     this.bindFiles();
@@ -109,7 +118,97 @@ export class App {
     const res = loadSpec(text);
     if (!res.ok) return this.failToTitle(res.error);
     this.route = route;
-    this.begin(res.spec, route.run);
+    if (route.watch) {
+      const raw = decodeSpec(route.watch);
+      const actions = raw === null ? null : decodeLog(raw);
+      if (!actions) return this.failToTitle("That replay link is broken.");
+      this.begin(res.spec, route.run);
+      this.startWatch(actions);
+      return;
+    }
+    this.begin(res.spec, route.run, findSave(this.saveKey())?.log);
+  }
+
+  private saveKey(): string {
+    return this.route.kind === "title" ? "" : routeHash(playRoute(this.route));
+  }
+
+  /** Saves a little after the last move, and right away when the page goes away. */
+  private scheduleSave(now = false): void {
+    window.clearTimeout(this.saveTimer);
+    const write = () => {
+      const game = this.game;
+      if (!game || this.mode === "watch" || this.route.kind === "title" || this.route.watch) return;
+      if (game.outcome !== "playing") return dropSave(this.saveKey());
+      if (!game.log.length) return;
+      putSave({
+        hash: this.saveKey(),
+        repo: game.spec.repo.name,
+        log: game.record(),
+        floor: game.floor.index + 1,
+        floors: game.spec.floors.length,
+        at: Date.now(),
+      });
+    };
+    if (now) write();
+    else this.saveTimer = window.setTimeout(write, 400);
+  }
+
+  private startWatch(actions: Action[]): void {
+    this.mode = "watch";
+    this.watching = { actions, at: 0, perSecond: 8, paused: false, timer: 0 };
+    this.log.push("Watching a recorded run. Space pauses, + and - change speed, Esc leaves.", "lore");
+    this.log.render();
+    this.tickWatch();
+  }
+
+  private tickWatch(): void {
+    const w = this.watching;
+    const game = this.game;
+    if (!w || !game || this.mode !== "watch") return;
+    window.clearTimeout(w.timer);
+    if (w.paused) return;
+    if (w.at >= w.actions.length || game.outcome !== "playing") {
+      this.watching = null;
+      if (game.outcome === "playing") {
+        this.log.push("That's where the recording stops.", "lore");
+        this.log.render();
+        this.mode = "play";
+        return;
+      }
+      window.setTimeout(() => this.showEnd(), this.reduced ? 200 : 900);
+      return;
+    }
+    game.act(w.actions[w.at++]);
+    this.handleEvents(game.drain());
+    this.refreshUi();
+    w.timer = window.setTimeout(() => this.tickWatch(), 1000 / w.perSecond);
+  }
+
+  private watchKey(e: KeyboardEvent): void {
+    const w = this.watching;
+    if (e.key === "Escape") {
+      if (w) window.clearTimeout(w.timer);
+      this.watching = null;
+      this.navigate({ kind: "title" });
+      return;
+    }
+    if (!w) return;
+    if (e.key === " ") {
+      e.preventDefault();
+      w.paused = !w.paused;
+      this.log.push(w.paused ? "Paused. Space goes on, the right arrow steps." : "Playing.", "info");
+      this.log.render();
+      if (!w.paused) this.tickWatch();
+    } else if (e.key === "+" || e.key === "=") {
+      w.perSecond = Math.min(64, w.perSecond * 2);
+    } else if (e.key === "-") {
+      w.perSecond = Math.max(1, w.perSecond / 2);
+    } else if (e.key === "ArrowRight" && w.paused) {
+      w.paused = false;
+      this.tickWatch();
+      w.paused = true;
+    }
   }
 
   private navigate(route: Route): void {
@@ -156,10 +255,14 @@ export class App {
         daily: () => this.playDaily(),
         build: (target) => void this.buildFromGitHub(target),
         reopen: (r) => this.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
+        resume: (s) => {
+          location.hash = s.hash;
+        },
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
       },
       recentBuilds(),
+      listSaves(),
       ),
       true,
     );
@@ -231,8 +334,14 @@ export class App {
   private openPause(): void {
     this.returnMode = "play";
     this.mode = "pause";
-    const node = messageScreen("paused", "Esc to resume. M for the repo list, your run will be lost.", () => this.closeOverlay());
-    this.showScreen(node);
+    this.scheduleSave(true);
+    this.showScreen(
+      pauseScreen({
+        resume: () => this.closeOverlay(),
+        restart: () => this.restart(),
+        menu: () => this.navigate({ kind: "title" }),
+      }),
+    );
   }
 
   private closeOverlay(): void {
@@ -261,15 +370,40 @@ export class App {
         again: () => this.again(),
         copy: () => this.copyResult(share),
         save: () => this.saveLog(),
+        replay: () => this.copyReplay(),
         menu: () => this.navigate({ kind: "title" }),
-      }),
+      }, this.route.kind !== "title" && !!this.route.watch),
     );
+  }
+
+  private restart(): void {
+    dropSave(this.saveKey());
+    if (this.route.kind === "title") return;
+    const run = this.route.run + 1 + Math.floor(Math.random() * 1000);
+    this.navigate({ ...playRoute(this.route), run });
+  }
+
+  private replayLink(): string {
+    if (!this.game || this.route.kind === "title") return location.href;
+    const route: PlayRoute = { ...playRoute(this.route), watch: encodeSpec(this.game.record()) };
+    return location.href.split("#")[0] + routeHash(route);
   }
 
   private again(): void {
     if (!this.game || this.route.kind === "title") return;
-    const run = this.route.run + 1 + Math.floor(Math.random() * 1000);
-    this.navigate({ ...this.route, run });
+    // After watching someone's run, "again" means: your turn, same dungeon, same rolls.
+    if (this.route.watch) return this.navigate(playRoute(this.route));
+    this.restart();
+  }
+
+  private copyReplay(): void {
+    void navigator.clipboard?.writeText(this.replayLink()).then(
+      () => {
+        this.log.push("Replay link copied.", "good");
+        this.log.render();
+      },
+      () => undefined,
+    );
   }
 
   private copyResult(text: string): void {
@@ -283,14 +417,15 @@ export class App {
   }
 
 
-  private begin(spec: DungeonSpec, run: number): void {
+  private begin(spec: DungeonSpec, run: number, resume?: string): void {
     window.clearTimeout(this.endTimer);
     this.titleError = null;
     this.copied = false;
     this.stopAuto();
     this.fx.clear();
     this.log.clear();
-    this.game = new Game(spec, { run });
+    const resumed = resume ? Game.replay(spec, run, resume) : null;
+    this.game = resumed ?? new Game(spec, { run });
     document.body.classList.remove("titling");
     this.renderer.snapCamera();
     document.title = `${spec.repo.name} | HEADCRAWL`;
@@ -298,6 +433,7 @@ export class App {
     this.showScreen(null);
     this.handleEvents(this.game.drain());
     this.floorCard();
+    if (resumed) this.log.push(`Picked up where you left off, turn ${resumed.player.turns}. Esc then n starts over.`, "good");
     this.refreshUi();
   }
 
@@ -305,6 +441,7 @@ export class App {
     const game = this.game;
     if (!game?.perkChoice) return;
     game.act({ type: "perk", index });
+    this.scheduleSave();
     this.handleEvents(game.drain());
     replace($("banner"));
     this.refreshUi();
@@ -312,10 +449,13 @@ export class App {
 
   private refreshUi(): void {
     if (!this.game) return;
-    if (this.game.perkChoice && !$("banner").querySelector(".choice")) {
+    const card = $("banner").querySelector(".choice");
+    if (this.game.perkChoice && !card) {
       replace($("banner"), perkCard(this.game.perkChoice, (i) => this.pickPerk(i)));
+    } else if (!this.game.perkChoice && card) {
+      replace($("banner"));
     }
-    for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
+    if (this.mode !== "watch") for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
     renderHud($("hud"), this.game);
     renderPanel($("panel"), this.game);
     this.log.render();
@@ -371,6 +511,7 @@ export class App {
     const took = game.act(action);
     this.handleEvents(game.drain());
     this.refreshUi();
+    this.scheduleSave(game.outcome !== "playing");
     if (game.outcome !== "playing" && this.mode === "play") {
       // A short beat to see the last hit land. Input stops right away.
       this.mode = "dying";
@@ -502,16 +643,22 @@ export class App {
   private onKey(e: KeyboardEvent): void {
     this.sound.wake();
     if (this.mode === "title") return this.titleKey(e);
+    if (this.mode === "watch") return this.watchKey(e);
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
       else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href, this.dailyLabel()));
       else if (e.key === "s" || e.key === "S") this.saveLog();
+      else if (e.key === "w" || e.key === "W") this.copyReplay();
       else if (e.key === "Escape") this.navigate({ kind: "title" });
       return;
     }
     if (this.mode === "pause" && (e.key === "m" || e.key === "M")) {
       this.navigate({ kind: "title" });
+      return;
+    }
+    if (this.mode === "pause" && (e.key === "n" || e.key === "N")) {
+      this.restart();
       return;
     }
     if ((this.mode === "help" || this.mode === "pause") && (e.key === "Escape" || e.key === "?")) {
@@ -677,7 +824,7 @@ export class App {
     if (!busy && now - this.lastDraw < (this.reduced ? 250 : 50)) return;
     this.lastDraw = now;
     if (this.game && this.mode !== "title") {
-      const dim = this.mode === "play" || this.mode === "dying" ? 0 : 0.55;
+      const dim = this.mode === "play" || this.mode === "dying" || this.mode === "watch" ? 0 : 0.55;
       this.renderer.render(
         { floor: this.game.floor, player: this.game.player, sight: PLAYER.sight, dim, threat: this.game.threatened() },
         this.fx,

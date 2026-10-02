@@ -4,6 +4,7 @@ import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
 import type { Recent } from "./recent";
+import type { SavedRun } from "./save";
 
 // The wordmark is a 5x5 pixel font drawn with full blocks.
 const LETTERS: Record<string, string[]> = {
@@ -37,6 +38,7 @@ export interface TitleHandlers {
   daily(): void;
   build(target: string): void;
   reopen(r: Recent): void;
+  resume(s: SavedRun): void;
   open(): void;
   help(): void;
 }
@@ -53,6 +55,7 @@ export function titleScreen(
   daily: Daily | null,
   on: TitleHandlers,
   recent: Recent[] = [],
+  saves: SavedRun[] = [],
 ) {
   const list = h(
     "ul",
@@ -94,6 +97,21 @@ export function titleScreen(
       { class: "tagline" },
       "A roguelike where the dungeon is a git repo. Files are rooms, functions are monsters, TODOs are loot, and the code everyone keeps rewriting is the boss.",
     ),
+    saves.length ? h("h2", null, "continue") : null,
+    saves.length
+      ? h(
+          "div",
+          { class: "saves" },
+          ...saves.map((s) =>
+            h(
+              "button",
+              { class: "btn", type: "button", onclick: () => on.resume(s) },
+              h("kbd", null, ">"),
+              ` ${s.repo}, floor ${s.floor} of ${s.floors}`,
+            ),
+          ),
+        )
+      : null,
     h("h2", null, "pick a repo"),
     entries.length ? list : h("p", { class: "dim" }, "No gallery here. Open a dungeon file instead."),
     error ? h("p", { class: "error", role: "alert" }, error) : null,
@@ -201,12 +219,13 @@ export interface EndHandlers {
   again(): void;
   copy(): void;
   save(): void;
+  replay(): void;
   menu(): void;
 }
 
 const TOMB = ["    _______", "   /       \\", "  /  R.I.P  \\", "  |         |", "  |  HEAD~1 |", "  |         |", "__|_________|__"].join("\n");
 
-export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers) {
+export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers, watched = false) {
   const p = game.player;
   const won = game.outcome === "won";
   const f = game.floorSpec;
@@ -228,9 +247,12 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
     h(
       "div",
       { class: "actions" },
-      btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
+      watched
+        ? btn("r", "play this run yourself", on.again)
+        : btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
       btn("c", copied ? "copied" : "copy result", on.copy),
       btn("s", "save run log", on.save),
+      btn("w", "copy replay link", on.replay),
       btn("esc", "pick another repo", on.menu),
     ),
   );
@@ -249,6 +271,28 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
         h("span", { class: "perk-name" }, PERKS[id].name),
         h("span", { class: "perk-text" }, PERKS[id].text),
       ),
+    ),
+  );
+}
+
+export interface PauseHandlers {
+  resume(): void;
+  restart(): void;
+  menu(): void;
+}
+
+export function pauseScreen(on: PauseHandlers) {
+  return h(
+    "div",
+    { class: "page" },
+    h("h1", null, "paused"),
+    h("p", { class: "dim" }, "Your run is saved in this browser. Close the tab and it will be here when you come back."),
+    h(
+      "div",
+      { class: "actions" },
+      btn("esc", "resume", on.resume),
+      btn("n", "start a new run", on.restart),
+      btn("m", "back to the repo list", on.menu),
     ),
   );
 }

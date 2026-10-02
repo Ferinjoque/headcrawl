@@ -113,4 +113,5 @@ redraws the whole view at 20 fps when idle.
 - Balance targets: bot wins small repos sometimes, dies to final bosses on
   bigger ones. Humans can retreat into corridors and use items, the bot can't.
 - `work/` is gitignored scratch space.
-- PRODUCT.md and DESIGN.md were drafted without the owner. Review them.
+- PRODUCT.md and DESIGN.md approved by the owner (2026-10-02). Not pushing
+  to GitHub yet, by choice.

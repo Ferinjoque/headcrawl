@@ -1,8 +1,5 @@
 # Product
 
-> Drafted while the owner was offline, from their brief and a reference
-> screenshot. Review and correct when back.
-
 ## Register
 
 product

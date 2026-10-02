@@ -7,6 +7,7 @@ import { seeThrough, Tile, walkable } from "../map/grid";
 import { BOSS, COFFEE_HEAL, DROPS, HIT, PLAYER, WAKE_RANGE, bladeBonus, potionHeal, xpForLevel } from "./balance";
 import { TUNING } from "./abilities";
 import { PERKS, available, type PerkId } from "./perks";
+import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
@@ -29,6 +30,8 @@ export class Game {
   /** Three perks to pick from after a level up, or null. */
   perkChoice: PerkId[] | null = null;
   private perksOwed = 0;
+  /** Every action that changed the game, as codes from record.ts. */
+  readonly log: string[] = [];
   /** Every message of the run with its turn, for the run log. */
   readonly journal: string[] = [];
 
@@ -60,6 +63,24 @@ export class Game {
     };
     this.updateSight();
     this.enterFloorMessages();
+  }
+
+  /** The run so far, compact enough for a URL. */
+  record(): string {
+    return encodeLog(this.log);
+  }
+
+  /** Play a recorded run forward from the start. Null if the log is broken. */
+  static replay(spec: DungeonSpec, run: number, text: string): Game | null {
+    const actions = decodeLog(text);
+    if (!actions) return null;
+    const game = new Game(spec, { run });
+    for (const a of actions) {
+      if (game.outcome !== "playing") break;
+      game.act(a);
+    }
+    game.drain();
+    return game;
   }
 
   get floorSpec() {
@@ -105,7 +126,10 @@ export class Game {
     if (this.outcome !== "playing") return false;
     // A level-up choice has to be made before anything else happens.
     if (this.perkChoice) {
-      if (action.type === "perk") this.choosePerk(action.index);
+      if (action.type === "perk" && this.perkChoice[action.index]) {
+        this.log.push(actionCode(action));
+        this.choosePerk(action.index);
+      }
       return false;
     }
     let took = false;
@@ -128,6 +152,7 @@ export class Game {
       case "perk":
         break;
     }
+    if (took) this.log.push(actionCode(action));
     if (!took || this.outcome !== "playing") return took;
     this.player.turns++;
     const p = this.player;
