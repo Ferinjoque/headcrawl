@@ -7,7 +7,7 @@ import { Tile } from "../map/grid";
 const KEY = "headcrawl.hints.v1";
 
 const TIPS = {
-  monster: "Tip: walk into a monster to hit it. Hover it to see what the code made it.",
+  monster: "Tip: walk into a monster to hit it. Hover or tap it to see what the code made it.",
   item: "Tip: walk over an item to pick it up. TODOs heal, FIXMEs sharpen your attack.",
   telegraph: "Tip: red cells get hit next turn. Step out of them, then hit back.",
   lowhp: "Tip: low on HP. z rests when nothing is chasing you, q drinks a TODO.",

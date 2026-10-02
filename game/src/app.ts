@@ -839,13 +839,32 @@ export class App {
     const canvas = $("view");
     canvas.addEventListener("mousemove", (e) => this.showTip(e.clientX, e.clientY));
     canvas.addEventListener("mouseleave", () => ($("tip").hidden = true));
+    // Phones have no hover. The first tap on a monster or item shows what it
+    // is; tapping the same cell again walks there.
+    let touch = false;
+    let tipped = "";
+    canvas.addEventListener("pointerdown", (e) => {
+      touch = e.pointerType !== "mouse";
+    });
     canvas.addEventListener("click", (e) => {
       if (this.mode !== "play" || !this.game) return;
       const [x, y] = this.renderer.cellAt(e.clientX, e.clientY);
       const p = this.game.player;
       const dx = x - p.x;
       const dy = y - p.y;
-      if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+      const near = Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
+      if (touch && !near) {
+        const cell = `${x},${y}`;
+        const visible = this.game.isVisible(x, y);
+        if (visible && (this.game.monsterAt(x, y) || this.game.itemAt(x, y)) && tipped !== cell) {
+          tipped = cell;
+          this.showTip(e.clientX, e.clientY);
+          return;
+        }
+      }
+      tipped = "";
+      $("tip").hidden = true;
+      if (near) {
         if (dx || dy) this.command({ kind: "move", dx, dy });
         else this.command({ kind: "wait" });
         return;
