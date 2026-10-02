@@ -3,6 +3,7 @@ import { PERKS, type PerkId } from "../game/perks";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
+import type { Recent } from "./recent";
 
 // The wordmark is a 5x5 pixel font drawn with full blocks.
 const LETTERS: Record<string, string[]> = {
@@ -35,6 +36,7 @@ export interface TitleHandlers {
   play(slug: string): void;
   daily(): void;
   build(target: string): void;
+  reopen(r: Recent): void;
   open(): void;
   help(): void;
 }
@@ -50,6 +52,7 @@ export function titleScreen(
   error: string | null,
   daily: Daily | null,
   on: TitleHandlers,
+  recent: Recent[] = [],
 ) {
   const list = h(
     "ul",
@@ -123,6 +126,16 @@ export function titleScreen(
       }),
       h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " build it here"),
     ),
+    recent.length
+      ? h(
+          "p",
+          { class: "recent" },
+          h("span", { class: "faint" }, "built here before: "),
+          ...recent.map((r) =>
+            h("button", { class: "btn", type: "button", onclick: () => on.reopen(r) }, `${r.owner}/${r.repo}`),
+          ),
+        )
+      : null,
     h(
       "p",
       { id: "build-status", class: "dim", role: "status" },

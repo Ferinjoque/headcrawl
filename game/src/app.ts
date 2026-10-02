@@ -22,6 +22,7 @@ import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { analyzeInBrowser } from "./lite/client";
 import { parseRepo } from "./lite/protocol";
+import { recentBuilds, rememberBuild } from "./ui/recent";
 import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
@@ -154,9 +155,12 @@ export class App {
         play: (slug) => this.navigate({ kind: "gallery", slug, run: 0 }),
         daily: () => this.playDaily(),
         build: (target) => void this.buildFromGitHub(target),
+        reopen: (r) => this.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
-      }),
+      },
+      recentBuilds(),
+      ),
       true,
     );
     const current = document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`);
@@ -209,6 +213,7 @@ export class App {
     if (!res.ok) return this.buildStatus(res.error, "error");
     const sha = res.spec.repo.head;
     this.built.set(`${repo.owner}/${repo.repo}@${sha}`.toLowerCase(), json);
+    rememberBuild({ owner: repo.owner, repo: repo.repo, sha });
     this.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0 });
   }
 
