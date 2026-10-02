@@ -516,6 +516,9 @@ export class App {
         tip,
         h("div", { class: "tip-name t-loot" }, names[item.kind]),
         item.loot ? h("div", null, `"${item.loot.text}"`) : h("div", null, "Still warm."),
+        item.loot?.year
+          ? h("div", { class: "faint" }, `written in ${item.loot.year}${item.loot.year_or_older ? " or earlier" : ""}`)
+          : null,
         item.source ? h("div", { class: "faint" }, item.source) : null,
       );
     }

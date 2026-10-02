@@ -31,7 +31,8 @@ for entry in "${repos[@]}"; do
   if [ ${#want[@]} -gt 0 ] && [[ ! " ${want[*]} " =~ " $slug " ]]; then
     continue
   fi
-  extra=()
+  # Deep history so git blame can date old TODOs.
+  extra=(--depth 3000)
   [ "$slug" = "headcrawl" ] && extra=(--name "headcrawl (this game)")
   if [ "${FLAVOR:-}" = "1" ]; then extra+=(--flavor --cache "$root/.cache/flavor"); fi
   uv run headcrawl analyze "$target" "${extra[@]}" --compact -o "$out/$slug.json"

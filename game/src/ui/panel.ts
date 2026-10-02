@@ -56,6 +56,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
         h("p", { class: "dim" }, `changed in ${plural(room.spec.churn, "commit")}, heat ${bar(room.spec.heat, 1, 6)}`),
         room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
         room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
+        room.spec.last_commit ? h("p", { class: "dim" }, "last commit: ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
       )
     : h("section", { class: "pane" }, h("h2", null, "here"), h("p", { class: "dim" }, "a corridor between files"));
 
@@ -76,7 +77,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
         h("span", { class: "t-loot" }, ITEM[i.kind][0]),
         h("span", { class: "name t-loot" }, ITEM[i.kind][1]),
         h("span", null, ""),
-        h("span", { class: "stats" }, i.loot ? `"${i.loot.text}"` : "still warm"),
+        h("span", { class: "stats" }, i.loot ? `${i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}: ` : ""}"${i.loot.text}"` : "still warm"),
       ),
     ),
   );

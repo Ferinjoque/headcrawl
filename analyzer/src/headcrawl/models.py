@@ -77,6 +77,8 @@ class Loot(_Model):
     text: Line
     line: int = Field(ge=1, le=10_000_000)
     power: int = Field(ge=1, le=20)
+    year: int | None = Field(default=None, ge=1970, le=2200)
+    year_or_older: bool = False
 
 
 class Boss(_Model):
@@ -114,6 +116,7 @@ class Room(_Model):
     churn: int = Field(ge=0, le=1_000_000)
     heat: float = Field(ge=0, le=1)
     blurb: Line | None = None
+    last_commit: Line | None = None
     enemies: list[Enemy] = Field(max_length=MAX_ENEMIES)
     loot: list[Loot] = Field(max_length=MAX_LOOT)
 

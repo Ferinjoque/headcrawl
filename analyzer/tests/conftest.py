@@ -1,3 +1,4 @@
+import os
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -5,12 +6,14 @@ from pathlib import Path
 import pytest
 
 
-def _git(cwd: Path, *args: str) -> None:
+def _git(cwd: Path, *args: str, date: str | None = None) -> None:
+    env = {**os.environ, "GIT_AUTHOR_DATE": date, "GIT_COMMITTER_DATE": date} if date else None
     subprocess.run(
         ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *args],
         cwd=cwd,
         check=True,
         capture_output=True,
+        env=env,
     )
 
 
@@ -32,7 +35,7 @@ def make_repo(tmp_path: Path) -> MakeRepo:
     """Build a throwaway git repo. Each dict in `commits` is one commit."""
     counter = iter(range(1000))
 
-    def make(*commits: dict[str, str | bytes], git: bool = True) -> Path:
+    def make(*commits: dict[str, str | bytes], git: bool = True, years: list[int] | None = None) -> Path:
         root = tmp_path / f"repo{next(counter)}"
         root.mkdir()
         if git:
@@ -41,7 +44,8 @@ def make_repo(tmp_path: Path) -> MakeRepo:
             write_files(root, files)
             if git:
                 _git(root, "add", "-A")
-                _git(root, "commit", "-q", "-m", f"c{i}", "--date", f"2024-01-0{(i % 9) + 1}T00:00:00")
+                date = f"{years[i]}-06-01T00:00:00" if years else f"2024-01-0{(i % 9) + 1}T00:00:00"
+                _git(root, "commit", "-q", "-m", f"c{i}: touch things", date=date)
         return root
 
     return make

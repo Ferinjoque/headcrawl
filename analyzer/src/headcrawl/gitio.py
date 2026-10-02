@@ -9,6 +9,7 @@ shell. Clones fetch over https only and never lazily fetch more objects.
 import os
 import re
 import subprocess
+import time
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -278,6 +279,47 @@ def churn(path: Path, limits: Limits = DEFAULT) -> Counter[str]:
         if line:
             counts[line] += 1
     return counts
+
+
+@dataclass(frozen=True)
+class LineAge:
+    year: int
+    # Blamed on the oldest commit a shallow clone has, so this year or earlier.
+    or_older: bool
+
+
+def line_years(path: Path, rel: str, lines: set[int]) -> dict[int, LineAge]:
+    """When each of `lines` was last changed, from git blame."""
+    if not lines:
+        return {}
+    try:
+        out = run(["blame", "--line-porcelain", "-w", "--", rel], cwd=path, timeout=60)
+    except GitError:
+        return {}
+    ages: dict[int, LineAge] = {}
+    current = 0
+    year = 0
+    boundary = False
+    for row in out.splitlines():
+        parts = row.split(" ")
+        if len(parts) >= 3 and _SHA.match(parts[0]):
+            current, year, boundary = int(parts[2]), 0, False
+        elif row.startswith("committer-time "):
+            year = time.gmtime(int(row.split(" ", 1)[1])).tm_year
+        elif row == "boundary":
+            boundary = True
+        elif row.startswith("\t") and current in lines and year:
+            ages[current] = LineAge(year, boundary)
+    return ages
+
+
+def last_subject(path: Path, rel: str) -> str | None:
+    """Subject line of the last commit that touched a file."""
+    try:
+        out = run(["log", "-1", "--no-show-signature", "--format=%s", "--", rel], cwd=path)
+    except GitError:
+        return None
+    return out.strip() or None
 
 
 def commit_count(path: Path, limits: Limits = DEFAULT) -> int:

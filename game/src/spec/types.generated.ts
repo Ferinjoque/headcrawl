@@ -77,6 +77,7 @@ export type Id3 = string;
  */
 export type RoomKind = "hall" | "shrine" | "lair";
 export type Language = string;
+export type LastCommit = string | null;
 export type Loc = number;
 export type Id4 = string;
 /**
@@ -88,6 +89,8 @@ export type Line2 = number;
 export type Power = number;
 export type Tag = string;
 export type Text = string;
+export type Year = number | null;
+export type YearOrOlder = boolean;
 /**
  * @maxItems 8
  */
@@ -193,6 +196,7 @@ export interface Room {
   id: Id3;
   kind: RoomKind;
   language: Language;
+  last_commit?: LastCommit;
   loc: Loc;
   loot: Loot;
   name: Name3;
@@ -230,6 +234,8 @@ export interface Loot1 {
   power: Power;
   tag: Tag;
   text: Text;
+  year?: Year;
+  year_or_older?: YearOrOlder;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema

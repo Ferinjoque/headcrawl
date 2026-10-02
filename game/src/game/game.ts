@@ -174,6 +174,7 @@ export class Game {
         this.floor.bossMet = true;
         boss.awake = true;
         boss.lastTaunt = this.player.turns;
+        if (room.last_commit) this.say(`Last commit here: "${room.last_commit}"`, "lore");
         this.emit({
           t: "intro",
           name: boss.name,
@@ -372,20 +373,22 @@ export class Game {
     this.floor.items = this.floor.items.filter((i) => i !== item);
     this.emit({ t: "pickup", x: item.x, y: item.y, kind: item.kind });
     const quote = item.loot ? `"${item.loot.text || item.loot.tag}"` : "";
+    // "a TODO from 2019" is half the joke.
+    const since = item.loot?.year ? ` from ${item.loot.year}${item.loot.year_or_older ? " or earlier" : ""}` : "";
     switch (item.kind) {
       case "potion":
         p.potions.push(item);
-        this.say(`You pick up a TODO: ${quote} (${item.source}). Press q to drink it.`, "loot");
+        this.say(`You pick up a TODO${since}: ${quote} (${item.source}). Press q to drink it.`, "loot");
         break;
       case "scroll":
         p.scrolls.push(item);
-        this.say(`You find a HACK: ${quote} (${item.source}). Press r to read it.`, "loot");
+        this.say(`You find a HACK${since}: ${quote} (${item.source}). Press r to read it.`, "loot");
         break;
       case "blade": {
         const bonus = bladeBonus(item.loot?.power ?? 1, this.floor.index);
         if (bonus > p.blade) {
           p.blade = bonus;
-          this.say(`You take up the FIXME ${quote}. Attack +${bonus}.`, "loot");
+          this.say(`You take up the FIXME${since} ${quote}. Attack +${bonus}.`, "loot");
         } else {
           this.say(`Another FIXME ${quote}. Your current one is sharper.`, "loot");
         }

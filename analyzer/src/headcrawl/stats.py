@@ -63,9 +63,10 @@ LOOT_KIND = {
 }
 
 
-def loot_power(tag: str, text: str) -> int:
+def loot_power(tag: str, text: str, age_years: int = 0) -> int:
+    """Older notes hit harder. A TODO that survived five years has earned it."""
     base = {"TODO": 4, "FIXME": 2, "HACK": 3, "XXX": 3}[tag]
-    return clamp(base + len(text) / 30, 1, 20)
+    return clamp(base + len(text) / 30 + min(max(age_years, 0), 8), 1, 20)
 
 
 def boss_stats(f: FunctionMetric, churn: int, depth: int, final: bool) -> tuple[int, int, int, int]:

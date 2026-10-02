@@ -28,7 +28,7 @@ from .models import (
     Wing,
 )
 from .resolve import Resolver, go_module
-from .syntax import SyntaxInfo, Tag, extract
+from .syntax import SyntaxInfo, extract
 from .text import clean
 from .walk import SourceFile, walk
 
@@ -78,6 +78,9 @@ class _Context:
     commits: int
     limits: Limits
     ids: _Ids
+    root: Path
+    in_git: bool
+    head_year: int
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -155,7 +158,8 @@ def analyze(root: Path, *, name: str | None = None, url: str | None = None, limi
         raise AnalysisError("every source file failed to parse")
 
     edges = _import_edges(root, reports)
-    ctx = _Context(reports, edges, _heat(reports), commits, limits, _Ids())
+    head_year = time.gmtime(head.time).tm_year if head.time else 0
+    ctx = _Context(reports, edges, _heat(reports), commits, limits, _Ids(), root, in_git, head_year)
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
     floors = []
@@ -334,9 +338,17 @@ def _room(
         churn=rep.churn,
         heat=ctx.heat[rep.path],
         blurb=rep.syntax.blurb,
+        last_commit=_last_commit(ctx, rep) if is_lair else None,
         enemies=enemies,
-        loot=_loot(ctx, rep.syntax.tags),
+        loot=_loot(ctx, rep),
     )
+
+
+def _last_commit(ctx: _Context, rep: FileReport) -> str | None:
+    if not ctx.in_git:
+        return None
+    subject = gitio.last_subject(ctx.root, rep.path)
+    return clean(subject, 120) or None if subject else None
 
 
 def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> list[Enemy]:
@@ -364,9 +376,14 @@ def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> lis
     return out
 
 
-def _loot(ctx: _Context, tags: tuple[Tag, ...]) -> list[Loot]:
+def _loot(ctx: _Context, rep: FileReport) -> list[Loot]:
+    tags = sorted(rep.syntax.tags, key=lambda t: t.line)[: ctx.limits.max_loot_per_room]
+    years = gitio.line_years(ctx.root, rep.path, {t.line for t in tags}) if ctx.in_git and tags else {}
     out = []
-    for tag in sorted(tags, key=lambda t: t.line)[: ctx.limits.max_loot_per_room]:
+    for tag in tags:
+        found = years.get(tag.line)
+        year = found.year if found else None
+        age = ctx.head_year - year if year and ctx.head_year else 0
         out.append(
             Loot(
                 id=ctx.ids("l"),
@@ -374,7 +391,9 @@ def _loot(ctx: _Context, tags: tuple[Tag, ...]) -> list[Loot]:
                 tag=tag.kind,
                 text=tag.text or tag.kind.lower(),
                 line=max(1, tag.line),
-                power=stats.loot_power(tag.kind, tag.text),
+                power=stats.loot_power(tag.kind, tag.text, age),
+                year=year if year and 1970 <= year <= 2200 else None,
+                year_or_older=bool(found and found.or_older),
             )
         )
     return out

@@ -240,3 +240,21 @@ def test_cli_validate(make_repo: MakeRepo, tmp_path: Path) -> None:
     bad.write_text('{"floors": []}', encoding="utf-8")
     assert main(["validate", str(bad)]) == 1
     assert main(["validate", str(tmp_path / "missing.json")]) == 1
+
+
+def test_old_todos_and_last_commit(make_repo: MakeRepo) -> None:
+    first = {
+        "pkg/a.py": "def f(x):\n    # TODO: ancient wisdom\n    if x:\n        return 1\n    return 2\n",
+        "pkg/b.py": "y = 1\n",
+        "pkg/c.py": "z = 1\n",
+    }
+    later = {"pkg/a.py": first["pkg/a.py"] + "\n# TODO: fresh idea\n", "pkg/b.py": "y = 2\n"}
+    root = make_repo(first, later, years=[2018, 2024])
+    spec = analyze(root)
+    loot = {item.text: item for f in spec.floors for r in f.rooms for item in r.loot}
+    assert loot["ancient wisdom"].year == 2018
+    assert loot["fresh idea"].year == 2024
+    assert loot["ancient wisdom"].power > loot["fresh idea"].power
+    lair = next(r for f in spec.floors for r in f.rooms if r.id == f.lair)
+    assert lair.last_commit and lair.last_commit.startswith("c")
+    assert all(r.last_commit is None for f in spec.floors for r in f.rooms if r.id != f.lair)

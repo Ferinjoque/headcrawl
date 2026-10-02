@@ -388,6 +388,25 @@
           "maxLength": 200,
           "title": "Text",
           "type": "string"
+        },
+        "year": {
+          "anyOf": [
+            {
+              "maximum": 2200,
+              "minimum": 1970,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "year_or_older": {
+          "default": false,
+          "title": "Year Or Older",
+          "type": "boolean"
         }
       },
       "required": [
@@ -537,6 +556,19 @@
         "language": {
           "title": "Language",
           "type": "string"
+        },
+        "last_commit": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Commit"
         },
         "loc": {
           "maximum": 1000000000,
