@@ -275,3 +275,26 @@ def test_web_entry_points(make_repo: MakeRepo) -> None:
     root = make_repo(SAMPLE, git=False)
     out = _json.loads(web.dungeon(str(root), "o/r", "https://github.com/o/r", "f" * 40, "2024-05-01T10:00:00Z"))
     assert out["seed"] == "f" * 40 and out["repo"]["committed_at"] > 0
+
+
+def test_web_history_moves_the_boss(make_repo: MakeRepo) -> None:
+    import json as _json
+
+    from headcrawl import web
+
+    files = {
+        "pkg/a.py": "def a(x):\n    if x:\n        return 1\n    return 2\n",
+        "pkg/b.py": "def b(x):\n    if x:\n        return 1\n    return 2\n",
+        "pkg/c.py": "y = 1\n",
+    }
+    root = make_repo(files, git=False)
+    plain = _json.loads(web.dungeon(str(root), "o/r", "", "f" * 40, ""))
+    picks = _json.loads(web.candidates(_json.dumps(plain)))
+    assert set(picks) <= {"pkg/a.py", "pkg/b.py", "pkg/c.py"} and len(picks) == 2
+    lair_path = lambda s: next(r["path"] for f in s["floors"] for r in f["rooms"] if r["id"] == f["lair"])  # noqa: E731
+    other = "pkg/b.py" if lair_path(plain) == "pkg/a.py" else "pkg/a.py"
+    hot = _json.loads(web.dungeon(str(root), "o/r", "", "f" * 40, "", _json.dumps({other: 40, "x/../y": 999})))
+    assert lair_path(hot) == other
+    assert hot["repo"]["commits_scanned"] == 100
+    boss = hot["floors"][-1]["boss"]
+    assert boss["churn"] == 40

@@ -132,6 +132,8 @@ def analyze(
     url: str | None = None,
     limits: Limits = DEFAULT,
     head: gitio.Head | None = None,
+    history: dict[str, int] | None = None,
+    window: int = 0,
 ) -> DungeonSpec:
     """`head` is for callers that know the commit but have no git checkout,
     like the browser build that downloads files straight from GitHub."""
@@ -147,8 +149,10 @@ def analyze(
         # A repo with no commits yet.
         in_git = False
         head = _fake_head(walked.files)
-    churn = gitio.churn(root, limits) if in_git else Counter()
-    commits = gitio.commit_count(root, limits) if in_git else 0
+    # Without a checkout, callers can still pass how often some files changed
+    # (the browser asks GitHub for the likely bosses) over the last `window` commits.
+    churn = gitio.churn(root, limits) if in_git else Counter(history or {})
+    commits = gitio.commit_count(root, limits) if in_git else window
 
     reports: dict[str, FileReport] = {}
     skipped = walked.skipped

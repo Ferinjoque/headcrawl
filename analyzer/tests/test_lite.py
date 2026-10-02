@@ -90,6 +90,9 @@ def test_hostile_files_stay_fast(case: str) -> None:
 def test_license_headers_are_not_blurbs() -> None:
     from headcrawl.syntax import extract
 
-    go = "// Copyright 2014 Manu\n// Use of this source code is governed by a MIT style\n// license that can be found.\n\npackage gin\n"
+    go = (
+        "// Copyright 2014 Manu\n// Use of this source code is governed by a MIT style\n"
+        "// license that can be found.\n\npackage gin\n"
+    )
     assert extract(_lang("a.go"), go).blurb is None
     assert lite.extract(_lang("a.go"), go).blurb is None

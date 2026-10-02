@@ -67,7 +67,30 @@ async function gh(url: string): Promise<Response> {
   }
   if (res.status === 404) throw new GitHubError("That repo doesn't exist, or it's private.");
   if (!res.ok) throw new GitHubError(`GitHub answered ${res.status}.`);
+  const left = Number(res.headers.get("x-ratelimit-remaining"));
+  if (Number.isFinite(left)) remaining = left;
   return res;
+}
+
+/** GitHub's anonymous allowance left this hour, from the last answer. */
+let remaining = 60;
+// Calls kept back so the next repo someone types can still be built.
+const KEEP_FOR_NEXT = 6;
+const MAX_HISTORY_CALLS = 12;
+
+/** How many of the last 100 commits touched each file. Stops when the budget runs low. */
+async function history(api: string, sha: string, paths: string[]): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  for (const path of paths.slice(0, MAX_HISTORY_CALLS)) {
+    if (remaining <= KEEP_FOR_NEXT) break;
+    try {
+      const res = await gh(`${api}/commits?sha=${sha}&per_page=100&path=${encodeURIComponent(path)}`);
+      out[path] = ((await res.json()) as unknown[]).length;
+    } catch {
+      break;
+    }
+  }
+  return out;
 }
 
 interface TreeEntry {
@@ -129,10 +152,19 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   });
 
   say({ type: "progress", text: "Turning the code into a dungeon" });
-  try {
-    return String(
-      web.dungeon(root, meta.full_name, `https://github.com/${meta.full_name}`, commit.sha, commit.commit.committer.date),
+  const build = (hist = "{}") =>
+    String(
+      web.dungeon(root, meta.full_name, `https://github.com/${meta.full_name}`, commit.sha, commit.commit.committer.date, hist),
     );
+  try {
+    const first = build();
+    // Bosses come from how often code changes. We have no git history here,
+    // so ask GitHub about the likely boss files, then build again with that.
+    const picks = JSON.parse(String(web.candidates(first))) as string[];
+    if (!picks.length || remaining <= KEEP_FOR_NEXT) return first;
+    say({ type: "progress", text: "Checking which files keep changing" });
+    const counts = await history(api, commit.sha, picks);
+    return Object.keys(counts).length ? build(JSON.stringify(counts)) : first;
   } finally {
     // Each build is a few MB in memory; don't keep old ones around.
     py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);

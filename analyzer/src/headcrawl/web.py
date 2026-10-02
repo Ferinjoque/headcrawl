@@ -16,6 +16,8 @@ from .walk import wanted
 
 # Smaller than the CLI: every file is a separate download in the browser.
 BROWSER = Limits(max_files=500, max_read_bytes=6 * 1024 * 1024, max_seconds=120)
+# The GitHub commits API gives at most 100 per page; that is our history window.
+HISTORY_WINDOW = 100
 
 
 def choose(tree_json: str) -> str:
@@ -35,9 +37,32 @@ def choose(tree_json: str) -> str:
     return json.dumps(picked)
 
 
-def dungeon(root: str, name: str, url: str, sha: str, committed: str) -> str:
-    """committed: ISO 8601 time of the HEAD commit, as GitHub reports it."""
+def dungeon(root: str, name: str, url: str, sha: str, committed: str, history_json: str = "{}") -> str:
+    """committed: ISO 8601 time of the HEAD commit, as GitHub reports it.
+    history_json: {"path": commits touching it among the last HISTORY_WINDOW}."""
     when = int(time.mktime(time.strptime(committed[:19], "%Y-%m-%dT%H:%M:%S"))) if committed else 0
     head = gitio.Head(sha=sha, time=max(0, when), branch=None)
-    spec = analyze(Path(root), name=name, url=url, limits=BROWSER, head=head)
+    raw = json.loads(history_json)
+    history = {str(k): max(0, min(int(v), HISTORY_WINDOW)) for k, v in raw.items()} if isinstance(raw, dict) else {}
+    spec = analyze(
+        Path(root),
+        name=name,
+        url=url,
+        limits=BROWSER,
+        head=head,
+        history=history,
+        window=HISTORY_WINDOW if history else 0,
+    )
     return spec.model_dump_json(exclude_none=True)
+
+
+def candidates(spec_json: str, per_floor: int = 2) -> str:
+    """Files worth asking GitHub about: on each floor, the boss's file and the
+    next hottest one. Their history can change which of them hosts the boss."""
+    spec = json.loads(spec_json)
+    out: list[str] = []
+    for floor in spec["floors"]:
+        rooms = [r for r in floor["rooms"] if r["kind"] != "shrine"]
+        rooms.sort(key=lambda r: (r["id"] != floor["lair"], -r["heat"], r["path"]))
+        out.extend(r["path"] for r in rooms[:per_floor])
+    return json.dumps(out)
