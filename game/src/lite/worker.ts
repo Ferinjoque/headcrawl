@@ -96,7 +96,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   say({ type: "progress", text: `Asking GitHub about ${owner}/${repo}` });
   const api = `https://api.github.com/repos/${owner}/${repo}`;
   const meta = (await (await gh(api)).json()) as { default_branch: string; full_name: string; private: boolean };
-  const ref = sha && /^[0-9a-f]{40}$/.test(sha) ? sha : meta.default_branch;
+  const ref = sha && /^[0-9a-f]{7,40}$/.test(sha) ? sha : meta.default_branch;
   const commit = (await (await gh(`${api}/commits/${encodeURIComponent(ref)}`)).json()) as {
     sha: string;
     commit: { committer: { date: string } };

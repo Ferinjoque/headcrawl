@@ -43,7 +43,7 @@ export function parseRoute(hash: string): Route {
   if (!extra) return { kind: "title" };
   const play = path.match(/^\/play\/([a-z0-9._-]{1,60})$/i);
   if (play) return { kind: "gallery", slug: play[1].toLowerCase(), ...extra };
-  const gh = path.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{40})$/);
+  const gh = path.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})$/);
   if (gh && gh[2] !== "." && gh[2] !== "..") return { kind: "github", owner: gh[1], repo: gh[2], sha: gh[3], ...extra };
   // Older custom links put the run number in the path.
   const custom = path.match(/^\/x\/(\d{1,9})\/([A-Za-z0-9_-]{1,1400000})$/);
@@ -135,7 +135,7 @@ export function floorRow(game: Game): string {
     .join(" ");
 }
 
-export function resultText(game: Game, link: string, label = ""): string {
+export function resultText(game: Game, link: string, label = "", code: string | null = null): string {
   const p = game.player;
   const total = game.spec.floors.length;
   const f = game.floorSpec;
@@ -151,6 +151,7 @@ export function resultText(game: Game, link: string, label = ""): string {
     floorRow(game),
     head,
     `lv ${p.level}, ${p.kills} functions refactored, ${p.bosses} of ${total} bosses`,
+    ...(code ? [`run code ${code}`] : []),
     link,
   ].join("\n");
 }

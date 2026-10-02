@@ -20,6 +20,7 @@ import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, pauseScreen, perkCard, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
+import { parseCode, runCode } from "./ui/codes";
 import { analyzeInBrowser } from "./lite/client";
 import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
@@ -34,6 +35,9 @@ import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, t
 type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "end" | "loading";
 
 const $ = (id: string) => document.getElementById(id)!;
+
+/** A new run number for a fresh game. Shown to the player as part of the run code. */
+const freshRun = () => 1 + Math.floor(Math.random() * 9999);
 
 export class App {
   private renderer: Renderer;
@@ -251,12 +255,21 @@ export class App {
     const daily = dailyPick(this.gallery, new Date());
     this.showScreen(
       titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label }, {
-        play: (slug) => this.navigate({ kind: "gallery", slug, run: 0 }),
+        play: (slug) => this.navigate({ kind: "gallery", slug, run: freshRun() }),
         daily: () => this.playDaily(),
         build: (target) => void this.buildFromGitHub(target),
         reopen: (r) => this.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
         resume: (s) => {
           location.hash = s.hash;
+        },
+        code: (text) => {
+          const route = parseCode(text);
+          const status = document.getElementById("code-status");
+          if (route) this.navigate(route);
+          else if (status) {
+            status.className = "error";
+            status.textContent = "Codes look like flask-4821 or owner/repo@abc1234-4821.";
+          }
         },
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
@@ -340,8 +353,12 @@ export class App {
         resume: () => this.closeOverlay(),
         restart: () => this.restart(),
         menu: () => this.navigate({ kind: "title" }),
-      }),
+      }, this.code()),
     );
+  }
+
+  private code(): string | null {
+    return this.route.kind === "title" ? null : runCode(playRoute(this.route), this.game?.spec.repo.head);
   }
 
   private closeOverlay(): void {
@@ -364,7 +381,7 @@ export class App {
     }
     this.mode = "end";
     this.stopAuto();
-    const share = resultText(game, location.href, this.dailyLabel());
+    const share = resultText(game, location.href, this.dailyLabel(), this.code());
     this.showScreen(
       endScreen(game, share, this.copied, {
         again: () => this.again(),
@@ -379,8 +396,7 @@ export class App {
   private restart(): void {
     dropSave(this.saveKey());
     if (this.route.kind === "title") return;
-    const run = this.route.run + 1 + Math.floor(Math.random() * 1000);
-    this.navigate({ ...playRoute(this.route), run });
+    this.navigate({ ...playRoute(this.route), run: freshRun() });
   }
 
   private replayLink(): string {
@@ -647,7 +663,7 @@ export class App {
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
-      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href, this.dailyLabel()));
+      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href, this.dailyLabel(), this.code()));
       else if (e.key === "s" || e.key === "S") this.saveLog();
       else if (e.key === "w" || e.key === "W") this.copyReplay();
       else if (e.key === "Escape") this.navigate({ kind: "title" });
@@ -685,7 +701,7 @@ export class App {
       // Let a focused button handle its own Enter.
       if (document.activeElement instanceof HTMLButtonElement) return;
       const entry = this.gallery[this.selected];
-      if (entry) this.navigate({ kind: "gallery", slug: entry.slug, run: 0 });
+      if (entry) this.navigate({ kind: "gallery", slug: entry.slug, run: freshRun() });
       return;
     } else if (e.key === "o" || e.key === "O") {
       ($("file") as HTMLInputElement).click();

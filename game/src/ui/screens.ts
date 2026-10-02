@@ -39,6 +39,7 @@ export interface TitleHandlers {
   build(target: string): void;
   reopen(r: Recent): void;
   resume(s: SavedRun): void;
+  code(text: string): void;
   open(): void;
   help(): void;
 }
@@ -123,6 +124,27 @@ export function titleScreen(
       btn("o", "open a dungeon.json", on.open),
       btn("?", "how it works", on.help),
     ),
+    h(
+      "form",
+      {
+        class: "build",
+        onsubmit: (e: Event) => {
+          e.preventDefault();
+          const input = (e.target as HTMLFormElement).elements.namedItem("code") as HTMLInputElement;
+          on.code(input.value);
+        },
+      },
+      h("input", {
+        name: "code",
+        type: "text",
+        placeholder: "run code, like flask-4821",
+        autocomplete: "off",
+        spellcheck: "false",
+        "aria-label": "Run code",
+      }),
+      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " play a code"),
+    ),
+    h("p", { id: "code-status", class: "dim", role: "status" }),
     h("h2", null, "any public GitHub repo"),
     h(
       "form",
@@ -281,12 +303,15 @@ export interface PauseHandlers {
   menu(): void;
 }
 
-export function pauseScreen(on: PauseHandlers) {
+export function pauseScreen(on: PauseHandlers, code: string | null = null) {
   return h(
     "div",
     { class: "page" },
     h("h1", null, "paused"),
     h("p", { class: "dim" }, "Your run is saved in this browser. Close the tab and it will be here when you come back."),
+    code
+      ? h("p", null, "Run code ", h("span", { class: "t-loot" }, code), h("span", { class: "dim" }, ". Same dungeon, same rolls, for anyone you give it to."))
+      : null,
     h(
       "div",
       { class: "actions" },

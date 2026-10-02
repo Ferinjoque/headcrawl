@@ -211,3 +211,19 @@ describe("worker paths", () => {
     }
   });
 });
+
+describe("run codes", () => {
+  it("round-trip and refuse junk", async () => {
+    const { parseCode, runCode } = await import("../src/ui/codes");
+    expect(runCode({ kind: "gallery", slug: "flask", run: 4821 })).toBe("flask-4821");
+    expect(parseCode(" Flask-4821 ")).toEqual({ kind: "gallery", slug: "flask", run: 4821 });
+    const gh = { kind: "github" as const, owner: "pallets", repo: "flask", sha: "672971d66a2ef9f85151e53283113f33d642dabd", run: 7 };
+    expect(runCode(gh)).toBe("pallets/flask@672971d-7");
+    expect(parseCode("pallets/flask@672971d-7")).toEqual({ ...gh, sha: "672971d" });
+    expect(runCode({ kind: "custom", data: "abc", run: 1 })).toBeNull();
+    for (const bad of ["", "flask", "flask-", "-4", "a/..@abcdefa-1", "a/b@xyz-1", "flask-12345678901"]) {
+      expect(parseCode(bad), bad).toBeNull();
+    }
+    expect(parseRoute(routeHash({ ...gh, sha: "672971d" }))).toEqual({ ...gh, sha: "672971d" });
+  });
+});
