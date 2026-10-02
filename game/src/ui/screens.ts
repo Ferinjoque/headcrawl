@@ -34,6 +34,7 @@ const DIFF_CLASS: Record<number, string> = { 1: "t-good", 2: "t-good", 3: "t-loo
 export interface TitleHandlers {
   play(slug: string): void;
   daily(): void;
+  build(target: string): void;
   open(): void;
   help(): void;
 }
@@ -101,10 +102,36 @@ export function titleScreen(
       btn("o", "open a dungeon.json", on.open),
       btn("?", "how it works", on.help),
     ),
-    h("h2", null, "bring your own repo"),
-    h("p", { class: "dim" }, "The analyzer runs on your machine and never executes the code it reads."),
+    h("h2", null, "any public GitHub repo"),
+    h(
+      "form",
+      {
+        class: "build",
+        onsubmit: (e: Event) => {
+          e.preventDefault();
+          const input = (e.target as HTMLFormElement).elements.namedItem("repo") as HTMLInputElement;
+          on.build(input.value);
+        },
+      },
+      h("input", {
+        name: "repo",
+        type: "text",
+        placeholder: "owner/repo or a github.com link",
+        autocomplete: "off",
+        spellcheck: "false",
+        "aria-label": "GitHub repo",
+      }),
+      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " build it here"),
+    ),
+    h(
+      "p",
+      { id: "build-status", class: "dim", role: "status" },
+      "Runs the analyzer in your browser. Nothing in the repo is executed. The first run downloads about 4 MB.",
+    ),
+    h("h2", null, "or on your machine"),
+    h("p", { class: "dim" }, "The command line tool also reads git history, so bosses know which files keep changing."),
     h("pre", { class: "code" }, "cd analyzer\nuv run headcrawl analyze path/to/your/repo -o mine.json"),
-    h("p", { class: "dim" }, "Then press o, or drop the file anywhere on this page. Works with owner/repo too."),
+    h("p", { class: "dim" }, "Then press o, or drop the file anywhere on this page."),
   );
 }
 

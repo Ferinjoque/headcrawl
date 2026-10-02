@@ -20,6 +20,8 @@ import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, messageScreen, perkCard, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
+import { analyzeInBrowser } from "./lite/client";
+import { parseRepo } from "./lite/protocol";
 import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
@@ -146,6 +148,7 @@ export class App {
       titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label }, {
         play: (slug) => this.navigate({ kind: "gallery", slug, run: 0 }),
         daily: () => this.playDaily(),
+        build: (target) => void this.buildFromGitHub(target),
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
       }),
@@ -163,6 +166,26 @@ export class App {
 
   private saveLog(): void {
     if (this.game) downloadText(logFileName(this.game), runLog(this.game, location.href));
+  }
+
+  private async buildFromGitHub(target: string): Promise<void> {
+    const say = (text: string, tone = "dim") => {
+      const el = document.getElementById("build-status");
+      if (!el) return;
+      el.className = tone;
+      el.textContent = text;
+    };
+    const repo = parseRepo(target);
+    if (!repo) return say("That doesn't look like owner/repo or a GitHub link.", "error");
+    say("Getting ready", "t-loot");
+    try {
+      const json = await analyzeInBrowser(repo.owner, repo.repo, (text) => say(text, "t-loot"));
+      const res = loadSpec(json);
+      if (!res.ok) return say(res.error, "error");
+      this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
+    } catch (err) {
+      say(err instanceof Error ? err.message : String(err), "error");
+    }
   }
 
   private playDaily(): void {
@@ -477,6 +500,8 @@ export class App {
   }
 
   private titleKey(e: KeyboardEvent): void {
+    // Typing a repo name must not trigger the list shortcuts.
+    if (e.target instanceof HTMLInputElement) return;
     const n = this.gallery.length;
     if (e.key === "ArrowDown" || e.key === "j") this.selected = n ? (this.selected + 1) % n : 0;
     else if (e.key === "ArrowUp" || e.key === "k") this.selected = n ? (this.selected - 1 + n) % n : 0;

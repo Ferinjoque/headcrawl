@@ -60,7 +60,14 @@ spoiler-free result or save the whole run log as a text file.
 
 ## Your own repo
 
-The analyzer reads the code and never runs any of it.
+Paste any public GitHub repo on the title screen and the game builds the
+dungeon right there: the same Python analyzer runs in your browser through
+Pyodide, files come straight from GitHub, and nothing in the repo is ever
+executed. It takes about ten seconds. GitHub allows 60 anonymous API calls
+an hour and each repo uses three.
+
+The command line version also reads git history, so bosses know which files
+keep changing and every TODO knows how old it is:
 
 ```
 cd analyzer

@@ -1,14 +1,18 @@
 """What we pull out of the syntax tree: tagged comments, a module blurb, imports.
 
 Tags only count inside real comment nodes, so a string like "TODO" in code
-never becomes loot.
+never becomes loot. Where tree-sitter-language-pack isn't installed (the
+browser build), lite.py does the same job with a small lexer.
 """
 
 import re
 from dataclasses import dataclass
 from typing import Any
 
-import tree_sitter_language_pack as tslp
+try:
+    import tree_sitter_language_pack as tslp
+except ImportError:  # pragma: no cover - only on Pyodide
+    tslp = None  # type: ignore[assignment]
 
 from .languages import Language
 from .text import clean, first_sentence, strip_comment_markers
@@ -41,15 +45,24 @@ class SyntaxInfo:
     parse_errors: int
 
 
+def tag_in(raw: str, line: int) -> Tag | None:
+    m = _TAG.search(raw)
+    if not m:
+        return None
+    return Tag(kind=m.group(1), text=clean(strip_comment_markers(m.group(2)), 120), line=line)
+
+
+def legal_header(text: str) -> bool:
+    return bool(_LEGAL.search(text))
+
+
 def _tags(comments: list[Any]) -> list[Tag]:
     found = []
     for c in comments:
         for offset, raw in enumerate(c.text.splitlines()):
-            m = _TAG.search(raw)
-            if not m:
-                continue
-            text = clean(strip_comment_markers(m.group(2)), 120)
-            found.append(Tag(kind=m.group(1), text=text, line=c.span.start_line + 1 + offset))
+            tag = tag_in(raw, c.span.start_line + 1 + offset)
+            if tag:
+                found.append(tag)
     return found
 
 
@@ -209,7 +222,15 @@ def _imports(lang: Language, text: str, result: Any) -> list[ImportRef]:
     return _c_imports(root)
 
 
+# "tree-sitter" when the language pack is installed, otherwise "lite".
+BACKEND = "tree-sitter" if tslp is not None else "lite"
+
+
 def extract(lang: Language, text: str) -> SyntaxInfo:
+    if BACKEND == "lite" or tslp is None:
+        from . import lite
+
+        return lite.extract(lang, text)
     config = tslp.ProcessConfig(
         language=lang.grammar,
         imports=True,
@@ -227,4 +248,5 @@ def extract(lang: Language, text: str) -> SyntaxInfo:
 
 
 def prefetch(grammars: list[str]) -> None:
-    tslp.download(grammars)
+    if tslp is not None:
+        tslp.download(grammars)

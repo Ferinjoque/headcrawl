@@ -188,7 +188,8 @@ def checkout_selected(path: Path, keep: Callable[[str], bool], limits: Limits = 
 def is_repo(path: Path) -> bool:
     try:
         return run(["rev-parse", "--is-inside-work-tree"], cwd=path).strip() == "true"
-    except (GitError, FileNotFoundError, NotADirectoryError):
+    except (GitError, OSError):
+        # OSError covers no git binary at all, and Pyodide's missing subprocess.
         return False
 
 

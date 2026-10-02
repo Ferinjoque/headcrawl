@@ -11,6 +11,7 @@
     "coverage": "vitest run --coverage",
     "spec": "node scripts/gen-spec.mjs",
     "gallery": "node scripts/build-index.mjs",
+    "py": "cd ../analyzer && uv build --wheel && cd ../game && node scripts/fetch-py.mjs",
     "shots": "node scripts/shots.mjs"
   },
   "devDependencies": {

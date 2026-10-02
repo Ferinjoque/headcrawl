@@ -177,3 +177,23 @@ describe("best runs", () => {
     delete (globalThis as { localStorage?: unknown }).localStorage;
   });
 });
+
+describe("repo input", () => {
+  it("accepts the usual ways people paste a repo", async () => {
+    const { parseRepo } = await import("../src/lite/protocol");
+    for (const input of [
+      "pallets/flask",
+      " pallets/flask ",
+      "github.com/pallets/flask",
+      "https://github.com/pallets/flask",
+      "https://github.com/pallets/flask.git",
+      "https://github.com/pallets/flask/tree/main/src",
+      "http://www.github.com/pallets/flask/",
+    ]) {
+      expect(parseRepo(input), input).toEqual({ owner: "pallets", repo: "flask" });
+    }
+    for (const bad of ["", "flask", "a/..", "-x/y", "https://gitlab.com/a/b", "a b/c", "../../etc/passwd"]) {
+      expect(parseRepo(bad), bad).toBeNull();
+    }
+  });
+});

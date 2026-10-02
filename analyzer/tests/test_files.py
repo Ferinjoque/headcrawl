@@ -89,36 +89,36 @@ def test_blurbs() -> None:
     assert extract(_lang("a.py"), "x = 1\n").blurb is None
 
 
-@pytest.mark.parametrize(
-    ("path", "src", "expected"),
-    [
-        (
-            "a.py",
-            "import os, a.b as c\nfrom ..p.q import (r, s)\nfrom . import x\n",
-            [("os", 0, ()), ("a.b", 0, ()), ("p.q", 2, ("r", "s")), ("", 1, ("x",))],
-        ),
-        (
-            "a.ts",
-            "import t from './t';\nexport * from './re';\nconst a = require('./x');\n"
-            "const l = import('./lazy');\nconst n = require(name);\n",
-            [("./t", 0, ()), ("./re", 0, ()), ("./x", 0, ()), ("./lazy", 0, ())],
-        ),
-        (
-            "a.go",
-            'package x\nimport (\n "fmt"\n "example.com/m/util"\n)\n',
-            [("fmt", 0, ()), ("example.com/m/util", 0, ())],
-        ),
-        (
-            "a.rs",
-            "use crate::{a, b::c};\nuse super::x;\nmod baz;\nmod inline { }\n",
-            [("crate::a", 0, ()), ("crate::b::c", 0, ()), ("crate", 0, ()), ("super::x", 0, ()), ("mod:baz", 0, ())],
-        ),
-        ("A.java", "package p;\nimport com.foo.Bar;\nclass A {}\n", [("com.foo.Bar", 0, ())]),
-        ("a.c", '#include "util.h"\n#include <stdio.h>\n', [("util.h", 0, ())]),
-        ("a.rb", "require 'json'\nrequire_relative 'lib/x'\n", [("json", 0, ()), ("./lib/x", 0, ())]),
-        ("a.lua", "local x = require('y')\n", []),
-    ],
-)
+IMPORT_CASES = [
+    (
+        "a.py",
+        "import os, a.b as c\nfrom ..p.q import (r, s)\nfrom . import x\n",
+        [("os", 0, ()), ("a.b", 0, ()), ("p.q", 2, ("r", "s")), ("", 1, ("x",))],
+    ),
+    (
+        "a.ts",
+        "import t from './t';\nexport * from './re';\nconst a = require('./x');\n"
+        "const l = import('./lazy');\nconst n = require(name);\n",
+        [("./t", 0, ()), ("./re", 0, ()), ("./x", 0, ()), ("./lazy", 0, ())],
+    ),
+    (
+        "a.go",
+        'package x\nimport (\n "fmt"\n "example.com/m/util"\n)\n',
+        [("fmt", 0, ()), ("example.com/m/util", 0, ())],
+    ),
+    (
+        "a.rs",
+        "use crate::{a, b::c};\nuse super::x;\nmod baz;\nmod inline { }\n",
+        [("crate::a", 0, ()), ("crate::b::c", 0, ()), ("crate", 0, ()), ("super::x", 0, ()), ("mod:baz", 0, ())],
+    ),
+    ("A.java", "package p;\nimport com.foo.Bar;\nclass A {}\n", [("com.foo.Bar", 0, ())]),
+    ("a.c", '#include "util.h"\n#include <stdio.h>\n', [("util.h", 0, ())]),
+    ("a.rb", "require 'json'\nrequire_relative 'lib/x'\n", [("json", 0, ()), ("./lib/x", 0, ())]),
+    ("a.lua", "local x = require('y')\n", []),
+]
+
+
+@pytest.mark.parametrize(("path", "src", "expected"), IMPORT_CASES)
 def test_imports(path: str, src: str, expected: list[tuple[str, int, tuple[str, ...]]]) -> None:
     refs = extract(_lang(path), src).imports
     assert [(r.spec, r.level, r.names) for r in refs] == expected

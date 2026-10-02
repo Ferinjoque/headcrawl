@@ -125,7 +125,16 @@ def _heat(reports: dict[str, FileReport]) -> dict[str, float]:
     return {p: round(v / top, 4) for p, v in raw.items()}
 
 
-def analyze(root: Path, *, name: str | None = None, url: str | None = None, limits: Limits = DEFAULT) -> DungeonSpec:
+def analyze(
+    root: Path,
+    *,
+    name: str | None = None,
+    url: str | None = None,
+    limits: Limits = DEFAULT,
+    head: gitio.Head | None = None,
+) -> DungeonSpec:
+    """`head` is for callers that know the commit but have no git checkout,
+    like the browser build that downloads files straight from GitHub."""
     root = root.resolve()
     walked = walk(root, limits)
     if not walked.files:
@@ -133,7 +142,7 @@ def analyze(root: Path, *, name: str | None = None, url: str | None = None, limi
 
     in_git = gitio.is_repo(root)
     try:
-        head = gitio.head(root) if in_git else _fake_head(walked.files)
+        head = gitio.head(root) if in_git else head or _fake_head(walked.files)
     except gitio.GitError:
         # A repo with no commits yet.
         in_git = False

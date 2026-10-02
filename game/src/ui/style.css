@@ -346,6 +346,33 @@ body.titling #touch {
   margin-top: 26px;
 }
 
+.build {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 4px 0 6px;
+}
+.build input {
+  font: inherit;
+  color: var(--text);
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  padding: 4px 10px;
+  flex: 1 1 28ch;
+  max-width: 48ch;
+  caret-color: var(--ember);
+  transition: border-color 150ms var(--ease);
+}
+.build input::placeholder {
+  color: var(--text-faint);
+}
+.build input:focus {
+  outline: none;
+  border-color: var(--ember);
+  box-shadow: 0 0 10px oklch(0.66 0.17 45 / 0.3);
+}
+
 pre.code {
   font-family: inherit;
   color: var(--current);

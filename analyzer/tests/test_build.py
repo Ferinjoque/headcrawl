@@ -258,3 +258,20 @@ def test_old_todos_and_last_commit(make_repo: MakeRepo) -> None:
     lair = next(r for f in spec.floors for r in f.rooms if r.id == f.lair)
     assert lair.last_commit and lair.last_commit.startswith("c")
     assert all(r.last_commit is None for f in spec.floors for r in f.rooms if r.id != f.lair)
+
+
+def test_web_entry_points(make_repo: MakeRepo) -> None:
+    import json as _json
+
+    from headcrawl import web
+
+    tree = [
+        {"path": "app/main.py", "size": 500},
+        {"path": "node_modules/x/index.js", "size": 10},
+        {"path": "README.md", "size": 10},
+        {"path": "big.py", "size": 10_000_000},
+    ]
+    assert _json.loads(web.choose(_json.dumps(tree))) == ["app/main.py"]
+    root = make_repo(SAMPLE, git=False)
+    out = _json.loads(web.dungeon(str(root), "o/r", "https://github.com/o/r", "f" * 40, "2024-05-01T10:00:00Z"))
+    assert out["seed"] == "f" * 40 and out["repo"]["committed_at"] > 0

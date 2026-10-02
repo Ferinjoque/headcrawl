@@ -28,6 +28,13 @@ jobs:
           cache: npm
           cache-dependency-path: game/package-lock.json
       - run: npm ci
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: analyzer wheel and Pyodide for the in-browser build
+        run: |
+          (cd ../analyzer && uv build --wheel)
+          node scripts/fetch-py.mjs
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
