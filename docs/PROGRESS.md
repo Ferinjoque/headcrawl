@@ -74,6 +74,17 @@ Left as is: CSP keeps style-src 'unsafe-inline' (Vite dev needs it and there
 is no inline script). Actions are pinned to major tags, not SHAs. Renderer
 redraws the whole view at 20 fps when idle.
 
+## Day 2 (2026-10-02, after the owner played it)
+
+- Flavor fixed: few-shot chat turns + canary check, default qwen2.5:7b.
+  gemma4 is broken on Ollama 0.23.2 (can't answer 2+2), the canary skips it.
+  Gallery rebuilt with `FLAVOR=1 scripts/gallery.sh`.
+- Research round (Brogue, Cogmind, Into the Breach, Wordle, DCSS) turned
+  into: monster abilities per archetype with telegraphed wind-ups, letter
+  particle bursts, synth sound (m), run log download (s on the end screen),
+  Wordle-style floor row in the share text, items in the legend, one-time
+  tips, difficulty rating in the gallery.
+
 ## Next ideas
 
 - Cache the static map layer in the renderer so idle frames are cheap.

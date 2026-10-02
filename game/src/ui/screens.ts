@@ -28,6 +28,8 @@ function btn(key: string, label: string, onclick: () => void) {
   return h("button", { class: "btn", type: "button", onclick }, h("kbd", null, `[${key}]`), ` ${label}`);
 }
 
+const DIFF_CLASS: Record<number, string> = { 1: "t-good", 2: "t-good", 3: "t-loot", 4: "t-bad", 5: "t-boss" };
+
 export interface TitleHandlers {
   play(slug: string): void;
   daily(): void;
@@ -70,6 +72,7 @@ export function titleScreen(
           h(
             "span",
             { class: "meta" },
+            e.difficulty ? h("span", { class: DIFF_CLASS[e.difficulty] ?? "dim", title: `difficulty ${e.difficulty} of 5` }, `${"#".repeat(e.difficulty)}${"-".repeat(5 - e.difficulty)}  `) : null,
             `${plural(e.floors, "floor")}, ${e.enemies} monsters. boss: ${e.boss}`,
             bestLabel(bestFor(e.head)) ? h("span", { class: "t-loot" }, `  ${bestLabel(bestFor(e.head))}`) : null,
           ),

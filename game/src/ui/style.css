@@ -238,15 +238,13 @@ body.titling #touch {
 }
 
 .page {
-  max-width: 78ch;
+  max-width: 96ch;
   min-width: 0;
 }
 .wordmark {
   margin: 0;
   /* 108 columns of VT323 are about 60em wide. */
-  font-size: min(15px, calc((100vw - 32px) / 60));
-  max-width: 100%;
-  overflow: hidden;
+  font-size: min(15px, calc((100vw - 40px) / 62));
   line-height: 1.2;
   color: var(--ember);
   text-shadow: 0 0 10px var(--ember), 0 0 26px oklch(0.66 0.17 45 / 0.5);

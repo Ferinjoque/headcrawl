@@ -7,6 +7,7 @@ export interface GalleryEntry {
   rooms: number;
   enemies: number;
   boss: string;
+  difficulty?: number;
   blurb?: string;
 }
 

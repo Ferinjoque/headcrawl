@@ -7,7 +7,8 @@
     "floors": 2,
     "rooms": 13,
     "enemies": 56,
-    "boss": "__init__"
+    "boss": "__init__",
+    "difficulty": 1
   },
   {
     "slug": "flask",
@@ -17,7 +18,8 @@
     "floors": 5,
     "rooms": 43,
     "enemies": 192,
-    "boss": "run"
+    "boss": "run",
+    "difficulty": 4
   },
   {
     "slug": "requests",
@@ -27,7 +29,8 @@
     "floors": 2,
     "rooms": 27,
     "enemies": 107,
-    "boss": "should_bypass_proxies"
+    "boss": "should_bypass_proxies",
+    "difficulty": 2
   },
   {
     "slug": "express",
@@ -37,7 +40,8 @@
     "floors": 3,
     "rooms": 34,
     "enemies": 176,
-    "boss": "send"
+    "boss": "send",
+    "difficulty": 1
   },
   {
     "slug": "ky",
@@ -47,7 +51,8 @@
     "floors": 6,
     "rooms": 58,
     "enemies": 123,
-    "boss": "options"
+    "boss": "options",
+    "difficulty": 3
   },
   {
     "slug": "gin",
@@ -57,7 +62,8 @@
     "floors": 6,
     "rooms": 66,
     "enemies": 266,
-    "boss": "Handle"
+    "boss": "Handle",
+    "difficulty": 3
   },
   {
     "slug": "bubbletea",
@@ -67,7 +73,8 @@
     "floors": 3,
     "rooms": 45,
     "enemies": 230,
-    "boss": "Update"
+    "boss": "Update",
+    "difficulty": 2
   },
   {
     "slug": "ripgrep",
@@ -77,7 +84,8 @@
     "floors": 8,
     "rooms": 98,
     "enemies": 433,
-    "boss": "main"
+    "boss": "main",
+    "difficulty": 4
   },
   {
     "slug": "jq",
@@ -87,7 +95,8 @@
     "floors": 2,
     "rooms": 26,
     "enemies": 108,
-    "boss": "f_format"
+    "boss": "f_format",
+    "difficulty": 5
   },
   {
     "slug": "headcrawl",
@@ -97,6 +106,7 @@
     "floors": 8,
     "rooms": 58,
     "enemies": 245,
-    "boss": "placeRooms"
+    "boss": "placeRooms",
+    "difficulty": 5
   }
 ]

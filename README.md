@@ -35,12 +35,28 @@ is a link to the same map for everyone.
 
 The rock between rooms is filled with the floor's own identifiers.
 
+Monsters play differently depending on what kind of code they are:
+
+| Kind | Comes from | What it does |
+|---|---|---|
+| tangle (capital letter) | lots of branches | regrows HP every turn |
+| nest | deep nesting | winds up a heavy hit, red cells show where |
+| hydra | many parameters | splits in two the first time it's hurt |
+| wall (capital letter) | very long function | armored and slow |
+| imp | tiny function | fast |
+| bug | everything else | dodges now and then |
+| boss | the floor's hotspot | winds up area attacks |
+
+![A boss winding up](docs/img/telegraph.png)
+
 ## Playing
 
 Pick a repo from the gallery, or bring your own (below). Arrows, `hjkl` or
 `yubn` move and attack. `x` explores until something shows up, `z` rests,
 `>` takes the stairs once the boss is dead, `?` shows everything else.
 There is a daily run: same repo and same rolls for everyone that day.
+`m` turns on sound (synthesized, no files). When a run ends you can copy a
+spoiler-free result or save the whole run log as a text file.
 
 ## Your own repo
 
@@ -57,9 +73,10 @@ Open the page and press `o`, or drop the file on it. The game turns it into
 a link you can send. The whole dungeon lives in the part of the URL after
 `#`, so it never touches a server.
 
-`--flavor` asks a local Ollama model for boss titles and taunts. It only
-keeps lines that talk about the actual function, and falls back to the
-built-in ones otherwise. Off by default, and the game never needs it.
+`--flavor` asks a local Ollama model (default `qwen2.5:7b`) for boss titles
+and taunts. It only keeps lines that talk about the actual function, checks
+first that the model follows prompts at all, and falls back to the built-in
+lines otherwise. Off by default, and the game never needs it.
 
 ## How it's built
 

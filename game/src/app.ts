@@ -20,6 +20,7 @@ import { renderPanel } from "./ui/panel";
 import { endScreen, helpScreen, messageScreen, titleScreen } from "./ui/screens";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
+import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
 import { decodeSpec, encodeSpec, parseRoute, resultText, routeHash, type Route } from "./ui/share";
@@ -32,6 +33,7 @@ export class App {
   private renderer: Renderer;
   private fx = new Effects();
   private sound = new Sound();
+  private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
   private returnMode: Mode = "title";
@@ -249,6 +251,7 @@ export class App {
 
   private refreshUi(): void {
     if (!this.game) return;
+    for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
     renderHud($("hud"), this.game);
     renderPanel($("panel"), this.game);
     this.log.render();
