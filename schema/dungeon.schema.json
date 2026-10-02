@@ -1,0 +1,705 @@
+{
+  "$defs": {
+    "Archetype": {
+      "enum": [
+        "tangle",
+        "nest",
+        "hydra",
+        "wall",
+        "imp",
+        "bug"
+      ],
+      "title": "Archetype",
+      "type": "string"
+    },
+    "Boss": {
+      "additionalProperties": false,
+      "properties": {
+        "ccn": {
+          "minimum": 1,
+          "title": "Ccn",
+          "type": "integer"
+        },
+        "churn": {
+          "minimum": 0,
+          "title": "Churn",
+          "type": "integer"
+        },
+        "damage": {
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Damage",
+          "type": "integer"
+        },
+        "final": {
+          "default": false,
+          "title": "Final",
+          "type": "boolean"
+        },
+        "hp": {
+          "maximum": 9999,
+          "minimum": 1,
+          "title": "Hp",
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "signature": {
+          "maxLength": 200,
+          "title": "Signature",
+          "type": "string"
+        },
+        "speed": {
+          "maximum": 400,
+          "minimum": 25,
+          "title": "Speed",
+          "type": "integer"
+        },
+        "taunts": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Taunts",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "xp": {
+          "minimum": 1,
+          "title": "Xp",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "title",
+        "signature",
+        "line",
+        "hp",
+        "damage",
+        "speed",
+        "xp",
+        "ccn",
+        "churn",
+        "taunts"
+      ],
+      "title": "Boss",
+      "type": "object"
+    },
+    "Edge": {
+      "additionalProperties": false,
+      "properties": {
+        "a": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "A",
+          "type": "string"
+        },
+        "b": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "B",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/EdgeKind"
+        },
+        "weight": {
+          "minimum": 1,
+          "title": "Weight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "kind",
+        "weight"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "EdgeKind": {
+      "enum": [
+        "import",
+        "passage"
+      ],
+      "title": "EdgeKind",
+      "type": "string"
+    },
+    "Enemy": {
+      "additionalProperties": false,
+      "properties": {
+        "archetype": {
+          "$ref": "#/$defs/Archetype"
+        },
+        "ccn": {
+          "minimum": 1,
+          "title": "Ccn",
+          "type": "integer"
+        },
+        "damage": {
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Damage",
+          "type": "integer"
+        },
+        "hp": {
+          "maximum": 999,
+          "minimum": 1,
+          "title": "Hp",
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "nesting": {
+          "minimum": 0,
+          "title": "Nesting",
+          "type": "integer"
+        },
+        "nloc": {
+          "minimum": 0,
+          "title": "Nloc",
+          "type": "integer"
+        },
+        "params": {
+          "minimum": 0,
+          "title": "Params",
+          "type": "integer"
+        },
+        "signature": {
+          "maxLength": 200,
+          "title": "Signature",
+          "type": "string"
+        },
+        "speed": {
+          "maximum": 400,
+          "minimum": 25,
+          "title": "Speed",
+          "type": "integer"
+        },
+        "xp": {
+          "minimum": 1,
+          "title": "Xp",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "signature",
+        "archetype",
+        "hp",
+        "damage",
+        "speed",
+        "xp",
+        "line",
+        "ccn",
+        "nesting",
+        "params",
+        "nloc"
+      ],
+      "title": "Enemy",
+      "type": "object"
+    },
+    "Floor": {
+      "additionalProperties": false,
+      "properties": {
+        "boss": {
+          "$ref": "#/$defs/Boss"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/Edge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "entry": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Entry",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "lair": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Lair",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 200,
+          "title": "Path",
+          "type": "string"
+        },
+        "rooms": {
+          "items": {
+            "$ref": "#/$defs/Room"
+          },
+          "minItems": 1,
+          "title": "Rooms",
+          "type": "array"
+        },
+        "wings": {
+          "items": {
+            "$ref": "#/$defs/Wing"
+          },
+          "minItems": 1,
+          "title": "Wings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "index",
+        "name",
+        "path",
+        "wings",
+        "rooms",
+        "edges",
+        "entry",
+        "lair",
+        "boss"
+      ],
+      "title": "Floor",
+      "type": "object"
+    },
+    "LanguageShare": {
+      "additionalProperties": false,
+      "properties": {
+        "loc": {
+          "minimum": 0,
+          "title": "Loc",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "loc"
+      ],
+      "title": "LanguageShare",
+      "type": "object"
+    },
+    "Loot": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/LootKind"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "power": {
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Power",
+          "type": "integer"
+        },
+        "tag": {
+          "pattern": "^(TODO|FIXME|HACK|XXX)$",
+          "title": "Tag",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 200,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "tag",
+        "text",
+        "line",
+        "power"
+      ],
+      "title": "Loot",
+      "type": "object"
+    },
+    "LootKind": {
+      "enum": [
+        "potion",
+        "blade",
+        "scroll",
+        "curse"
+      ],
+      "title": "LootKind",
+      "type": "string"
+    },
+    "RepoInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "branch": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Branch"
+        },
+        "commits_scanned": {
+          "minimum": 0,
+          "title": "Commits Scanned",
+          "type": "integer"
+        },
+        "committed_at": {
+          "minimum": 0,
+          "title": "Committed At",
+          "type": "integer"
+        },
+        "head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head",
+          "type": "string"
+        },
+        "languages": {
+          "items": {
+            "$ref": "#/$defs/LanguageShare"
+          },
+          "title": "Languages",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "name",
+        "head",
+        "committed_at",
+        "commits_scanned",
+        "languages"
+      ],
+      "title": "RepoInfo",
+      "type": "object"
+    },
+    "Room": {
+      "additionalProperties": false,
+      "properties": {
+        "blurb": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Blurb"
+        },
+        "churn": {
+          "minimum": 0,
+          "title": "Churn",
+          "type": "integer"
+        },
+        "enemies": {
+          "items": {
+            "$ref": "#/$defs/Enemy"
+          },
+          "title": "Enemies",
+          "type": "array"
+        },
+        "functions": {
+          "minimum": 0,
+          "title": "Functions",
+          "type": "integer"
+        },
+        "heat": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Heat",
+          "type": "number"
+        },
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/RoomKind"
+        },
+        "language": {
+          "title": "Language",
+          "type": "string"
+        },
+        "loc": {
+          "minimum": 0,
+          "title": "Loc",
+          "type": "integer"
+        },
+        "loot": {
+          "items": {
+            "$ref": "#/$defs/Loot"
+          },
+          "title": "Loot",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 200,
+          "title": "Path",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        },
+        "wing": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Wing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "name",
+        "language",
+        "wing",
+        "kind",
+        "loc",
+        "size",
+        "functions",
+        "churn",
+        "heat",
+        "enemies",
+        "loot"
+      ],
+      "title": "Room",
+      "type": "object"
+    },
+    "RoomKind": {
+      "enum": [
+        "hall",
+        "shrine",
+        "lair"
+      ],
+      "title": "RoomKind",
+      "type": "string"
+    },
+    "Totals": {
+      "additionalProperties": false,
+      "properties": {
+        "enemies": {
+          "minimum": 0,
+          "title": "Enemies",
+          "type": "integer"
+        },
+        "files": {
+          "minimum": 0,
+          "title": "Files",
+          "type": "integer"
+        },
+        "functions": {
+          "minimum": 0,
+          "title": "Functions",
+          "type": "integer"
+        },
+        "loc": {
+          "minimum": 0,
+          "title": "Loc",
+          "type": "integer"
+        },
+        "loot": {
+          "minimum": 0,
+          "title": "Loot",
+          "type": "integer"
+        },
+        "rooms": {
+          "minimum": 0,
+          "title": "Rooms",
+          "type": "integer"
+        },
+        "skipped": {
+          "minimum": 0,
+          "title": "Skipped",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "files",
+        "rooms",
+        "functions",
+        "enemies",
+        "loot",
+        "loc",
+        "skipped"
+      ],
+      "title": "Totals",
+      "type": "object"
+    },
+    "Wing": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 12,
+          "pattern": "^[a-z][0-9]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 200,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "name"
+      ],
+      "title": "Wing",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "floors": {
+      "items": {
+        "$ref": "#/$defs/Floor"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Floors",
+      "type": "array"
+    },
+    "generator": {
+      "title": "Generator",
+      "type": "string"
+    },
+    "repo": {
+      "$ref": "#/$defs/RepoInfo"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seed": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Seed",
+      "type": "string"
+    },
+    "totals": {
+      "$ref": "#/$defs/Totals"
+    }
+  },
+  "required": [
+    "generator",
+    "seed",
+    "repo",
+    "floors",
+    "totals"
+  ],
+  "title": "DungeonSpec",
+  "type": "object"
+}

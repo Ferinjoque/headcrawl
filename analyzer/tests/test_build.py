@@ -1,0 +1,203 @@
+import json
+from pathlib import Path
+
+import pytest
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+
+from headcrawl import stats
+from headcrawl.build import AnalysisError, analyze
+from headcrawl.cli import main
+from headcrawl.limits import Limits
+from headcrawl.metrics import FunctionMetric
+from headcrawl.models import Archetype, DungeonSpec, RoomKind
+
+from .conftest import SAMPLE, MakeRepo, write_files
+
+
+def _all_rooms(spec: DungeonSpec):  # type: ignore[no-untyped-def]
+    return [r for f in spec.floors for r in f.rooms]
+
+
+def test_sample_repo(make_repo: MakeRepo) -> None:
+    root = make_repo(SAMPLE, {"app/main.py": SAMPLE["app/main.py"] + "\n# more\n"})
+    spec = analyze(root, name="sample")
+
+    assert spec.seed == spec.repo.head
+    assert spec.repo.name == "sample" and spec.repo.branch == "main"
+    assert spec.floors[-1].boss.final and not any(f.boss.final for f in spec.floors[:-1])
+    assert sum(len(f.rooms) for f in spec.floors) == 7
+
+    rooms = {r.path: r for r in _all_rooms(spec)}
+    assert set(rooms) == {
+        "app/main.py",
+        "app/util.py",
+        "app/core/engine.py",
+        "web/index.js",
+        "web/api.js",
+        "web/lib/x.js",
+        "tests/test_main.py",
+    }
+    assert rooms["app/main.py"].blurb == "Entry point for the sample app."
+    assert rooms["app/main.py"].churn == 2
+
+    loot = {item.tag: item for r in rooms.values() for item in r.loot}
+    assert set(loot) == {"TODO", "FIXME", "HACK"}
+    assert loot["TODO"].text == "handle errors here"
+
+    names = {e.name for r in rooms.values() for e in r.enemies} | {f.boss.name for f in spec.floors}
+    assert {"run", "helper", "start", "boot", "y"} <= names
+
+    run_fn = (
+        next(f.boss for f in spec.floors if f.boss.name == "run")
+        if any(f.boss.name == "run" for f in spec.floors)
+        else next(e for r in rooms.values() for e in r.enemies if e.name == "run")
+    )
+    assert run_fn.ccn >= 5
+
+
+def test_same_repo_same_dungeon(make_repo: MakeRepo) -> None:
+    root = make_repo(SAMPLE)
+    assert analyze(root).model_dump_json() == analyze(root).model_dump_json()
+
+
+def test_not_a_git_repo_still_works(make_repo: MakeRepo) -> None:
+    root = make_repo(SAMPLE, git=False)
+    spec = analyze(root)
+    assert spec.repo.committed_at == 0 and len(spec.seed) == 40
+    assert all(r.churn == 0 for r in _all_rooms(spec))
+
+
+def test_empty_repo_fails_cleanly(make_repo: MakeRepo) -> None:
+    root = make_repo({"README.md": "hi\n"})
+    with pytest.raises(AnalysisError):
+        analyze(root)
+
+
+def test_caps_are_respected(make_repo: MakeRepo) -> None:
+    files = {f"d{i}/m{j}.py": f"def f{j}(a):\n    return a\n" * 1 for i in range(12) for j in range(6)}
+    big = {"big.py": "".join(f"def g{k}(x):\n    if x:\n        return {k}\n    return 0\n\n" for k in range(30))}
+    root = make_repo(files | big)
+    limits = Limits(max_floors=4, max_rooms_per_floor=5, max_enemies_per_room=3)
+    spec = analyze(root, limits=limits)
+    assert len(spec.floors) <= 4
+    for f in spec.floors:
+        assert len(f.rooms) <= 5
+        assert all(len(r.enemies) <= 3 for r in f.rooms)
+    assert spec.totals.skipped > 0
+
+
+def test_hostile_names_are_cleaned(make_repo: MakeRepo) -> None:
+    evil = "x\u202e\x1b[31m<img src=x onerror=alert(1)>"
+    src = f"def f():\n    # TODO: {evil}{'A' * 400}\n    return 1\n"
+    root = make_repo({"pkg/a.py": src, "pkg/b.py": "x = 1\n", "pkg/c.py": "y = 1\n"})
+    spec = analyze(root)
+    (item,) = [i for r in _all_rooms(spec) for i in r.loot]
+    assert "\x1b" not in item.text and "\u202e" not in item.text
+    assert len(item.text) <= 120
+
+
+source_body = st.lists(
+    st.tuples(st.integers(0, 5), st.integers(0, 4), st.sampled_from(["", "# TODO: x", "# HACK"])),
+    min_size=0,
+    max_size=5,
+)
+
+
+def _python_source(funcs: list[tuple[int, int, str]]) -> str:
+    out = []
+    for i, (params, depth, tag) in enumerate(funcs):
+        args = ", ".join(f"a{k}" for k in range(params))
+        out.append(f"def fn{i}({args}):")
+        if tag:
+            out.append(f"    {tag}")
+        indent = "    "
+        for d in range(depth):
+            out.append(f"{indent}if a{d % max(params, 1)} if {params} else True:")
+            indent += "    "
+        out.append(f"{indent}return {i}")
+        out.append("")
+    return "\n".join(out) or "x = 1\n"
+
+
+@settings(max_examples=15, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(
+    st.dictionaries(
+        st.from_regex(r"(src|lib|tests|cli)(/[a-c]){0,2}/[a-e]{1,3}", fullmatch=True),
+        source_body,
+        min_size=1,
+        max_size=25,
+    )
+)
+def test_random_repos_make_valid_dungeons(make_repo: MakeRepo, files: dict[str, list]) -> None:  # type: ignore[type-arg]
+    root = make_repo({f"{p}.py": _python_source(body) for p, body in files.items()}, git=False)
+    spec = analyze(root)
+    again = DungeonSpec.model_validate_json(spec.model_dump_json())
+    assert again == spec
+    assert spec.model_dump_json() == analyze(root).model_dump_json()
+    for floor in spec.floors:
+        assert floor.boss.hp > 0
+        for room in floor.rooms:
+            assert all(e.hp > 0 and e.damage > 0 and e.speed > 0 for e in room.enemies)
+            if room.kind is RoomKind.SHRINE:
+                assert room.enemies == []
+
+
+def _fn(**kw: int) -> FunctionMetric:
+    base = dict(ccn=1, nloc=3, params=0, nesting=0, start_line=1, end_line=3)
+    base.update(kw)
+    return FunctionMetric(name="f", long_name="f()", **base)
+
+
+@pytest.mark.parametrize(
+    ("kw", "arch"),
+    [
+        ({"ccn": 20}, Archetype.TANGLE),
+        ({"nesting": 5, "ccn": 6}, Archetype.NEST),
+        ({"params": 7, "ccn": 4}, Archetype.HYDRA),
+        ({"nloc": 120, "ccn": 5}, Archetype.WALL),
+        ({}, Archetype.IMP),
+        ({"ccn": 6, "nloc": 20}, Archetype.BUG),
+    ],
+)
+def test_archetypes(kw: dict[str, int], arch: Archetype) -> None:
+    assert stats.archetype(_fn(**kw)) is arch
+
+
+@given(st.integers(1, 10_000), st.integers(0, 50), st.integers(0, 40), st.integers(0, 5000))
+def test_stat_curves_stay_in_range(ccn: int, nesting: int, params: int, nloc: int) -> None:
+    f = _fn(ccn=ccn, nesting=nesting, params=params, nloc=nloc)
+    assert 4 <= stats.enemy_hp(f) <= 80
+    assert 1 <= stats.enemy_damage(f) <= 12
+    assert 60 <= stats.enemy_speed(f) <= 160
+    for depth in (0, 3, 7):
+        hp, dmg, speed, xp = stats.boss_stats(f, nloc, depth, final=depth == 7)
+        assert hp >= 20 and dmg >= 2 and 70 <= speed <= 180 and xp >= 10
+
+
+def test_room_size_and_titles() -> None:
+    assert [stats.room_size(n) for n in (0, 10, 40, 200, 900, 50_000)] == [1, 1, 1, 4, 5, 5]
+    assert stats.boss_title(0, False) == "the Untouched"
+    assert stats.boss_title(25, False) == "the Often Rewritten"
+    assert stats.boss_title(0, True) == "Keeper of HEAD"
+
+
+def test_cli_analyze_and_schema(make_repo: MakeRepo, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = make_repo(SAMPLE)
+    out = tmp_path / "out" / "d.json"
+    assert main(["analyze", str(root), "-o", str(out), "--compact"]) == 0
+    spec = DungeonSpec.model_validate_json(out.read_text())
+    assert spec.totals.rooms > 0
+    assert "floors" in capsys.readouterr().err
+
+    schema_out = tmp_path / "schema.json"
+    assert main(["schema", "-o", str(schema_out)]) == 0
+    schema = json.loads(schema_out.read_text())
+    assert schema["title"] == "DungeonSpec" and "Floor" in schema["$defs"]
+
+
+def test_cli_reports_errors(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    write_files(tmp_path / "empty", {"a.txt": "x"})
+    assert main(["analyze", str(tmp_path / "empty")]) == 1
+    assert main(["analyze", "file:///etc/passwd"]) == 1
+    assert "headcrawl:" in capsys.readouterr().err

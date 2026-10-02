@@ -1,0 +1,21 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# node
+node_modules/
+dist/
+coverage/
+
+# local stuff
+.cache/
+work/
+*.log
+.env

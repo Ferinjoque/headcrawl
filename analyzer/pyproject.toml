@@ -1,0 +1,54 @@
+[project]
+name = "headcrawl"
+version = "0.1.0"
+description = "Turn a git repo into a roguelike dungeon."
+readme = "README.md"
+authors = [
+    { name = "Fernando Injoque", email = "github@injoque.dev" }
+]
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "lizard==1.24.0",
+    "pydantic>=2.13,<3",
+    "tree-sitter-language-pack==1.20.0",
+]
+
+[project.scripts]
+headcrawl = "headcrawl.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.168",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "BLE", "S"]
+ignore = ["S603", "S607", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["headcrawl"]
+branch = true
