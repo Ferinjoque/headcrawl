@@ -105,6 +105,20 @@ def _cmd_prefetch(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_validate(args: argparse.Namespace) -> int:
+    path = Path(args.file)
+    if not path.is_file() or path.stat().st_size > 8 * 1024 * 1024:
+        print(f"headcrawl: {path} is missing or too big", file=sys.stderr)
+        return 1
+    try:
+        spec = DungeonSpec.model_validate_json(path.read_bytes())
+    except ValidationError as exc:
+        print(f"headcrawl: {path} is not a valid dungeon: {exc.error_count()} problems", file=sys.stderr)
+        return 1
+    print(f"{spec.repo.name}: ok, {len(spec.floors)} floors", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="headcrawl", description="Turn a git repo into a dungeon.")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -128,6 +142,10 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("prefetch", help="download the tree-sitter grammars we use")
     p.set_defaults(fn=_cmd_prefetch)
+
+    v = sub.add_parser("validate", help="check that a file is a valid dungeon")
+    v.add_argument("file")
+    v.set_defaults(fn=_cmd_validate)
 
     args = parser.parse_args(argv)
     return int(args.fn(args))

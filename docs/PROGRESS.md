@@ -3,7 +3,8 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-02): M0-M3 done, game playable in the browser. Working on M4.
+Status (2026-10-02): M0-M4 done, most of M5 done. Game is playable, tested, and
+ready for GitHub Pages once the repo is pushed.
 
 ## M0 setup
 - [x] git init, .gitignore, README stub
@@ -39,15 +40,15 @@ Status (2026-10-02): M0-M3 done, game playable in the browser. Working on M4.
 - [x] bosses with a second phase and helpers
 - [x] share links + result text
 - [x] gallery (5 repos)
-- [ ] more gallery repos + rebuild script
-- [ ] CI + Pages workflow
-- [ ] e2e smoke test
+- [x] more gallery repos + rebuild script
+- [x] CI + Pages workflow
+- [x] e2e smoke test
 
 ## M5 extras
-- [ ] Ollama flavor
-- [ ] request-a-dungeon Action
-- [ ] daily dungeon
-- [ ] tileset (probably skip, the text look is the point)
+- [x] Ollama flavor
+- [x] request-a-dungeon Action
+- [x] daily dungeon
+- [ ] tileset (skipped on purpose, the text look is the point)
 
 ## How to run things
 
@@ -60,6 +61,28 @@ Status (2026-10-02): M0-M3 done, game playable in the browser. Working on M4.
   `node scripts/shots.mjs http://localhost:5179/ ../work/shots`.
 - Balance: `npx vitest run -t "bot runs" --silent=false` prints bot results
   for every gallery dungeon.
+
+## After review (security + code review agents)
+
+Fixed: inflate bomb in share links, git log signature exec path, clone now
+checks out only small source files, schema has upper bounds everywhere, end
+screen timer leak, stale navigation, per-monster A* replaced by one distance
+map, single-file floors, churn in subfolder analysis, names that clean to
+nothing, duplicate floor names.
+
+Left as is: CSP keeps style-src 'unsafe-inline' (Vite dev needs it and there
+is no inline script). Actions are pinned to major tags, not SHAs. Renderer
+redraws the whole view at 20 fps when idle.
+
+## Next ideas
+
+- Cache the static map layer in the renderer so idle frames are cheap.
+- Sound: a few short synth blips with WebAudio, off by default.
+- Mini-map of the floor graph in the side panel.
+- Better flavor text needs a bigger local model; gemma4 lines get rejected
+  by the relevance filter.
+- First push: create the GitHub repo, enable Pages (source: GitHub Actions),
+  create the `dungeon` label.
 
 ## Notes
 

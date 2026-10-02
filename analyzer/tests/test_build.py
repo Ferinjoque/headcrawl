@@ -230,3 +230,13 @@ def test_subfolder_keeps_churn(make_repo: MakeRepo) -> None:
     spec = analyze(root / "pkg")
     churn = {r.path: r.churn for f in spec.floors for r in f.rooms}
     assert churn["a.py"] == 2
+
+
+def test_cli_validate(make_repo: MakeRepo, tmp_path: Path) -> None:
+    out = tmp_path / "d.json"
+    assert main(["analyze", str(make_repo(SAMPLE)), "-o", str(out)]) == 0
+    assert main(["validate", str(out)]) == 0
+    bad = tmp_path / "bad.json"
+    bad.write_text('{"floors": []}', encoding="utf-8")
+    assert main(["validate", str(bad)]) == 1
+    assert main(["validate", str(tmp_path / "missing.json")]) == 1

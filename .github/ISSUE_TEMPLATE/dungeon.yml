@@ -1,0 +1,17 @@
+name: Request a dungeon
+description: Ask for a public GitHub repo to be added to the gallery.
+title: "dungeon: owner/repo"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Put the repo in the title, like `dungeon: pallets/flask`.
+        A maintainer adds the `dungeon` label, a workflow analyzes the repo,
+        and the dungeon shows up on the site a few minutes later.
+  - type: textarea
+    id: why
+    attributes:
+      label: Anything worth knowing about this repo?
+      description: Optional. Big monorepos get trimmed to the most interesting folders.
+    validations:
+      required: false

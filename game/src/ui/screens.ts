@@ -2,7 +2,7 @@ import type { Game } from "../game/game";
 import { h, plural } from "./dom";
 import type { GalleryEntry } from "./gallery";
 
-// The wordmark is built from the same [] bricks as the dungeon walls.
+// The wordmark is a 5x5 pixel font drawn with full blocks.
 const LETTERS: Record<string, string[]> = {
   H: ["#...#", "#...#", "#####", "#...#", "#...#"],
   E: ["#####", "#....", "####.", "#....", "#####"],
@@ -18,7 +18,7 @@ export function wordmark(word = "HEADCRAWL"): string {
   const rows = ["", "", "", "", ""];
   for (const ch of word) {
     const glyph = LETTERS[ch];
-    for (let r = 0; r < 5; r++) rows[r] += glyph[r].replace(/#/g, "[]").replace(/\./g, "  ") + "  ";
+    for (let r = 0; r < 5; r++) rows[r] += glyph[r].replace(/#/g, "██").replace(/\./g, "  ") + "  ";
   }
   return rows.map((r) => r.trimEnd()).join("\n");
 }
