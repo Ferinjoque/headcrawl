@@ -20,11 +20,12 @@ interface Extra {
 
 export type Route =
   | { kind: "title" }
+  | { kind: "compare"; owner: string; repo: string; a: string; b: string }
   | ({ kind: "gallery"; slug: string } & Extra)
   | ({ kind: "custom"; data: string } & Extra)
   | ({ kind: "github"; owner: string; repo: string; sha: string } & Extra);
 
-export type PlayRoute = Exclude<Route, { kind: "title" }>;
+export type PlayRoute = Exclude<Route, { kind: "title" } | { kind: "compare" }>;
 
 function parseExtra(query: string): Extra | null {
   const params = new URLSearchParams(query);
@@ -41,6 +42,8 @@ export function parseRoute(hash: string): Route {
   const path = q < 0 ? h : h.slice(0, q);
   const extra = parseExtra(q < 0 ? "" : h.slice(q + 1));
   if (!extra) return { kind: "title" };
+  const vs = path.match(/^\/vs\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})\.\.([0-9a-f]{7,40})$/);
+  if (vs && vs[2] !== "." && vs[2] !== "..") return { kind: "compare", owner: vs[1], repo: vs[2], a: vs[3], b: vs[4] };
   const play = path.match(/^\/play\/([a-z0-9._-]{1,60})$/i);
   if (play) return { kind: "gallery", slug: play[1].toLowerCase(), ...extra };
   const gh = path.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})$/);
@@ -53,6 +56,7 @@ export function parseRoute(hash: string): Route {
 
 export function routeHash(route: Route): string {
   if (route.kind === "title") return "#/";
+  if (route.kind === "compare") return `#/vs/${route.owner}/${route.repo}@${route.a}..${route.b}`;
   const params = new URLSearchParams();
   if (route.run && route.kind !== "custom") params.set("run", String(route.run));
   if (route.watch) params.set("watch", route.watch);

@@ -17,7 +17,7 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen } from "./ui/screens";
+import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen } from "./ui/screens";
 import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
@@ -28,13 +28,15 @@ import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
 import { dropSave, findSave, listSaves, putSave } from "./ui/save";
 import { decodeLog } from "./game/record";
+import { compareSpecs } from "./lite/compare";
+import { validRef } from "./lite/protocol";
 import type { Action } from "./game/types";
 import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
 import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, type PlayRoute, type Route } from "./ui/share";
 
-type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "end" | "loading";
+type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "compare" | "end" | "loading";
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -56,7 +58,8 @@ export class App {
   private selected = 0;
   private titleError: string | null = null;
   game: Game | null = null;
-  private route: Route = { kind: "title" };
+  /** The dungeon being played, or the title. Comparisons live outside it. */
+  private route: PlayRoute | { kind: "title" } = { kind: "title" };
   private demo: FloorState | null = null;
   private auto: AutoMode | null = null;
   private autoTimer = 0;
@@ -172,6 +175,10 @@ export class App {
       this.game = null;
       this.showTitle();
       return;
+    }
+    if (route.kind === "compare") {
+      this.game = null;
+      return this.showCompare(route.owner, route.repo, route.a, route.b, seq);
     }
     this.mode = "loading";
     let text: string | null;
@@ -332,6 +339,7 @@ export class App {
         resume: (s) => {
           location.hash = s.hash;
         },
+        compare: (repo, ref) => void this.buildCompare(repo, ref),
         code: (text) => {
           const route = parseCode(text);
           const status = document.getElementById("code-status");
@@ -389,6 +397,52 @@ export class App {
       this.buildStatus(err instanceof Error ? err.message : String(err), "error");
       return null;
     }
+  }
+
+  /** Build the same repo at an old ref and at its latest commit, then compare. */
+  private async buildCompare(target: string, ref: string): Promise<void> {
+    const repo = parseRepo(target);
+    if (!repo) return this.buildStatus("That doesn't look like owner/repo or a GitHub link.", "error");
+    const then = ref.trim();
+    if (!validRef(then)) return this.buildStatus("For then, give a tag, a branch or a commit, like v1.0.0.", "error");
+    const old = await this.buildGitHub(repo.owner, repo.repo, then);
+    if (!old) return;
+    const latest = await this.buildGitHub(repo.owner, repo.repo);
+    if (!latest) return;
+    const a = loadSpec(old);
+    const b = loadSpec(latest);
+    if (!a.ok || !b.ok) return this.buildStatus("One of the two builds came out broken.", "error");
+    for (const [json, spec] of [[old, a.spec], [latest, b.spec]] as const) {
+      this.built.set(`${repo.owner}/${repo.repo}@${spec.repo.head}`.toLowerCase(), json);
+    }
+    this.navigate({ kind: "compare", owner: repo.owner, repo: repo.repo, a: a.spec.repo.head, b: b.spec.repo.head });
+  }
+
+  private compareRoutes: { then: PlayRoute; now: PlayRoute } | null = null;
+
+  private async showCompare(owner: string, repo: string, a: string, b: string, seq: number): Promise<void> {
+    const old = await this.buildGitHub(owner, repo, a);
+    if (seq !== this.navSeq || !old) return;
+    const latest = await this.buildGitHub(owner, repo, b);
+    if (seq !== this.navSeq || !latest) return;
+    const then = loadSpec(old);
+    const now = loadSpec(latest);
+    if (!then.ok || !now.ok) return this.failToTitle("One of the two builds came out broken.");
+    this.mode = "compare";
+    this.route = { kind: "title" };
+    this.compareRoutes = {
+      then: { kind: "github", owner, repo, sha: a, run: freshRun() },
+      now: { kind: "github", owner, repo, sha: b, run: freshRun() },
+    };
+    document.body.classList.add("titling");
+    this.showScreen(
+      compareScreen(`${owner}/${repo}`, compareSpecs(then.spec, now.spec), {
+        playThen: () => this.compareRoutes && this.navigate(this.compareRoutes.then),
+        playNow: () => this.compareRoutes && this.navigate(this.compareRoutes.now),
+        menu: () => this.navigate({ kind: "title" }),
+      }),
+      true,
+    );
   }
 
   private async buildFromGitHub(target: string): Promise<void> {
@@ -742,6 +796,13 @@ export class App {
     }
     if (this.mode === "title") return this.titleKey(e);
     if (this.mode === "watch") return this.watchKey(e);
+    if (this.mode === "compare") {
+      if (e.target instanceof HTMLInputElement || !this.compareRoutes) return;
+      if (e.key === "1") this.navigate(this.compareRoutes.then);
+      else if (e.key === "2") this.navigate(this.compareRoutes.now);
+      else if (e.key === "Escape") this.navigate({ kind: "title" });
+      return;
+    }
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();

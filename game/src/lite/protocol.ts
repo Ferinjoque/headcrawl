@@ -2,7 +2,7 @@ export interface WorkerRequest {
   base: string;
   owner: string;
   repo: string;
-  /** Pin a commit so a shared link rebuilds the same dungeon. */
+  /** A commit, tag or branch. Pinning a commit makes a link rebuild the same dungeon. */
   sha?: string;
 }
 
@@ -35,4 +35,9 @@ export function parseRepo(input: string): { owner: string; repo: string } | null
 export function safePath(path: string): boolean {
   if (!path || path.length > 400 || path.startsWith("/") || path.includes("\\") || path.includes("\0")) return false;
   return path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+}
+
+/** A git ref we are willing to put in an API URL: tags like v1.2.0, branches, commits. */
+export function validRef(ref: string): boolean {
+  return /^[A-Za-z0-9._/-]{1,100}$/.test(ref) && !ref.includes("..") && !ref.startsWith("/") && !ref.endsWith("/");
 }

@@ -4,7 +4,7 @@
 // downloads for the contents. Nothing in the repo is ever executed; Python
 // only reads the text, same as the command line tool.
 
-import { safePath, type WorkerReply, type WorkerRequest } from "./protocol";
+import { safePath, validRef, type WorkerReply, type WorkerRequest } from "./protocol";
 
 interface PyProxy {
   callKwargs(...args: unknown[]): Promise<unknown>;
@@ -119,7 +119,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   say({ type: "progress", text: `Asking GitHub about ${owner}/${repo}` });
   const api = `https://api.github.com/repos/${owner}/${repo}`;
   const meta = (await (await gh(api)).json()) as { default_branch: string; full_name: string; private: boolean };
-  const ref = sha && /^[0-9a-f]{7,40}$/.test(sha) ? sha : meta.default_branch;
+  const ref = sha && validRef(sha) ? sha : meta.default_branch;
   const commit = (await (await gh(`${api}/commits/${encodeURIComponent(ref)}`)).json()) as {
     sha: string;
     commit: { committer: { date: string } };

@@ -3,6 +3,7 @@ import { PERKS, type PerkId } from "../game/perks";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
+import type { Change, Comparison } from "../lite/compare";
 import type { Recent } from "./recent";
 import type { SavedRun } from "./save";
 import type { Settings } from "./settings";
@@ -41,6 +42,7 @@ export interface TitleHandlers {
   reopen(r: Recent): void;
   resume(s: SavedRun): void;
   code(text: string): void;
+  compare(repo: string, ref: string): void;
   settings(): void;
   open(): void;
   help(): void;
@@ -180,6 +182,22 @@ export function titleScreen(
         )
       : null,
     h(
+      "form",
+      {
+        class: "build",
+        onsubmit: (e: Event) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const repo = form.elements.namedItem("vsrepo") as HTMLInputElement;
+          const ref = form.elements.namedItem("vsref") as HTMLInputElement;
+          on.compare(repo.value, ref.value);
+        },
+      },
+      h("input", { name: "vsrepo", type: "text", placeholder: "owner/repo", autocomplete: "off", spellcheck: "false", "aria-label": "Repo to compare" }),
+      h("input", { name: "vsref", type: "text", placeholder: "then: a tag like v1.0.0", autocomplete: "off", spellcheck: "false", "aria-label": "Older tag, branch or commit" }),
+      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " then vs now"),
+    ),
+    h(
       "p",
       { id: "build-status", class: "dim", role: "status" },
       "Runs the analyzer in your browser. Nothing in the repo is executed. The first run downloads about 4 MB.",
@@ -297,6 +315,55 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
         h("span", { class: "perk-name" }, PERKS[id].name),
         h("span", { class: "perk-text" }, PERKS[id].text),
       ),
+    ),
+  );
+}
+
+export interface CompareHandlers {
+  playThen(): void;
+  playNow(): void;
+  menu(): void;
+}
+
+function delta(a: number, b: number): string {
+  const d = b - a;
+  return `${a} -> ${b}  (${d >= 0 ? "+" : ""}${d})`;
+}
+
+export function compareScreen(repo: string, c: Comparison, on: CompareHandlers) {
+  const row = (label: string, value: string) => h("p", { class: "row" }, h("span", { class: "t-loot" }, label), h("span", null, value));
+  const change = (x: Change) =>
+    h("p", { class: "row" }, h("span", { class: "name" }, x.name), h("span", { class: "dim" }, `${x.before} -> ${x.after} branches, ${x.path}`));
+  return h(
+    "div",
+    { class: "page" },
+    h("h1", null, "then vs now"),
+    h("p", { class: "dim" }, `${repo}, ${c.then.head.slice(0, 7)} against ${c.now.head.slice(0, 7)}.`),
+    h("h2", null, "the dungeon"),
+    row("floors", delta(c.then.floors, c.now.floors)),
+    row("files", delta(c.then.files, c.now.files)),
+    row("functions", delta(c.then.functions, c.now.functions)),
+    row("lines of code", delta(c.then.loc, c.now.loc)),
+    row("loot (TODO and friends)", delta(c.then.todos, c.now.todos)),
+    row("monsters born", String(c.born)),
+    row("monsters slain", String(c.slain)),
+    h("h2", null, "final boss"),
+    row("then", c.bossThen),
+    row("now", c.bossNow),
+    c.grew.length ? h("h2", null, "grew more branches") : null,
+    ...c.grew.map(change),
+    c.shrank.length ? h("h2", null, "got simpler") : null,
+    ...c.shrank.map(change),
+    c.todosAdded.length ? h("h2", null, "new notes") : null,
+    ...c.todosAdded.map((t) => h("p", { class: "t-lore" }, t)),
+    c.todosDone.length ? h("h2", null, "notes that are gone") : null,
+    ...c.todosDone.map((t) => h("p", { class: "dim" }, t)),
+    h(
+      "div",
+      { class: "actions" },
+      btn("1", "play then", on.playThen),
+      btn("2", "play now", on.playNow),
+      btn("esc", "repo list", on.menu),
     ),
   );
 }
