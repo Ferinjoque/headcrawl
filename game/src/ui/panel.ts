@@ -1,5 +1,6 @@
 import type { Game } from "../game/game";
 import type { Monster } from "../game/types";
+import { drawMinimap } from "../render/minimap";
 import { bar, h, plural, replace } from "./dom";
 
 const ARCH_NAME: Record<string, string> = {
@@ -82,7 +83,11 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     h("p", null, h("b", null, "?"), " help  ", h("b", null, "esc"), " menu  ", h("b", null, "click"), " walk there"),
   );
 
-  replace(el, here, sight, pack, keys);
+  const canvas = h("canvas", { class: "minimap", "aria-label": "Map of what you have seen" }) as HTMLCanvasElement;
+  drawMinimap(canvas, game);
+  const map = h("section", { class: "pane" }, h("h2", null, "map"), canvas);
+
+  replace(el, here, sight, map, pack, keys);
 }
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {

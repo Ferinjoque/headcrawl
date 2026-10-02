@@ -23,6 +23,7 @@ export class Game {
   private rng: Rng;
   private events: GameEvent[] = [];
   private spawnCount = 0;
+  private visited = new Set<string>();
 
   constructor(spec: DungeonSpec, opts: GameOptions = {}) {
     this.spec = spec;
@@ -177,7 +178,11 @@ export class Game {
         });
       } else if (boss) this.taunt(boss);
     }
-    if (room.blurb) this.say(`${room.path}: ${room.blurb}`, "lore");
+    if (!this.visited.has(room.id)) {
+      this.visited.add(room.id);
+      this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info");
+      if (room.blurb) this.say(`"${room.blurb}"`, "lore");
+    }
   }
 
   private taunt(m: Monster, which?: number): void {
@@ -224,7 +229,7 @@ export class Game {
       this.emit({ t: "reveal" });
       for (let i = 0; i < DROPS.bossCoffee; i++) this.drop(m.x, m.y, "coffee");
     } else {
-      this.say(`You refactor ${m.name} out of existence.`);
+      this.say(`${KILL_VERB[m.archetype] ?? "You fix"} ${m.name}.`);
       if (this.rng.chance(DROPS.coffee)) this.drop(m.x, m.y, "coffee");
     }
     this.gainXp(m.xp);
@@ -548,6 +553,16 @@ export class Game {
 }
 
 const CHASE_RANGE = 30;
+
+const KILL_VERB: Record<string, string> = {
+  tangle: "You untangle",
+  nest: "You flatten",
+  hydra: "You curry away",
+  wall: "You split up",
+  imp: "You inline",
+  bug: "You fix",
+  spawn: "You delete",
+};
 
 const STEPS = [
   [0, -1],

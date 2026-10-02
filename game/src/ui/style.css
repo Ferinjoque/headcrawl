@@ -179,6 +179,15 @@ body {
   font-size: var(--fs-xs);
   margin-top: -2px;
 }
+.minimap {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+  object-position: left top;
+  image-rendering: pixelated;
+}
 .keys {
   color: var(--text-faint);
   font-size: var(--fs-xs);
@@ -219,7 +228,8 @@ body.titling #app {
 }
 body.titling #hud,
 body.titling #panel,
-body.titling #log {
+body.titling #log,
+body.titling #touch {
   display: none;
 }
 @keyframes fade-in {
@@ -229,10 +239,14 @@ body.titling #log {
 
 .page {
   max-width: 78ch;
+  min-width: 0;
 }
 .wordmark {
   margin: 0;
-  font-size: clamp(7px, 1.05vw, 15px);
+  /* 108 columns of VT323 are about 60em wide. */
+  font-size: min(15px, calc((100vw - 32px) / 60));
+  max-width: 100%;
+  overflow: hidden;
   line-height: 1.2;
   color: var(--ember);
   text-shadow: 0 0 10px var(--ember), 0 0 26px oklch(0.66 0.17 45 / 0.5);
