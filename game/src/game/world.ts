@@ -3,7 +3,7 @@
 import { Rng } from "../core/rng";
 import type { Boss, Enemy, Floor } from "../spec";
 import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
-import { depthScale } from "./balance";
+import { capsFor, depthScale, softCap } from "./balance";
 import type { Item, Monster } from "./types";
 
 export interface FloorState {
@@ -27,8 +27,10 @@ export function glyphFor(name: string): string {
   return m ? m[0] : "?";
 }
 
-function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number): Monster {
+function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number, floors: number): Monster {
   const k = depthScale(depth);
+  const cap = capsFor(depth, floors);
+  const hp = Math.max(1, Math.round(softCap(e.hp, cap.hp) * k));
   const tough = e.archetype === "tangle" || e.archetype === "wall";
   const g = glyphFor(e.name);
   return {
@@ -38,9 +40,9 @@ function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number):
     archetype: e.archetype,
     x,
     y,
-    hp: Math.round(e.hp * k),
-    maxHp: Math.round(e.hp * k),
-    damage: Math.max(1, Math.round(e.damage * k)),
+    hp,
+    maxHp: hp,
+    damage: Math.max(1, Math.round(softCap(e.damage, cap.damage) * k)),
     speed: e.speed,
     energy: 0,
     xp: e.xp,
@@ -53,7 +55,9 @@ function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number):
   };
 }
 
-function fromBoss(b: Boss, x: number, y: number, room: number): Monster {
+function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, floors: number): Monster {
+  const cap = capsFor(depth, floors);
+  const hp = Math.max(1, Math.round(softCap(b.hp, cap.bossHp)));
   return {
     id: b.id,
     name: b.name,
@@ -61,9 +65,9 @@ function fromBoss(b: Boss, x: number, y: number, room: number): Monster {
     archetype: "boss",
     x,
     y,
-    hp: b.hp,
-    maxHp: b.hp,
-    damage: b.damage,
+    hp,
+    maxHp: hp,
+    damage: Math.max(1, Math.round(softCap(b.damage, cap.bossDamage))),
     speed: b.speed,
     energy: 0,
     xp: b.xp,
@@ -76,7 +80,7 @@ function fromBoss(b: Boss, x: number, y: number, room: number): Monster {
   };
 }
 
-export function buildFloor(floor: Floor, seed: string): FloorState {
+export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
   const map = layoutFloor(floor, seed);
   const rng = new Rng(`${seed}/spawn/${floor.index}`);
   const monsters: Monster[] = [];
@@ -90,13 +94,13 @@ export function buildFloor(floor: Floor, seed: string): FloorState {
       const off = (c: [number, number]) => Math.abs(c[0] - rect.cx) + Math.abs(c[1] - rect.cy);
       const spot = [...cells].sort((a, b) => off(a) - off(b))[0] ?? [rect.cx, rect.cy];
       cells = cells.filter((c) => c !== spot);
-      monsters.push(fromBoss(floor.boss, spot[0], spot[1], rect.index));
+      monsters.push(fromBoss(floor.boss, spot[0], spot[1], rect.index, floor.index, floors));
     }
     // You arrive in the entry room. Nobody should be waiting there.
     const enemies = rect === map.entry && map.rooms.length > 1 ? [] : room.enemies;
     for (const e of enemies) {
       const c = cells.pop();
-      if (c) monsters.push(fromEnemy(e, c[0], c[1], rect.index, floor.index));
+      if (c) monsters.push(fromEnemy(e, c[0], c[1], rect.index, floor.index, floors));
     }
     for (const l of room.loot) {
       const c = cells.pop();

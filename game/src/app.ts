@@ -78,7 +78,8 @@ export class App {
     this.mode = "loading";
     let text: string | null;
     if (route.kind === "gallery") {
-      text = await loadGalleryDungeon(route.slug);
+      const known = !this.gallery.length || this.gallery.some((g) => g.slug === route.slug);
+      text = known ? await loadGalleryDungeon(route.slug) : null;
       if (!text) return this.failToTitle(`No dungeon called "${route.slug}" here.`);
     } else {
       text = decodeSpec(route.data);
@@ -449,7 +450,7 @@ export class App {
     const res = text ? loadSpec(text) : null;
     if (!res?.ok) return;
     const floor = res.spec.floors[res.spec.floors.length - 1];
-    this.demo = buildFloor(floor, res.spec.seed);
+    this.demo = buildFloor(floor, res.spec.seed, res.spec.floors.length);
   }
 
   private frame(now: number): void {

@@ -20,6 +20,16 @@
     "boss": "run"
   },
   {
+    "slug": "requests",
+    "repo": "psf/requests",
+    "head": "611c6162cbc4ac2020a2f91c7cfa4f3abf9bbb60",
+    "language": "python",
+    "floors": 2,
+    "rooms": 27,
+    "enemies": 107,
+    "boss": "should_bypass_proxies"
+  },
+  {
     "slug": "express",
     "repo": "expressjs/express",
     "head": "7ef98448f8b38099ab1ded55e458538ad47a51e7",
@@ -28,6 +38,16 @@
     "rooms": 34,
     "enemies": 176,
     "boss": "send"
+  },
+  {
+    "slug": "ky",
+    "repo": "sindresorhus/ky",
+    "head": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47",
+    "language": "typescript",
+    "floors": 6,
+    "rooms": 58,
+    "enemies": 123,
+    "boss": "options"
   },
   {
     "slug": "gin",
@@ -40,6 +60,16 @@
     "boss": "Handle"
   },
   {
+    "slug": "bubbletea",
+    "repo": "charmbracelet/bubbletea",
+    "head": "96d69d2f7eb182bb311be08fc56ed2c208239aff",
+    "language": "go",
+    "floors": 3,
+    "rooms": 45,
+    "enemies": 230,
+    "boss": "Update"
+  },
+  {
     "slug": "ripgrep",
     "repo": "BurntSushi/ripgrep",
     "head": "3fce3b5bb0236da2df6d99672afb8a719642eca7",
@@ -48,5 +78,25 @@
     "rooms": 98,
     "enemies": 433,
     "boss": "main"
+  },
+  {
+    "slug": "jq",
+    "repo": "jqlang/jq",
+    "head": "f13c1effbf7322e42afcc999d7e3d1509d3f38c9",
+    "language": "c",
+    "floors": 2,
+    "rooms": 26,
+    "enemies": 108,
+    "boss": "f_format"
+  },
+  {
+    "slug": "headcrawl",
+    "repo": "headcrawl (this game)",
+    "head": "c056d831dd1203c52c7a62856e887906c29ba82d",
+    "language": "typescript",
+    "floors": 8,
+    "rooms": 52,
+    "enemies": 223,
+    "boss": "placeRooms"
   }
 ]

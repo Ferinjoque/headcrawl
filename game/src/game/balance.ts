@@ -47,3 +47,23 @@ export const WAKE_RANGE = 5;
 export function depthScale(floor: number): number {
   return 0.8 + floor * 0.12;
 }
+
+/**
+ * Squash values above `cap / 2` so the order between monsters survives but a
+ * 300-branch function on floor 1 doesn't end the run on turn 20.
+ */
+export function softCap(value: number, cap: number): number {
+  const knee = cap / 2;
+  if (value <= knee) return value;
+  return knee + knee * (1 - Math.exp(-(value - knee) / knee));
+}
+
+/** 0 on the first floor, 1 on the last. */
+export function depthFraction(floor: number, floors: number): number {
+  return floors > 1 ? floor / (floors - 1) : 1;
+}
+
+export function capsFor(floor: number, floors: number) {
+  const t = depthFraction(floor, floors);
+  return { hp: 24 + 56 * t, damage: 4 + 6 * t, bossHp: 70 + 230 * t, bossDamage: 5 + 9 * t };
+}

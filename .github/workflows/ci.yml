@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  analyzer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analyzer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run headcrawl prefetch
+      - run: uv run ruff check src tests
+      - run: uv run ruff format --check src tests
+      - run: uv run mypy src
+      - run: uv run pytest --cov --cov-fail-under=85
+      - name: schema is up to date
+        run: |
+          uv run headcrawl schema -o /tmp/schema.json
+          diff /tmp/schema.json ../schema/dungeon.schema.json
+
+  game:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: game
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: game/package-lock.json
+      - run: npm ci
+      - name: generated spec code is up to date
+        run: |
+          npm run spec
+          git diff --exit-code src/spec
+      - run: npx tsc --noEmit
+      - run: npx vitest run --coverage --coverage.thresholds.lines=85
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

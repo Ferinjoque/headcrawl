@@ -29,7 +29,10 @@ export async function loadGalleryDungeon(slug: string): Promise<string | null> {
   if (!/^[a-z0-9._-]{1,60}$/.test(slug)) return null;
   try {
     const res = await fetch(`./dungeons/${slug}.json`);
-    return res.ok ? await res.text() : null;
+    if (!res.ok) return null;
+    const text = await res.text();
+    // Static hosts often answer a missing file with the index page.
+    return text.trimStart().startsWith("{") ? text : null;
   } catch {
     return null;
   }

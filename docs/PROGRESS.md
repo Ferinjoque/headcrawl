@@ -3,12 +3,12 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status: M0 and M1 done (2026-10-02). Next: M2 game.
+Status (2026-10-02): M0-M3 done, game playable in the browser. Working on M4.
 
 ## M0 setup
 - [x] git init, .gitignore, README stub
 - [x] analyzer uv project
-- [ ] game Vite project
+- [x] game Vite project
 - [x] prefetch tree-sitter grammars
 
 ## M1 analyzer
@@ -16,7 +16,7 @@ Status: M0 and M1 done (2026-10-02). Next: M2 game.
 - [x] file walker + skip rules
 - [x] lizard metrics
 - [x] tree-sitter comments, docstrings, imports
-- [x] import resolution (py, js/ts, go, rust)
+- [x] import resolution (py, js/ts, go, rust, java, kotlin, c, cpp, ruby)
 - [x] churn
 - [x] builder (floors, rooms, edges, enemies, loot, bosses)
 - [x] DungeonSpec + JSON Schema export
@@ -24,35 +24,49 @@ Status: M0 and M1 done (2026-10-02). Next: M2 game.
 - [x] tests + hypothesis
 
 ## M2 layout + movement
-- [ ] load + validate JSON, generated types
-- [ ] floor layout + connectivity check
-- [ ] display, FOV, movement, stairs
-- [ ] tests
+- [x] load + validate JSON, generated types (scripts/gen-spec.mjs)
+- [x] floor layout + connectivity check
+- [x] renderer, FOV, movement, stairs
+- [x] tests
 
 ## M3 combat + loot
-- [ ] scheduler, combat, AI
-- [ ] XP, inventory, loot, shrines
-- [ ] log, death screen
-- [ ] tests + bot playthrough
+- [x] energy scheduler, combat, wake-on-sight AI
+- [x] XP, pack, loot, shrines, coffee drops
+- [x] log, death screen
+- [x] bot playthrough + balance report
 
 ## M4 bosses + share
-- [ ] bosses
-- [ ] share links + result text
-- [ ] gallery
-- [ ] Pages workflow
+- [x] bosses with a second phase and helpers
+- [x] share links + result text
+- [x] gallery (5 repos)
+- [ ] more gallery repos + rebuild script
+- [ ] CI + Pages workflow
+- [ ] e2e smoke test
 
 ## M5 extras
 - [ ] Ollama flavor
-- [ ] tileset
 - [ ] request-a-dungeon Action
 - [ ] daily dungeon
+- [ ] tileset (probably skip, the text look is the point)
+
+## How to run things
+
+- Analyzer, from `analyzer/`: `uv run pytest --cov`, `uv run ruff check src tests`,
+  `uv run mypy src`, `uv run headcrawl analyze owner/repo -o out.json`.
+- Game, from `game/`: `npm run dev`, `npm test`, `npm run coverage`,
+  `npm run build`. After changing analyzer models: `uv run headcrawl schema -o
+  ../schema/dungeon.schema.json` then `npm run spec`.
+- Screenshots: start `npx vite --port 5179`, then
+  `node scripts/shots.mjs http://localhost:5179/ ../work/shots`.
+- Balance: `npx vitest run -t "bot runs" --silent=false` prints bot results
+  for every gallery dungeon.
 
 ## Notes
 
-- Analyzer: 94% coverage, ruff + mypy strict clean. Run from `analyzer/`:
-  `uv run pytest --cov`, `uv run ruff check src tests`, `uv run mypy src`.
-- Import resolution also covers java/kotlin/c/cpp/ruby (best effort).
-- Real repos tried: itsdangerous, flask, express, gin, ripgrep. 2-7s each,
-  35-80 KB of JSON. Loot is rare in clean repos (flask, express have 0 tags),
-  so the game needs its own drops too.
-- `work/` is gitignored scratch space for analysis output.
+- Analyzer coverage 94%, game logic coverage 93%.
+- Loot is rare in clean repos (flask and express have no tags), so monsters
+  drop coffee and shrines heal.
+- Balance targets: bot wins small repos sometimes, dies to final bosses on
+  bigger ones. Humans can retreat into corridors and use items, the bot can't.
+- `work/` is gitignored scratch space.
+- PRODUCT.md and DESIGN.md were drafted without the owner. Review them.

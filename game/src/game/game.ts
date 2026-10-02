@@ -29,7 +29,7 @@ export class Game {
     this.spec = spec;
     this.run = opts.run ?? 0;
     this.rng = new Rng(`${spec.seed}/run/${this.run}`);
-    this.floor = buildFloor(spec.floors[0], spec.seed);
+    this.floor = buildFloor(spec.floors[0], spec.seed, spec.floors.length);
     const [x, y] = this.floor.map.start;
     this.player = {
       x,
@@ -399,7 +399,7 @@ export class Game {
       return false;
     }
     const next = this.floor.index + 1;
-    this.floor = buildFloor(this.spec.floors[next], this.spec.seed);
+    this.floor = buildFloor(this.spec.floors[next], this.spec.seed, this.spec.floors.length);
     [p.x, p.y] = this.floor.map.start;
     this.emit({ t: "descend", floor: next });
     this.enterFloorMessages();

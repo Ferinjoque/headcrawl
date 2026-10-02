@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const dir = fileURLToPath(new URL("../public/dungeons/", import.meta.url));
-const ORDER = ["itsdangerous", "flask", "express", "gin", "ripgrep"];
+const ORDER = ["itsdangerous", "flask", "requests", "express", "ky", "gin", "bubbletea", "ripgrep", "jq", "headcrawl"];
 
 const entries = readdirSync(dir)
   .filter((f) => f.endsWith(".json") && f !== "index.json")
