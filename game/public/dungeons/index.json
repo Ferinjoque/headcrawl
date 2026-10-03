@@ -167,11 +167,11 @@
   {
     "slug": "headcrawl",
     "repo": "headcrawl (this game)",
-    "head": "ec5e2482d4e74a9ebf80f555a03c5f6033265e88",
+    "head": "87d7eb271261b73bf825c6c3444b3d6e670fb7b0",
     "language": "typescript",
     "floors": 8,
-    "rooms": 73,
-    "enemies": 313,
+    "rooms": 85,
+    "enemies": 393,
     "boss": "placeRooms",
     "difficulty": 5
   }
