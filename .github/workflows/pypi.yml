@@ -1,0 +1,42 @@
+name: pypi
+
+# Publishes the headcrawl package to PyPI. Never runs on its own: start it
+# from the Actions tab once PyPI trusts this workflow (docs/PUBLISHING.md).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      # Trusted publishing: PyPI checks a short-lived token from GitHub, so
+      # no PyPI password or API token is stored anywhere.
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: game/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: game
+      - run: bash scripts/bundle-game.sh
+      - name: build
+        working-directory: analyzer
+        run: uv build --out-dir dist
+      - name: check the wheel carries the game
+        working-directory: analyzer
+        run: unzip -l dist/*.whl | grep -q "headcrawl/game_dist/index.html"
+      - name: publish
+        working-directory: analyzer
+        run: uv publish --trusted-publishing always dist/*

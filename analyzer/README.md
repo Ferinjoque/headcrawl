@@ -1,15 +1,27 @@
-# headcrawl analyzer
+# headcrawl
 
-Reads a git repo and writes a DungeonSpec JSON file for the game.
+A roguelike where the dungeon is a git repo. Every file is a room, every
+function a monster with stats from its own complexity, TODOs are loot, and
+the code everyone keeps rewriting is the boss.
 
 ```
-uv run headcrawl prefetch                      # download tree-sitter grammars once
-uv run headcrawl analyze pallets/flask -o flask.json
-uv run headcrawl analyze ../some/local/repo -o mine.json
-uv run headcrawl schema -o ../schema/dungeon.schema.json
+uvx headcrawl play pallets/flask        # build it and open the game in your browser
+uvx headcrawl play .                    # the repo you're standing in
 ```
 
-Nothing from the analyzed repo is ever executed. See `docs/PLAN.md` in the
-repo root for how code maps to the dungeon.
+`play` clones (shallow, https only, hooks off), reads the code, and serves
+the game on 127.0.0.1. Nothing from the repo is ever executed, and nothing
+leaves your machine except the clone itself.
 
-Tests: `uv run pytest --cov`.
+Other commands:
+
+```
+headcrawl analyze pallets/flask -o flask.json   # just the dungeon file
+headcrawl prefetch                              # download tree-sitter grammars ahead of time
+headcrawl validate flask.json
+headcrawl schema -o dungeon.schema.json
+```
+
+`--flavor` asks a local Ollama model for boss titles and taunts.
+
+Source, the browser game and how it all maps: https://github.com/Ferinjoque/headcrawl

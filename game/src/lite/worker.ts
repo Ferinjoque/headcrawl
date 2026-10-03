@@ -43,7 +43,7 @@ async function boot(base: string): Promise<Pyodide> {
   const index = new URL("pyodide/", base).href;
   const res = await fetch(index + "manifest.json");
   if (!res.ok || !res.headers.get("content-type")?.includes("json")) {
-    throw new GitHubError("Building repos here needs a one-time setup: run `npm run py` in the game folder (needs uv), then reload.");
+    throw new GitHubError("Building repos in the browser needs the Python bundle: run `npm run py` in the game folder, then reload. Or from a terminal: headcrawl play owner/repo.");
   }
   const manifest = (await res.json()) as Manifest;
   say({ type: "progress", text: "Starting Python (about 4 MB the first time)" });

@@ -137,7 +137,16 @@ versions built and compared, which functions grew, which got simpler, which
 notes appeared, and you can play either one.
 
 The command line version reads the full git history, so every TODO also
-knows how old it is:
+knows how old it is. `headcrawl play` builds a dungeon and opens it in the
+game in one go (from source, run `npm run build` in `game/` once):
+
+```
+cd analyzer
+uv run headcrawl play pallets/flask
+uv run headcrawl play ../path/to/repo
+```
+
+Or just the dungeon file:
 
 ```
 cd analyzer

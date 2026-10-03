@@ -24,3 +24,4 @@ work/
 test-results/
 playwright-report/
 .impeccable/
+analyzer/src/headcrawl/game_dist/

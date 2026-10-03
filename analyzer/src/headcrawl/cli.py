@@ -1,4 +1,4 @@
-"""Command line entry: `headcrawl analyze`, `headcrawl schema`, `headcrawl prefetch`."""
+"""Command line entry: `headcrawl play`, `analyze`, `schema`, `prefetch`, `validate`."""
 
 import argparse
 import json
@@ -65,7 +65,7 @@ def write_json(data: str, out: str | None) -> None:
         fh.write(data + "\n")
 
 
-def _cmd_analyze(args: argparse.Namespace) -> int:
+def _build(args: argparse.Namespace) -> DungeonSpec | None:
     limits = Limits(
         max_floors=max(1, min(args.max_floors, MAX_FLOORS)),
         max_rooms_per_floor=max(1, min(args.max_rooms, MAX_ROOMS)),
@@ -75,18 +75,38 @@ def _cmd_analyze(args: argparse.Namespace) -> int:
         spec = analyze_target(args.target, limits, args.name)
     except (gitio.GitError, AnalysisError, ValidationError) as exc:
         print(f"headcrawl: {exc}", file=sys.stderr)
-        return 1
+        return None
     if args.flavor:
         from .flavor import add_flavor
 
         spec = add_flavor(spec, model=args.model, cache_dir=Path(args.cache))
-    write_json(spec.model_dump_json(indent=None if args.compact else 2, exclude_none=True), args.out)
     t = spec.totals
     print(
         f"{spec.repo.name}: {len(spec.floors)} floors, {t.rooms} rooms, {t.enemies} enemies, "
         f"{t.loot} loot, {t.skipped} files skipped",
         file=sys.stderr,
     )
+    return spec
+
+
+def _cmd_analyze(args: argparse.Namespace) -> int:
+    spec = _build(args)
+    if spec is None:
+        return 1
+    write_json(spec.model_dump_json(indent=None if args.compact else 2, exclude_none=True), args.out)
+    return 0
+
+
+def _cmd_play(args: argparse.Namespace) -> int:
+    from .serve import game_dir, serve
+
+    if game_dir() is None:
+        print("headcrawl: this install has no game files. Use the release zip, or build game/ first.", file=sys.stderr)
+        return 1
+    spec = _build(args)
+    if spec is None:
+        return 1
+    serve(spec, port=args.port, open_browser=not args.no_browser)
     return 0
 
 
@@ -124,17 +144,26 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="headcrawl", description="Turn a git repo into a dungeon.")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    a = sub.add_parser("analyze", help="analyze a local path, owner/repo, or https url")
-    a.add_argument("target")
+    def build_options(cmd: argparse.ArgumentParser) -> None:
+        cmd.add_argument("target", help="a local path, owner/repo, or an https git url")
+        cmd.add_argument("--name")
+        cmd.add_argument("--max-floors", type=int, default=DEFAULT.max_floors)
+        cmd.add_argument("--max-rooms", type=int, default=DEFAULT.max_rooms_per_floor)
+        cmd.add_argument("--depth", type=int, default=DEFAULT.clone_depth, help="commits to clone")
+        cmd.add_argument("--flavor", action="store_true", help="boss names and taunts from a local ollama model")
+        cmd.add_argument("--model", default=DEFAULT_MODEL)
+        cmd.add_argument("--cache", default=".cache/flavor")
+
+    play = sub.add_parser("play", help="build a dungeon and open it in the game")
+    build_options(play)
+    play.add_argument("--port", type=int, default=0, help="default: any free port")
+    play.add_argument("--no-browser", action="store_true", help="print the link instead of opening it")
+    play.set_defaults(fn=_cmd_play)
+
+    a = sub.add_parser("analyze", help="build a dungeon file from a local path, owner/repo, or https url")
+    build_options(a)
     a.add_argument("-o", "--out", default="-")
-    a.add_argument("--name")
-    a.add_argument("--max-floors", type=int, default=DEFAULT.max_floors)
-    a.add_argument("--max-rooms", type=int, default=DEFAULT.max_rooms_per_floor)
-    a.add_argument("--depth", type=int, default=DEFAULT.clone_depth, help="commits to clone")
     a.add_argument("--compact", action="store_true", help="no indentation in the json")
-    a.add_argument("--flavor", action="store_true", help="boss names and taunts from a local ollama model")
-    a.add_argument("--model", default=DEFAULT_MODEL)
-    a.add_argument("--cache", default=".cache/flavor")
     a.set_defaults(fn=_cmd_analyze)
 
     s = sub.add_parser("schema", help="print the DungeonSpec JSON schema")
