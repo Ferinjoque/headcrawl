@@ -7,7 +7,7 @@ import { autoAction } from "../src/game/auto";
 import { Game } from "../src/game/game";
 import { loadSpec } from "../src/spec";
 import { logFileName, runLog } from "../src/ui/morgue";
-import { decodeSpec, encodeSpec, floorRow, parseRoute, resultText, routeHash, type Route } from "../src/ui/share";
+import { decodeSpec, encodeSpec, floorRow, parseRoute, resultText, routeHash, shareLink, type Route } from "../src/ui/share";
 import { floor, room, spec } from "./fixtures";
 
 function files(dir: string): string[] {
@@ -92,6 +92,17 @@ describe("share", () => {
     expect(text.split("\n")[1]).toBe("@");
     expect(text).toContain("floor 1 of 1");
     expect(text.split("\n")).toHaveLength(5);
+  });
+
+  it("hands out only the hash when running locally", () => {
+    expect(shareLink("http://localhost:5173/#/play/flask?run=4")).toBe("#/play/flask?run=4");
+    expect(shareLink("http://127.0.0.1:4173/#/play/flask?run=4")).toBe("#/play/flask?run=4");
+    expect(shareLink("https://example.org/hc/#/play/flask?run=4")).toBe("https://example.org/hc/#/play/flask?run=4");
+    const game = new Game(spec([floor([room(), room({ kind: "lair" })], [[0, 1]])]));
+    const withCode = resultText(game, "#/play/t?run=4", "", "t-4");
+    expect(withCode).toContain("run code t-4");
+    expect(withCode).not.toContain("#/play");
+    expect(resultText(game, "#/x/0/abc")).toContain("#/x/0/abc");
   });
 
   it("writes a run log with everything that happened", () => {

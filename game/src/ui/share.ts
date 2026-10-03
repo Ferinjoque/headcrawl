@@ -139,6 +139,15 @@ export function floorRow(game: Game): string {
     .join(" ");
 }
 
+// Everyone runs their own copy, so a localhost link means nothing to a friend.
+// Locally we hand out just the part after #, which the code box on the title
+// screen accepts as is.
+export function shareLink(href: string): string {
+  const url = new URL(href);
+  const local = url.protocol === "file:" || /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/.test(url.hostname);
+  return local ? url.hash : href;
+}
+
 export function resultText(game: Game, link: string, label = "", code: string | null = null): string {
   const p = game.player;
   const total = game.spec.floors.length;
@@ -156,6 +165,7 @@ export function resultText(game: Game, link: string, label = "", code: string | 
     head,
     `lv ${p.level}, ${p.kills} functions refactored, ${p.bosses} of ${total} bosses`,
     ...(code ? [`run code ${code}`] : []),
-    link,
+    // A local link only repeats what the run code already says.
+    ...(code && link.startsWith("#") ? [] : [link]),
   ].join("\n");
 }

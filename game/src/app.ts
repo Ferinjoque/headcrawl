@@ -35,7 +35,7 @@ import type { Action } from "./game/types";
 import { Hints } from "./ui/hints";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
-import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, type PlayRoute, type Route } from "./ui/share";
+import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, shareLink, type PlayRoute, type Route } from "./ui/share";
 
 type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "compare" | "end" | "loading";
 
@@ -389,7 +389,7 @@ export class App {
   }
 
   private saveLog(): void {
-    if (this.game) downloadText(logFileName(this.game), runLog(this.game, location.href));
+    if (this.game) downloadText(logFileName(this.game), runLog(this.game, shareLink(location.href)));
   }
 
   private buildStatus(text: string, tone = "dim"): void {
@@ -528,7 +528,7 @@ export class App {
     }
     this.mode = "end";
     this.stopAuto();
-    const share = resultText(game, location.href, this.dailyLabel(), this.code());
+    const share = resultText(game, shareLink(location.href), this.dailyLabel(), this.code());
     this.showScreen(
       endScreen(game, share, this.copied, {
         again: () => this.again(),
@@ -547,9 +547,9 @@ export class App {
   }
 
   private replayLink(): string {
-    if (!this.game || this.route.kind === "title") return location.href;
+    if (!this.game || this.route.kind === "title") return shareLink(location.href);
     const route: PlayRoute = { ...playRoute(this.route), watch: encodeSpec(this.game.record()) };
-    return location.href.split("#")[0] + routeHash(route);
+    return shareLink(location.href.split("#")[0] + routeHash(route));
   }
 
   private again(): void {
@@ -826,7 +826,7 @@ export class App {
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
-      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, location.href, this.dailyLabel(), this.code()));
+      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, shareLink(location.href), this.dailyLabel(), this.code()));
       else if (e.key === "s" || e.key === "S") this.saveLog();
       else if (e.key === "w" || e.key === "W") this.copyReplay();
       else if (e.key === "Escape") this.navigate({ kind: "title" });
