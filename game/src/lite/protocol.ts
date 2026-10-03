@@ -1,4 +1,15 @@
-export interface WorkerRequest {
+export type WorkerRequest = GitHubRequest | LocalRequest;
+
+/** A folder picked from the player's own disk. Files never leave the browser. */
+export interface LocalRequest {
+  kind: "local";
+  base: string;
+  name: string;
+  files: { path: string; file: File }[];
+}
+
+export interface GitHubRequest {
+  kind?: "github";
   base: string;
   owner: string;
   repo: string;

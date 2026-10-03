@@ -73,6 +73,12 @@ def dungeon(
     return spec.model_dump_json(exclude_none=True)
 
 
+def local_dungeon(root: str, name: str) -> str:
+    """A folder from the player's own machine, handed over by the page. No git
+    history, so the seed comes from the file contents."""
+    return analyze(Path(root), name=name, limits=BROWSER).model_dump_json(exclude_none=True)
+
+
 def candidates(spec_json: str, per_floor: int = 2) -> str:
     """Files worth asking GitHub about: on each floor, the boss's file and the
     next hottest one. Their history can change which of them hosts the boss."""

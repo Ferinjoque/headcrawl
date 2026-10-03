@@ -106,3 +106,12 @@ def test_browser_blame_and_manifests() -> None:
     tree = [{"path": "package.json", "size": 300}, {"path": "src/x.js", "size": 10}, {"path": "a/go.mod", "size": 5}]
     picked = json.loads(choose(json.dumps(tree)))
     assert picked == ["package.json", "src/x.js"]
+
+
+def test_local_folder_without_git(tmp_path: Path) -> None:
+    from headcrawl.web import local_dungeon
+
+    write_files(tmp_path, {"src/a.py": "def a(x):\n    if x:\n        return 1\n    return 2\n"})
+    spec = json.loads(local_dungeon(str(tmp_path), "my folder"))
+    assert spec["repo"]["name"] == "my folder"
+    assert len(spec["seed"]) == 40

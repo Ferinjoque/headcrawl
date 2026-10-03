@@ -1,6 +1,8 @@
 import type { Game } from "../game/game";
 import { PERKS, type PerkId } from "../game/perks";
 import type { Offer } from "../game/extras";
+import { ABILITY } from "../game/abilities";
+import { topDeaths, type Codex } from "./codex";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
@@ -57,6 +59,8 @@ export interface TitleHandlers {
   help(): void;
   toggleMore(): void;
   showCode(): void;
+  bestiary(): void;
+  folder(): void;
 }
 
 export interface Daily {
@@ -166,11 +170,19 @@ export function titleScreen(
           field("vsref", "an older tag, like v1.0.0", "Older tag, branch or commit"),
           h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " compare"),
         ),
+        h("h2", null, "a folder on this computer"),
+        h(
+          "div",
+          { class: "actions" },
+          btn("f", "pick a folder", on.folder),
+          h("span", { class: "faint" }, "  read in this tab, never uploaded"),
+        ),
         h("p", { id: "build-status", class: "faint", role: "status" }, "Built in your browser. Nothing in the repo runs."),
         h(
           "div",
           { class: "actions" },
           btn("o", "open a dungeon.json", on.open),
+          btn("b", "bestiary", on.bestiary),
           btn(",", "settings", on.settings),
           btn("?", "how it works", on.help),
         ),
@@ -268,11 +280,34 @@ export function helpScreen(close: () => void) {
   );
 }
 
+const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "spawn"] as const;
+
+export function bestiaryScreen(c: Codex, close: () => void) {
+  const row = (a: string, b: string, cls = "t-loot") => h("p", { class: "row" }, h("span", { class: cls }, a), h("span", null, b));
+  const deaths = topDeaths(c);
+  return h(
+    "div",
+    { class: "page" },
+    h("h1", null, "bestiary"),
+    c.runs
+      ? h("p", { class: "dim" }, `${plural(c.runs, "run")} in ${plural(c.repos.length, "repo")}, ${c.wins} cleared. Kept in this browser.`)
+      : h("p", { class: "dim" }, "Nothing yet. Finish a run and it shows up here."),
+    h("h2", null, "refactored"),
+    ...KINDS.map((k) => row(`${k} x${c.kills[k] ?? 0}`, ABILITY[k], c.kills[k] ? "t-loot" : "faint")),
+    c.bosses.length ? h("h2", null, "bosses beaten, gnarliest first") : null,
+    ...c.bosses.map((b) => row(b.name, `${b.repo}, ${plural(b.ccn, "branch")}`, "t-boss")),
+    deaths.length ? h("h2", null, "what keeps getting you") : null,
+    ...deaths.map(([name, n]) => row(name, `x${n}`, "t-bad")),
+    h("div", { class: "actions" }, btn("esc", "back", close)),
+  );
+}
+
 export interface EndHandlers {
   again(): void;
   copy(): void;
   save(): void;
   replay(): void;
+  race(): void;
   menu(): void;
 }
 
@@ -306,6 +341,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
       btn("c", copied ? "copied" : "copy result", on.copy),
       btn("s", "save run log", on.save),
       btn("w", "copy replay link", on.replay),
+      btn("g", "copy race link", on.race),
       btn("esc", "pick another repo", on.menu),
     ),
   );

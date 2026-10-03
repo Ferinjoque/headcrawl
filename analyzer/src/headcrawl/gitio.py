@@ -15,6 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .deps import MANIFESTS
 from .limits import DEFAULT, Limits
 
 _SAFE_CONFIG = (
@@ -163,7 +164,12 @@ def checkout_selected(path: Path, keep: Callable[[str], bool], limits: Limits = 
     if len(entries) > limits.max_tree_entries:
         raise GitError(f"repo has too many files: {len(entries)}")
     regular = [e for e in entries if e.mode in ("100644", "100755")]
-    wanted = [e for e in regular if keep(e.path) or e.path.rsplit("/", 1)[-1] in ("go.mod", ".gitattributes")]
+    # Root manifests too: the vendor sells what they list.
+    wanted = [
+        e
+        for e in regular
+        if keep(e.path) or e.path in MANIFESTS or e.path.rsplit("/", 1)[-1] in ("go.mod", ".gitattributes")
+    ]
     sizes = blob_sizes(path, sorted({e.oid for e in wanted}))
     picked: list[str] = []
     total = 0

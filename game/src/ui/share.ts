@@ -16,6 +16,8 @@ const STEP = 1024;
 interface Extra {
   run: number;
   watch?: string;
+  /** A friend's run to race: their @ moves along with you. */
+  race?: string;
 }
 
 export type Route =
@@ -31,9 +33,12 @@ function parseExtra(query: string): Extra | null {
   const params = new URLSearchParams(query);
   const run = params.get("run") ?? "0";
   const watch = params.get("watch");
+  const race = params.get("race");
   if (!/^\d{1,9}$/.test(run)) return null;
-  if (watch !== null && !/^[A-Za-z0-9_-]{1,400000}$/.test(watch)) return null;
-  return watch ? { run: Number(run), watch } : { run: Number(run) };
+  const log = /^[A-Za-z0-9_-]{1,400000}$/;
+  if (watch !== null && !log.test(watch)) return null;
+  if (race !== null && !log.test(race)) return null;
+  return { run: Number(run), ...(watch ? { watch } : {}), ...(race ? { race } : {}) };
 }
 
 export function parseRoute(hash: string): Route {
@@ -60,6 +65,7 @@ export function routeHash(route: Route): string {
   const params = new URLSearchParams();
   if (route.run && route.kind !== "custom") params.set("run", String(route.run));
   if (route.watch) params.set("watch", route.watch);
+  if (route.race) params.set("race", route.race);
   const query = params.size ? `?${params}` : "";
   switch (route.kind) {
     case "gallery":
@@ -71,9 +77,9 @@ export function routeHash(route: Route): string {
   }
 }
 
-/** The same dungeon and run, without any replay attached. */
+/** The same dungeon and run, without any replay or race attached. */
 export function playRoute(route: PlayRoute): PlayRoute {
-  const { watch: _, ...rest } = route;
+  const { watch: _w, race: _r, ...rest } = route;
   return rest as PlayRoute;
 }
 

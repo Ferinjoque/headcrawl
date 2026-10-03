@@ -5,7 +5,7 @@
 // only reads the text, same as the command line tool.
 
 import { BLAME_BATCH, blameQuery, blameYears, type LineBlame } from "./blame";
-import { safePath, validRef, validToken, type WorkerReply, type WorkerRequest } from "./protocol";
+import { safePath, validRef, validToken, type LocalRequest, type WorkerReply, type WorkerRequest } from "./protocol";
 
 interface PyProxy {
   callKwargs(...args: unknown[]): Promise<unknown>;
@@ -150,13 +150,42 @@ async function pool<T>(items: T[], size: number, work: (item: T) => Promise<void
   await Promise.all(runners);
 }
 
-async function analyze(base: string, owner: string, repo: string, sha?: string): Promise<string> {
+function python(base: string): Promise<Pyodide> {
   // A failed boot (say, a network blip) must not poison every later try.
   ready ??= boot(base).catch((err: unknown) => {
     ready = null;
     throw err;
   });
-  const py = await ready;
+  return ready;
+}
+
+/** A folder from the player's disk: Python picks the files, only those get read. */
+async function analyzeLocal(req: LocalRequest): Promise<string> {
+  const py = await python(req.base);
+  const web = py.pyimport("headcrawl.web");
+  const files = req.files.filter((f) => safePath(f.path));
+  const listing = files.map((f) => ({ path: f.path, size: f.file.size }));
+  const picked = new Set(JSON.parse(String(web.choose(JSON.stringify(listing)))) as string[]);
+  if (!picked.size) throw new GitHubError("No source files I can read in that folder.");
+  const root = `/local${++runs}`;
+  let done = 0;
+  for (const f of files) {
+    if (!picked.has(f.path)) continue;
+    const full = `${root}/${f.path}`;
+    py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+    py.FS.writeFile(full, new Uint8Array(await f.file.arrayBuffer()));
+    if (++done % 50 === 0) say({ type: "progress", text: `Read ${done} of ${picked.size} files` });
+  }
+  say({ type: "progress", text: "Turning the code into a dungeon" });
+  try {
+    return String(web.local_dungeon(root, req.name));
+  } finally {
+    py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);
+  }
+}
+
+async function analyze(base: string, owner: string, repo: string, sha?: string): Promise<string> {
+  const py = await python(base);
 
   say({ type: "progress", text: `Asking GitHub about ${owner}/${repo}` });
   const api = `https://api.github.com/repos/${owner}/${repo}`;
@@ -230,9 +259,14 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
 }
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { base, owner, repo, sha } = event.data;
-  token = event.data.token && validToken(event.data.token) ? event.data.token : null;
+  const req = event.data;
   try {
+    if (req.kind === "local") {
+      say({ type: "done", json: await analyzeLocal(req) });
+      return;
+    }
+    const { base, owner, repo, sha } = req;
+    token = req.token && validToken(req.token) ? req.token : null;
     say({ type: "done", json: await analyze(base, owner, repo, sha) });
   } catch (err) {
     const text =

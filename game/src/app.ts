@@ -20,14 +20,14 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, vendorCard, type TitleView, type TokenView } from "./ui/screens";
+import { bestiaryScreen, compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, vendorCard, type TitleView, type TokenView } from "./ui/screens";
 import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
 import { dailyOf, dailyPick, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, type ModId } from "./game/extras";
 import { parseCode, runCode } from "./ui/codes";
-import { analyzeInBrowser } from "./lite/client";
+import { analyzeFolder, analyzeInBrowser } from "./lite/client";
 import { clearToken, loadToken, saveToken, tokenPlace } from "./ui/token";
 import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
@@ -37,6 +37,8 @@ import { compareSpecs } from "./lite/compare";
 import { validRef } from "./lite/protocol";
 import type { Action } from "./game/types";
 import { Hints } from "./ui/hints";
+import { addRun, loadCodex, saveCodex } from "./ui/codex";
+import { ghostAt, ghostFor, keepGhost, trackOf, type Track } from "./ui/ghostrun";
 import { Sound } from "./ui/sound";
 import { downloadText, logFileName, runLog } from "./ui/morgue";
 import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, shareLink, type PlayRoute, type Route } from "./ui/share";
@@ -70,6 +72,8 @@ export class App {
   /** Which try at today's daily this is: 1 counts, later ones are practice. 0 when not a daily. */
   private dailyTry = 0;
   private dailyMod: ModId | null = null;
+  /** The run being raced, step by step, and whose it is. */
+  private race: { track: Track; whose: string } | null = null;
   private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
@@ -415,6 +419,8 @@ export class App {
         help: () => this.openHelp(),
         settings: () => this.openSettings(),
         toggleMore: () => this.toggleMore(),
+        bestiary: () => this.openBestiary(),
+        folder: () => ($("folder") as HTMLInputElement).click(),
         showCode: () => this.showCodeBox(),
       },
       recentBuilds(),
@@ -558,6 +564,28 @@ export class App {
     this.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0 });
   }
 
+  /** A folder from the player's own disk, analyzed in the worker like a GitHub repo. */
+  private async buildFromFolder(list: FileList): Promise<void> {
+    const all = [...list];
+    if (!all.length) return;
+    const top = all[0].webkitRelativePath.split("/")[0] || "folder";
+    const files = all
+      .filter((f) => f.size <= 1024 * 1024)
+      .slice(0, 20_000)
+      .map((file) => ({ path: file.webkitRelativePath.split("/").slice(1).join("/"), file }));
+    this.mode = "loading";
+    this.buildStatus(`Reading ${top}`);
+    try {
+      const json = await analyzeFolder(top, files, (text) => this.buildStatus(text));
+      const res = loadSpec(json);
+      if (!res.ok) throw new Error(res.error);
+      this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
+    } catch (err) {
+      this.mode = "title";
+      this.buildStatus(err instanceof Error ? err.message : String(err), "error");
+    }
+  }
+
   private playDaily(): void {
     const daily = dailyPick(this.gallery, new Date());
     if (daily) this.navigate({ kind: "gallery", slug: daily.entry.slug, run: daily.run });
@@ -567,6 +595,12 @@ export class App {
     this.returnMode = this.mode === "help" ? this.returnMode : this.mode;
     this.mode = "help";
     this.showScreen(helpScreen(() => this.closeOverlay()));
+  }
+
+  private openBestiary(): void {
+    this.returnMode = this.mode === "help" ? this.returnMode : this.mode;
+    this.mode = "help";
+    this.showScreen(bestiaryScreen(loadCodex(), () => this.closeOverlay()));
   }
 
   private openPause(): void {
@@ -598,6 +632,15 @@ export class App {
   private showEnd(): void {
     const game = this.game;
     if (!game || game.outcome === "playing") return;
+    if (this.mode !== "end" && this.route.kind !== "title" && !this.route.watch) {
+      saveCodex(addRun(loadCodex(), game));
+      keepGhost(this.saveKey(), {
+        log: game.record(),
+        won: game.outcome === "won",
+        floor: game.floor.index + 1,
+        turns: game.player.turns,
+      });
+    }
     if (this.mode !== "end") {
       recordRun(game.spec.repo.head, {
         floor: game.floor.index + 1,
@@ -615,6 +658,7 @@ export class App {
         copy: () => this.copyResult(share),
         save: () => this.saveLog(),
         replay: () => this.copyReplay(),
+        race: () => this.copyReplay(true),
         menu: () => this.navigate({ kind: "title" }),
       }, this.route.kind !== "title" && !!this.route.watch),
     );
@@ -626,9 +670,10 @@ export class App {
     this.navigate({ ...playRoute(this.route), run: freshRun() });
   }
 
-  private replayLink(): string {
+  private replayLink(race = false): string {
     if (!this.game || this.route.kind === "title") return shareLink(location.href);
-    const route: PlayRoute = { ...playRoute(this.route), watch: encodeSpec(this.game.record()) };
+    const log = encodeSpec(this.game.record());
+    const route: PlayRoute = race ? { ...playRoute(this.route), race: log } : { ...playRoute(this.route), watch: log };
     return shareLink(location.href.split("#")[0] + routeHash(route));
   }
 
@@ -639,10 +684,10 @@ export class App {
     this.restart();
   }
 
-  private copyReplay(): void {
-    void navigator.clipboard?.writeText(this.replayLink()).then(
+  private copyReplay(race = false): void {
+    void navigator.clipboard?.writeText(this.replayLink(race)).then(
       () => {
-        this.log.push("Replay link copied.", "good");
+        this.log.push(race ? "Race link copied. Whoever opens it plays against your run." : "Replay link copied.", "good");
         this.log.render();
       },
       () => undefined,
@@ -673,6 +718,7 @@ export class App {
     const resumed = resume ? Game.replay(spec, run, resume, mods) : null;
     this.game = resumed ?? new Game(spec, { run, mods });
     this.dailyTry = !daily ? 0 : watching ? 1 : resumed ? Math.max(1, dailyStarts(daily.label)) : startDaily(daily.label);
+    this.race = watching ? null : this.findRace(spec, run, mods);
     document.body.classList.remove("titling");
     this.renderer.snapCamera();
     document.title = `${spec.repo.name} | HEADCRAWL`;
@@ -681,7 +727,17 @@ export class App {
     this.handleEvents(this.game.drain());
     this.floorCard();
     if (resumed) this.log.push(`Picked up where you left off, turn ${resumed.player.turns}. Esc then n starts over.`, "good");
+    if (this.race) this.log.push(`Racing ${this.race.whose}. Their @ is the faint violet one.`, "lore");
     this.refreshUi();
+  }
+
+  /** A friend's race link wins over your own best; a fresh dungeon has neither. */
+  private findRace(spec: DungeonSpec, run: number, mods: ModId[]): { track: Track; whose: string } | null {
+    if (this.route.kind === "title") return null;
+    const shared = this.route.race ? decodeSpec(this.route.race) : null;
+    const log = shared ?? ghostFor(this.saveKey())?.log ?? null;
+    const track = log ? trackOf(spec, run, mods, log) : null;
+    return track ? { track, whose: shared ? "a friend's run" : "your best run" } : null;
   }
 
   private pickPerk(index: number): void {
@@ -936,6 +992,7 @@ export class App {
       else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, shareLink(location.href), this.dailyLabel(), this.code()));
       else if (e.key === "s" || e.key === "S") this.saveLog();
       else if (e.key === "w" || e.key === "W") this.copyReplay();
+      else if (e.key === "g" || e.key === "G") this.copyReplay(true);
       else if (e.key === "Escape") this.navigate({ kind: "title" });
       return;
     }
@@ -1005,6 +1062,12 @@ export class App {
       return;
     } else if (e.key === "?") {
       this.openHelp();
+      return;
+    } else if (e.key === "b" || e.key === "B") {
+      this.openBestiary();
+      return;
+    } else if ((e.key === "f" || e.key === "F") && this.titleView.more) {
+      ($("folder") as HTMLInputElement).click();
       return;
     } else return;
     e.preventDefault();
@@ -1099,6 +1162,11 @@ export class App {
   }
 
   private bindFiles(): void {
+    const folder = $("folder") as HTMLInputElement;
+    folder.addEventListener("change", () => {
+      if (folder.files) void this.buildFromFolder(folder.files);
+      folder.value = "";
+    });
     const input = $("file") as HTMLInputElement;
     input.addEventListener("change", () => {
       const file = input.files?.[0];
@@ -1153,7 +1221,14 @@ export class App {
     if (this.game && this.mode !== "title") {
       const dim = this.mode === "play" || this.mode === "dying" || this.mode === "watch" ? 0 : 0.55;
       this.renderer.render(
-        { floor: this.game.floor, player: this.game.player, sight: this.game.sight, dim, threat: this.game.threatened() },
+        {
+          floor: this.game.floor,
+          player: this.game.player,
+          sight: this.game.sight,
+          dim,
+          threat: this.game.threatened(),
+          ghost: this.race ? ghostAt(this.race.track, this.game.player.turns, this.game.floor.index) : null,
+        },
         this.fx,
         now,
       );

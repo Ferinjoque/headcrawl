@@ -14,6 +14,15 @@ export function analyzeInBrowser(
   sha?: string,
   token?: string,
 ): Promise<string> {
+  return run({ base: document.baseURI, owner, repo, sha, token }, onProgress);
+}
+
+/** A folder from the player's disk, picked with a directory input. */
+export function analyzeFolder(name: string, files: { path: string; file: File }[], onProgress: (text: string) => void): Promise<string> {
+  return run({ kind: "local", base: document.baseURI, name, files }, onProgress);
+}
+
+function run(request: WorkerRequest, onProgress: (text: string) => void): Promise<string> {
   if (busy) return Promise.reject(new Error("Already analyzing a repo."));
   worker ??= new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   const w = worker;
@@ -43,7 +52,6 @@ export function analyzeInBrowser(
       worker = null;
       reject(new Error("The analyzer crashed. Try again, or reload the page."));
     };
-    const request: WorkerRequest = { base: document.baseURI, owner, repo, sha, token };
     w.postMessage(request);
   });
 }

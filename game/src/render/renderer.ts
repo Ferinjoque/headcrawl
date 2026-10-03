@@ -21,6 +21,8 @@ export interface Scene {
   dim?: number;
   /** Cell indexes a monster will hit next turn. */
   threat?: Set<number>;
+  /** Where the run you are racing stands right now. */
+  ghost?: [number, number] | null;
 }
 
 export const FONT = "VT323";
@@ -333,6 +335,11 @@ export class Renderer {
     for (const m of floor.monsters) {
       if (!show(m.x, m.y)) continue;
       this.drawMonster(scene, m, ox, oy, now);
+    }
+    if (scene.ghost) {
+      const [gx, gy] = scene.ghost;
+      lctx.fillStyle = rgba(C.violet, 0.5);
+      lctx.fillText("@", ox + gx * cellW + cellW / 2, oy + gy * cellH + cellH / 2);
     }
     if (scene.player) {
       const { x, y } = scene.player;
