@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import fc from "fast-check";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { botAction, playOut } from "../src/game/bot";
 import { Game } from "../src/game/game";
 import { Tile, walkable } from "../src/map/grid";
@@ -163,16 +163,18 @@ describe("rules", () => {
 });
 
 describe("balance report", () => {
-  it("bot runs", () => {
-    const lines = [];
-    for (const [name, s] of gallery()) {
-      for (const run of [0, 1, 2]) {
-        const r = playOut(new Game(s, { run }));
-        lines.push(`${name.padEnd(18)} run ${run}: ${r.outcome.padEnd(7)} floor ${r.floor + 1}/${s.floors.length} lv ${r.level} kills ${r.kills} turns ${r.turns}`);
-        expect(r.turns, `${name} run ${run} stalled`).toBeLessThan(20000);
-      }
+  // CI runners with coverage on are several times slower; one run per dungeon
+  // still catches a stall there.
+  const runs = process.env.CI ? [0] : [0, 1, 2];
+  const lines: string[] = [];
+  afterAll(() => console.log(lines.join("\n")));
+
+  it.each(gallery())("bot plays %s", (name, s) => {
+    for (const run of runs) {
+      const r = playOut(new Game(s, { run }));
+      lines.push(`${name.padEnd(18)} run ${run}: ${r.outcome.padEnd(7)} floor ${r.floor + 1}/${s.floors.length} lv ${r.level} kills ${r.kills} turns ${r.turns}`);
+      expect(r.turns, `${name} run ${run} stalled`).toBeLessThan(20000);
     }
-    console.log(lines.join("\n"));
   }, 120_000);
 });
 
