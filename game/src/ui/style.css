@@ -660,6 +660,10 @@ body.dragging #screen::after {
   100% { opacity: 0; }
 }
 
+/* Choices sit low, so the room you are standing in stays in view. */
+#banner:has(.choice) {
+  inset: auto 16px 18px;
+}
 #banner .card.choice {
   animation: none;
   pointer-events: auto;
@@ -676,7 +680,7 @@ body.dragging #screen::after {
   all: unset;
   cursor: pointer;
   display: grid;
-  grid-template-columns: 4ch 18ch 1fr;
+  grid-template-columns: 6ch 18ch 1fr;
   gap: 0 1ch;
   text-align: left;
   padding: 6px 8px;
@@ -697,7 +701,7 @@ body.dragging #screen::after {
 }
 @media (max-width: 600px) {
   .perk {
-    grid-template-columns: 4ch 1fr;
+    grid-template-columns: 6ch 1fr;
   }
   .perk-text {
     grid-column: 2;

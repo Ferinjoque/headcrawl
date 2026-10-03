@@ -25,12 +25,13 @@ Full palette, each role fixed. OKLCH, neutrals tinted toward the ink hue.
 | ink-raised | HUD panels, log | oklch(0.18 0.025 20) |
 | text | HUD text | oklch(0.92 0.02 70) |
 | text-dim | secondary HUD text | oklch(0.70 0.03 60) |
-| ember | rock letters, brick walls | oklch(0.66 0.17 45) |
+| ember | wordmark, floor names, keys | oklch(0.66 0.17 45) |
+| rock | rock letters, base layer only, never bloomed | oklch(0.52 0.05 35) |
 | brick | room walls | oklch(0.78 0.15 60) |
 | floor | room floor dots | oklch(0.62 0.20 345) |
 | current | import corridors, water | oklch(0.62 0.17 255) |
 | passage | non-import passages | oklch(0.55 0.05 255) |
-| loot | items, gold | oklch(0.86 0.22 140) |
+| loot | items, pickups | oklch(0.86 0.16 100) |
 | hp | player health, heals | oklch(0.80 0.19 150) |
 | danger | damage, low HP | oklch(0.68 0.23 25) |
 | boss | bosses, lair | oklch(0.70 0.26 340) |
@@ -51,11 +52,20 @@ Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
 ## Layout
 
 - Map canvas fills the viewport.
-- One status line at the top (repo, floor, objective, HP, level).
-- Message log at the bottom, newest line brightest.
-- Side panel on wide screens (room file, inspected enemy, inventory).
-  On narrow screens it slides in on a key or button.
+- One status line at the top, fixed order: HP gauge first and largest,
+  level, attack, then floor and the objective on the right. Repo, commit
+  and turn count live on the pause screen.
+- Message log at the bottom, four lines (two on phones), newest brightest.
+  Lines that repeat the floor card or the panel go to the run log only.
+- Side panel on wide screens: what is in sight (stats for the nearest only),
+  what you carry with its key, the minimap, then the file you stand in.
+  Empty sections are not drawn. On narrow screens it slides in.
+- Title: wordmark, one line, continue, the repo list, four keys. Everything
+  else (GitHub build, then vs now, folder, file, settings, bestiary) is
+  behind tab. Behind it the bot plays a gallery dungeon (attract mode).
 - Menus and end screens render as text blocks over a dimmed map, no cards.
+  Choice cards (level up, vendor) sit at the bottom of the stage.
+- Green means health and nothing else.
 
 ## Motion
 

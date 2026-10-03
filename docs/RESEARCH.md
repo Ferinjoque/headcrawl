@@ -9,6 +9,35 @@ Things checked by hand on 2026-10-02, so we don't have to look them up again.
 - waking-git: Rust + Bevy, turns code structure into creatures. WIP.
 - Neither uses per-function metrics for gameplay or runs in a browser.
 
+## UI (round 5, 2026-10-03)
+
+- Cogmind: the main UI gives an experienced player everything without
+  opening a window, and tutorials live outside the HUD
+  (moddb.com/games/cogmind/news/tutorials-and-help-easing-players-into-the-game).
+- DCSS webtiles keeps HP as a bar at a fixed spot at the top; Brogue lists
+  only what is in view, nearest first, and teaches through one-time log
+  tips; Hoplite's HUD is hearts and depth.
+- Attract mode: arcade games played themselves on the title screen, fed by
+  recorded inputs (giantbomb.com/wiki/Concepts/Attract_Mode). Our engine
+  is deterministic, so the bot can play live instead of a recording.
+
+## Music (round 5)
+
+- Brogue has no audio; Cogmind uses ambient drones over music, 2-3 sounds
+  at once (gamedeveloper.com/audio/building-cogmind-s-ambient-soundscape).
+  FTL has an explore and a battle mix of each track and crossfades. Hades
+  layers stems. Spelunky 2's music branches between 5-15 s phrases and only
+  stopped sounding repetitive at 7-8 parts (daily.bandcamp.com, Suhrke
+  interview). Hoplite's single loop gets called tiresome in reviews.
+- So: vertical layers over one clock, changes on the bar line, combat with
+  hysteresis (8 turns and 6 s), eight phrases walked Markov style, a pad-only
+  breather every 64 bars, music under the sound effects, lowpass on the bus.
+- Generation: runtime WebAudio (0 KB, MIT, seedable) beat Tone.js (77 KB,
+  not needed), tracker files (chiptune3 worklet is 1.5 MB) and local AI
+  models (MusicGen weights are CC-BY-NC; Stable Audio Open has a revenue
+  cap; none are seedable). Scheduling follows web.dev "A tale of two clocks".
+- Prior art for repo sonification: GitQuest (Tone.js), GitSonifier (FSE'15).
+
 ## lizard 1.24.0
 
 - `lizard.analyze_file.analyze_source_code(name, src)` gives functions with

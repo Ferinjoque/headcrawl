@@ -3,9 +3,10 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-03): M0-M4 done, most of M5 done. Game is playable and
-tested. Shipped as a GitHub repo people clone and run locally; no hosted
-site (owner's call, 2026-10-03).
+Status (2026-10-03, round 5): M0-M5 done, plus a UI redesign, music and a
+batch of new mechanics. Playable and tested. Shipped as a private GitHub
+repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
+with play.py; no hosted site (owner's call, 2026-10-03).
 
 ## M0 setup
 - [x] git init, .gitignore, README stub
@@ -108,15 +109,37 @@ redraws the whole view at 20 fps when idle.
   all or nothing, so a link builds the same dungeon for everyone, token or
   not. Boss rooms in browser builds also show their last commit subject.
 
+- Round 5 (owner: "the menu is full of stuff, my eyes go crazy"):
+  - Critique (Nielsen 25/40, aesthetic 1/4) in .impeccable/critique, fixes
+    from it: rock letters muted, lowercase and off the bloom layer, a clear
+    ring around the @, remembered tiles brighter; HUD leads with an HP gauge,
+    loot moved to yellow so green only means health; keys pane, empty panel
+    states and log lines that repeated the floor card are gone (quiet
+    messages still go to the run log); title is the list plus four keys,
+    the rest behind tab; end screen the same; choice cards sit low.
+  - Attract mode: the bot plays a random gallery dungeon behind the title.
+  - Music (src/audio): live WebAudio, seeded by HEAD, Dorian/Aeolian/
+    Phrygian by depth, drums on contact with hysteresis, boss motif from
+    the name, breathers every 64 bars. Sound is now on by default.
+    `node scripts/render-music.mjs` renders every mood to WAV.
+  - Analyzer: dead code ghosts, import-cycle loops (Tarjan), root manifest
+    dependencies, blame authors, boss complexity a year back.
+  - Game: ghosts, loop corridors, the vendor, git checkout HACK, daily
+    twists with Wordle-style first try, race a ghost (race links), bestiary,
+    folder-on-disk builds, GIF and asciinema clips.
+  - Share text no longer carries a localhost link; release workflow ships
+    a zip on tags; TypeScript 7 and current action pins.
+
 ## Next ideas
 
 - PyPI release so `uvx headcrawl` works (needs the owner's account).
-
-- Sound: a few short synth blips with WebAudio, off by default.
-- Mini-map of the floor graph in the side panel.
+- Tag v0.2.0 to get the first release zip (the workflow is ready).
+- Make the repo public when the owner wants people to try it.
+- Balance: the bot ignores the vendor; with the new mechanics it wins 23
+  of 34 gallery runs. Check against human play before retuning.
+- app.ts is past 1200 lines; title and end-screen wiring could move out.
 - Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
   stays the default.
-- First push: create the GitHub repo. Nothing else to enable.
 
 ## Notes
 
@@ -126,5 +149,4 @@ redraws the whole view at 20 fps when idle.
 - Balance targets: bot wins small repos sometimes, dies to final bosses on
   bigger ones. Humans can retreat into corridors and use items, the bot can't.
 - `work/` is gitignored scratch space.
-- PRODUCT.md and DESIGN.md approved by the owner (2026-10-02). Not pushing
-  to GitHub yet, by choice.
+- PRODUCT.md and DESIGN.md approved by the owner (2026-10-02).
