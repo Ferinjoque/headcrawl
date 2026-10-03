@@ -97,7 +97,8 @@ redraws the whole view at 20 fps when idle.
   action log and resume, replay links (?watch=), run codes (flask-4821),
   settings screen (text size, Okabe-Ito colorblind palette, high contrast,
   calm motion, tips reset), tap to inspect on phones, render only when
-  needed, actions pinned to SHAs + npm ci --ignore-scripts + dependabot,
+  needed, actions pinned to SHAs + npm ci --ignore-scripts (dependabot
+  was tried and turned off 2026-10-03; bump pins by hand),
   six more gallery languages, GitHub history for browser builds, then vs
   now comparisons (#/vs/owner/repo@a..b).
 
