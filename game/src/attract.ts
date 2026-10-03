@@ -28,6 +28,7 @@ export class Attract {
   private timer = 0;
   private started = 0;
   private gen = 0;
+  private active = false;
   private last = "";
   private cache = new Map<string, string>();
 
@@ -38,17 +39,19 @@ export class Attract {
   }
 
   get running(): boolean {
-    return this.gen > 0;
+    return this.active;
   }
 
   start(): void {
-    if (this.running) return;
-    this.gen = 1;
+    if (this.active) return;
+    this.active = true;
     void this.next();
   }
 
   stop(): void {
-    this.gen = 0;
+    this.active = false;
+    // A new generation, so anything still loading or ticking for the old one stops.
+    this.gen++;
     window.clearTimeout(this.timer);
     this.game = null;
   }
@@ -60,6 +63,7 @@ export class Attract {
   }
 
   private async next(): Promise<void> {
+    if (!this.active) return;
     const gen = ++this.gen;
     window.clearTimeout(this.timer);
     const entries = this.hooks.entries();
@@ -83,7 +87,7 @@ export class Attract {
 
   private tick(gen: number): void {
     const game = this.game;
-    if (gen !== this.gen || !game) return;
+    if (gen !== this.gen || !game || !this.active) return;
     const floor = game.floor.index;
     // Resting is skipped in one go; walking and fighting play at normal speed.
     for (let steps = 0; steps < MAX_IDLE_STEPS && game.outcome === "playing"; steps++) {

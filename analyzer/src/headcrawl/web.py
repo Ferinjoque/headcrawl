@@ -24,6 +24,16 @@ HISTORY_WINDOW = 100
 def choose(tree_json: str) -> str:
     """tree_json: [{"path": str, "size": int}, ...] from the GitHub tree API.
     Returns the paths to download, smallest set that still covers the repo."""
+    return json.dumps(_choose(tree_json)[0])
+
+
+def choose_all(tree_json: str) -> str:
+    """Like choose(), plus whether every wanted file fit in the budget."""
+    paths, complete = _choose(tree_json)
+    return json.dumps({"paths": paths, "complete": complete})
+
+
+def _choose(tree_json: str) -> tuple[list[str], bool]:
     entries = json.loads(tree_json)
     # Dependency manifests at the root, for the vendor. Small and few.
     picked: list[str] = [
@@ -35,10 +45,10 @@ def choose(tree_json: str) -> str:
         if not path or size <= 0 or size > BROWSER.max_file_bytes or not wanted(path) or path in picked:
             continue
         if total + size > BROWSER.max_read_bytes or len(picked) >= BROWSER.max_files:
-            break
+            return picked, False
         picked.append(path)
         total += size
-    return json.dumps(picked)
+    return picked, True
 
 
 def dungeon(
@@ -50,6 +60,7 @@ def dungeon(
     history_json: str = "{}",
     blame_json: str = "{}",
     subjects_json: str = "{}",
+    complete: bool = True,
 ) -> str:
     """committed: ISO 8601 time of the HEAD commit, as GitHub reports it.
     history_json: {"path": commits touching it among the last HISTORY_WINDOW}."""
@@ -69,14 +80,15 @@ def dungeon(
         blame=years,
         subjects=_subjects(subjects_json),
         authors=authors,
+        complete=complete,
     )
     return spec.model_dump_json(exclude_none=True)
 
 
-def local_dungeon(root: str, name: str) -> str:
+def local_dungeon(root: str, name: str, complete: bool = True) -> str:
     """A folder from the player's own machine, handed over by the page. No git
     history, so the seed comes from the file contents."""
-    return analyze(Path(root), name=name, limits=BROWSER).model_dump_json(exclude_none=True)
+    return analyze(Path(root), name=name, limits=BROWSER, complete=complete).model_dump_json(exclude_none=True)
 
 
 def candidates(spec_json: str, per_floor: int = 2) -> str:

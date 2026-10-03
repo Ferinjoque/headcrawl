@@ -18,6 +18,8 @@ interface Extra {
   watch?: string;
   /** A friend's run to race: their @ moves along with you. */
   race?: string;
+  /** The rules version a watch or race log was recorded under. */
+  v?: number;
 }
 
 export type Route =
@@ -38,7 +40,9 @@ function parseExtra(query: string): Extra | null {
   const log = /^[A-Za-z0-9_-]{1,400000}$/;
   if (watch !== null && !log.test(watch)) return null;
   if (race !== null && !log.test(race)) return null;
-  return { run: Number(run), ...(watch ? { watch } : {}), ...(race ? { race } : {}) };
+  const v = params.get("v");
+  const version = v && /^\d{1,4}$/.test(v) ? { v: Number(v) } : {};
+  return { run: Number(run), ...(watch ? { watch } : {}), ...(race ? { race } : {}), ...((watch || race) ? version : {}) };
 }
 
 export function parseRoute(hash: string): Route {
@@ -66,6 +70,7 @@ export function routeHash(route: Route): string {
   if (route.run && route.kind !== "custom") params.set("run", String(route.run));
   if (route.watch) params.set("watch", route.watch);
   if (route.race) params.set("race", route.race);
+  if ((route.watch || route.race) && route.v) params.set("v", String(route.v));
   const query = params.size ? `?${params}` : "";
   switch (route.kind) {
     case "gallery":
@@ -79,7 +84,7 @@ export function routeHash(route: Route): string {
 
 /** The same dungeon and run, without any replay or race attached. */
 export function playRoute(route: PlayRoute): PlayRoute {
-  const { watch: _w, race: _r, ...rest } = route;
+  const { watch: _w, race: _r, v: _v, ...rest } = route;
   return rest as PlayRoute;
 }
 

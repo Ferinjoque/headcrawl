@@ -14,6 +14,12 @@ const MOVES: Record<string, [number, number]> = {
   b: [-1, 1],
   n: [1, 1],
 };
+/**
+ * Bumped whenever the same log would play out differently (new mechanics,
+ * new rolls). Saves and links carry it so old ones can be spotted.
+ */
+export const RULES = 2;
+
 const PERKS = "ABC";
 // Vendor: first offer, second offer, walk away.
 const BUYS = "VWX";

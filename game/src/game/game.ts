@@ -9,7 +9,7 @@ import { TUNING } from "./abilities";
 import { PERKS, available, type PerkId } from "./perks";
 import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
-import { GHOST_DAMAGE, boss, ghostStep, installLine, modFloor, modPlayer, placeVendor, timeTravel, type ModId, type Offer } from "./extras";
+import { GHOST_DAMAGE, boss, ghostStep, installLine, vendorAt, modFloor, modPlayer, placeVendor, timeTravel, type ModId, type Offer } from "./extras";
 import type { LoopTrap } from "../map/layout";
 import { chaseMap, stepToward } from "./chase";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
@@ -373,7 +373,7 @@ export class Game {
       [x - 1, y - 1],
     ];
     for (const [sx, sy] of spots) {
-      if (grid.get(sx, sy) === Tile.Floor && !this.itemAt(sx, sy) && !(sx === this.player.x && sy === this.player.y)) {
+      if (grid.get(sx, sy) === Tile.Floor && !this.itemAt(sx, sy) && !vendorAt(this.floor, sx, sy) && !(sx === this.player.x && sy === this.player.y)) {
         this.floor.items.push({ id: `c${this.spawnCount++}`, kind, x: sx, y: sy, loot: null, source: "" });
         return;
       }
@@ -472,7 +472,7 @@ export class Game {
     for (const [dx, dy] of STEPS) {
       const nx = x + dx;
       const ny = y + dy;
-      if (grid.get(nx, ny) !== Tile.Floor || this.monsterAt(nx, ny)) continue;
+      if (grid.get(nx, ny) !== Tile.Floor || this.monsterAt(nx, ny) || vendorAt(this.floor, nx, ny)) continue;
       if (nx === this.player.x && ny === this.player.y) continue;
       return [nx, ny];
     }

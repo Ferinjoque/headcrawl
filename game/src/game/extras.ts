@@ -209,5 +209,7 @@ export function timeTravel(m: Monster): { year: number; before: number; after: n
   const out = { year: past.year, before: m.boss.ccn, after: past.ccn };
   m.maxHp = maxHp;
   m.hp = hp;
+  // Once is enough: the boss is now its old self, with no further past to go back to.
+  m.boss = { ...m.boss, ccn: past.ccn, past: undefined };
   return out;
 }

@@ -166,7 +166,8 @@ async function analyzeLocal(req: LocalRequest): Promise<string> {
   // A folder full of node_modules can hold millions of entries; Python only reads a few hundred anyway.
   const files = req.files.slice(0, 50_000).filter((f) => safePath(f.path));
   const listing = files.map((f) => ({ path: f.path, size: f.file.size }));
-  const picked = new Set(JSON.parse(String(web.choose(JSON.stringify(listing)))) as string[]);
+  const chosen = JSON.parse(String(web.choose_all(JSON.stringify(listing)))) as { paths: string[]; complete: boolean };
+  const picked = new Set(chosen.paths);
   if (!picked.size) throw new GitHubError("No source files I can read in that folder.");
   const root = `/local${++runs}`;
   let done = 0;
@@ -183,7 +184,7 @@ async function analyzeLocal(req: LocalRequest): Promise<string> {
   }
   say({ type: "progress", text: "Turning the code into a dungeon" });
   try {
-    return String(web.local_dungeon(root, req.name));
+    return String(web.local_dungeon(root, req.name, chosen.complete && files.length === req.files.length));
   } finally {
     py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);
   }
@@ -210,7 +211,10 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
     .map((e) => ({ path: e.path, size: e.size ?? 0 }));
 
   const web = py.pyimport("headcrawl.web");
-  const paths = (JSON.parse(String(web.choose(JSON.stringify(blobs)))) as string[]).filter(safePath);
+  const chosen = JSON.parse(String(web.choose_all(JSON.stringify(blobs)))) as { paths: string[]; complete: boolean };
+  const paths = chosen.paths.filter(safePath);
+  // A truncated tree or a full budget means we can't tell dead code from code we didn't fetch.
+  const complete = chosen.complete && !tree.truncated;
   if (!paths.length) throw new GitHubError("No source files I can read in that repo.");
 
   const root = `/repo${++runs}`;
@@ -239,6 +243,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
         JSON.stringify(hist.counts),
         JSON.stringify(years),
         JSON.stringify(hist.subjects),
+        complete,
       ),
     );
   try {

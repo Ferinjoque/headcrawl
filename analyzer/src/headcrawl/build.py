@@ -74,6 +74,37 @@ CALLED_BY_CONVENTION = {
     "Error",
     "String",
     "Main",
+    "Len",
+    "Less",
+    "Swap",
+    "Read",
+    "Write",
+    "Close",
+    "MarshalJSON",
+    "UnmarshalJSON",
+    "Format",
+    "onCreate",
+    "onDestroy",
+    "onStart",
+    "onResume",
+    "onPause",
+    "viewDidLoad",
+    "dealloc",
+    "toJSON",
+    "valueOf",
+    "connectedCallback",
+    "disconnectedCallback",
+    "mounted",
+    "created",
+    "fmt",
+    "drop",
+    "deref",
+    "from",
+    "into",
+    "next",
+    "clone",
+    "serialize",
+    "deserialize",
 }
 _WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 YEAR_SECONDS = 365 * 24 * 3600
@@ -190,7 +221,11 @@ def analyze(
     blame: dict[str, dict[int, int]] | None = None,
     subjects: dict[str, str] | None = None,
     authors: dict[str, dict[int, str]] | None = None,
+    complete: bool = True,
 ) -> DungeonSpec:
+    """`complete` is False when the caller could only fetch part of the repo:
+    then a function that looks unused may be called from a file we never
+    saw, so nothing becomes a ghost."""
     """`head` is for callers that know the commit but have no git checkout,
     like the browser build that downloads files straight from GitHub."""
     root = root.resolve()
@@ -228,9 +263,11 @@ def analyze(
 
     edges = _import_edges(root, reports)
     head_year = time.gmtime(head.time).tm_year if head.time else 0
+    # Every file we read counts as a caller, even ones that failed to parse.
     mentions: Counter[str] = Counter()
-    for r in reports.values():
-        mentions.update(_WORD.findall(r.src.text))
+    if complete:
+        for src in walked.files:
+            mentions.update(_WORD.findall(src.text))
     ctx = _Context(
         reports,
         edges,
@@ -474,7 +511,12 @@ def _is_dead(ctx: _Context, f: FunctionMetric, rep: FileReport) -> bool:
     """Nothing in the repo mentions the name except its own definition. Tests
     count as mentions, so a library's public API, which its tests call, is
     not dead. A rough guess, and the game says so."""
-    if rep.is_test or _is_anonymous(f):
+    if rep.is_test or _is_anonymous(f) or not ctx.mentions:
+        return False
+    # A decorator usually means a framework calls it: routes, commands, fixtures.
+    lines = rep.src.text.splitlines()
+    above = lines[f.start_line - 2].strip() if 2 <= f.start_line <= len(lines) + 1 else ""
+    if above.startswith(("@", "#[")):
         return False
     bare = re.split(r"[.:]+", f.name)[-1]
     if len(bare) < 4 or bare.startswith(("__", "test", "Test")) or bare in CALLED_BY_CONVENTION:

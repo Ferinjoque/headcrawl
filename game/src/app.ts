@@ -25,14 +25,14 @@ import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
 import { dailyOf, dailyPick, dailyStarts, startDaily } from "./ui/daily";
-import { MODS, type ModId } from "./game/extras";
+import { MODS, dailyMod, type ModId } from "./game/extras";
 import { parseCode, runCode } from "./ui/codes";
 import { analyzeFolder, analyzeInBrowser } from "./lite/client";
 import { clearToken, loadToken, saveToken, tokenPlace } from "./ui/token";
 import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
 import { dropSave, findSave, listSaves, putSave } from "./ui/save";
-import { decodeLog } from "./game/record";
+import { RULES, decodeLog } from "./game/record";
 import { compareSpecs } from "./lite/compare";
 import { validRef } from "./lite/protocol";
 import type { Action } from "./game/types";
@@ -76,6 +76,8 @@ export class App {
   /** The run being raced, step by step, and whose it is. */
   private race: { track: Track; whose: string } | null = null;
   private endMore = false;
+  /** The finished run went into the bestiary, ghosts and bests already. */
+  private recorded = false;
   private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
@@ -281,6 +283,7 @@ export class App {
       if (game.outcome !== "playing") return dropSave(this.saveKey());
       if (!game.log.length) return;
       putSave({
+        rules: RULES,
         hash: this.saveKey(),
         repo: game.spec.repo.name,
         log: game.record(),
@@ -588,8 +591,9 @@ export class App {
     const all = [...list];
     if (!all.length) return;
     const top = all[0].webkitRelativePath.split("/")[0] || "folder";
+    const junk = /(^|\/)(node_modules|\.git|vendor|dist|build|target|__pycache__|\.venv|venv)\//;
     const files = all
-      .filter((f) => f.size <= 1024 * 1024)
+      .filter((f) => f.size <= 1024 * 1024 && !junk.test(f.webkitRelativePath))
       .slice(0, 20_000)
       .map((file) => ({ path: file.webkitRelativePath.split("/").slice(1).join("/"), file }));
     this.mode = "loading";
@@ -651,7 +655,7 @@ export class App {
   private showEnd(): void {
     const game = this.game;
     if (!game || game.outcome === "playing") return;
-    if (this.mode !== "end" && this.route.kind !== "title" && !this.route.watch) {
+    if (!this.recorded && this.route.kind !== "title" && !this.route.watch) {
       saveCodex(addRun(loadCodex(), game));
       keepGhost(this.saveKey(), {
         log: game.record(),
@@ -660,7 +664,8 @@ export class App {
         turns: game.player.turns,
       });
     }
-    if (this.mode !== "end") {
+    if (!this.recorded) {
+      this.recorded = true;
       recordRun(game.spec.repo.head, {
         floor: game.floor.index + 1,
         floors: game.spec.floors.length,
@@ -698,7 +703,7 @@ export class App {
   private replayLink(race = false): string {
     if (!this.game || this.route.kind === "title") return shareLink(location.href);
     const log = encodeSpec(this.game.record());
-    const route: PlayRoute = race ? { ...playRoute(this.route), race: log } : { ...playRoute(this.route), watch: log };
+    const route: PlayRoute = race ? { ...playRoute(this.route), race: log, v: RULES } : { ...playRoute(this.route), watch: log, v: RULES };
     return shareLink(location.href.split("#")[0] + routeHash(route));
   }
 
@@ -739,8 +744,13 @@ export class App {
     this.fx.clear();
     this.log.clear();
     const daily = this.route.kind === "gallery" ? dailyOf(this.gallery, this.route.slug, run) : null;
-    const mods = daily?.mod ? [daily.mod] : [];
-    this.dailyMod = daily?.mod ?? null;
+    // The twist comes from the run number alone, so a replay of an old daily
+    // keeps it even after the gallery changes.
+    const mod = this.route.kind === "gallery" ? dailyMod(run) : null;
+    const mods = mod ? [mod] : [];
+    this.dailyMod = mod;
+    this.moods.reset();
+    this.recorded = false;
     const resumed = resume ? Game.replay(spec, run, resume, mods) : null;
     this.game = resumed ?? new Game(spec, { run, mods });
     this.dailyTry = !daily ? 0 : watching ? 1 : resumed ? Math.max(1, dailyStarts(daily.label)) : startDaily(daily.label);
@@ -753,6 +763,9 @@ export class App {
     this.handleEvents(this.game.drain());
     this.floorCard();
     if (resumed) this.log.push(`Picked up where you left off, turn ${resumed.player.turns}. Esc then n starts over.`, "good");
+    if (this.route.kind !== "title" && (this.route.watch || this.route.race) && this.route.v !== RULES) {
+      this.log.push("That link was recorded on an older version of the game. It may not play out the same.", "bad");
+    }
     if (this.race) this.log.push(`Racing ${this.race.whose}. Their @ is the faint violet one.`, "lore");
     this.refreshUi();
   }
@@ -900,7 +913,7 @@ export class App {
         if (e.t === "descend") fx.clear();
         continue;
       }
-      this.sound.play(e);
+      if (!quiet) this.sound.play(e);
       switch (e.t) {
         case "msg":
           if (!e.quiet) this.log.push(e.text, e.tone);
@@ -1052,7 +1065,8 @@ export class App {
   }
 
   private titleKey(e: KeyboardEvent): void {
-    if (e.key === "Tab" && !e.shiftKey && !(e.target instanceof HTMLInputElement && e.target.value)) {
+    const idle = e.target === document.body || e.target === document.documentElement;
+    if (e.key === "Tab" && !e.shiftKey && idle) {
       e.preventDefault();
       this.toggleMore();
       return;
@@ -1071,7 +1085,7 @@ export class App {
       this.showCodeBox();
       return;
     }
-    if (e.key === " ") {
+    if (e.key === " " && idle) {
       const save = listSaves()[0];
       if (save) {
         e.preventDefault();

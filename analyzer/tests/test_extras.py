@@ -120,3 +120,19 @@ def test_local_folder_without_git(tmp_path: Path) -> None:
 def test_deeply_nested_manifest_does_not_sink_the_build(tmp_path: Path) -> None:
     write_files(tmp_path, {"package.json": "[" * 100_000, "Cargo.toml": '[dependencies]\nserde = "1"\n'})
     assert [d.name for d in dependencies(tmp_path)] == ["serde"]
+
+
+def test_decorated_and_partial_builds_have_no_false_ghosts(tmp_path: Path) -> None:
+    write_files(
+        tmp_path,
+        {
+            "app/routes.py": "@app.get('/x')\ndef serve_index(req):\n    if req:\n        return 1\n    return 2\n\n"
+            "def lonely_helper(q):\n    if q:\n        return 3\n    return 4\n",
+        },
+    )
+    ghosts = {
+        e.name for f in analyze(tmp_path).floors for r in f.rooms for e in r.enemies if e.archetype is Archetype.GHOST
+    }
+    assert "serve_index" not in ghosts
+    partial = analyze(tmp_path, complete=False)
+    assert not [e for f in partial.floors for r in f.rooms for e in r.enemies if e.archetype is Archetype.GHOST]

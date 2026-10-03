@@ -3,6 +3,8 @@
 // serialise and nothing to migrate between versions of the save format.
 
 export interface SavedRun {
+  /** RULES when saved. A save from older rules would replay into another game. */
+  rules?: number;
   /** The route hash of the dungeon and run (no replay attached). */
   hash: string;
   repo: string;
@@ -11,6 +13,8 @@ export interface SavedRun {
   floors: number;
   at: number;
 }
+
+import { RULES } from "../game/record";
 
 const KEY = "headcrawl.saves.v1";
 const KEEP = 5;
@@ -23,7 +27,8 @@ function valid(s: unknown): s is SavedRun {
     r.hash.startsWith("#/") &&
     typeof r.repo === "string" &&
     typeof r.log === "string" &&
-    /^[hjklyubn.>qrABC\d]*$/.test(r.log) &&
+    /^[hjklyubn.>qrABCVWX\d]*$/.test(r.log) &&
+    r.rules === RULES &&
     typeof r.floor === "number" &&
     typeof r.floors === "number" &&
     typeof r.at === "number"
