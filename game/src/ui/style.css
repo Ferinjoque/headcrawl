@@ -376,7 +376,7 @@ body.titling #touch {
   align-items: center;
   margin: 4px 0 6px;
 }
-.build input {
+.build > input {
   font: inherit;
   color: var(--text);
   background: var(--ink-raised);
@@ -387,10 +387,10 @@ body.titling #touch {
   caret-color: var(--ember);
   transition: border-color 150ms var(--ease);
 }
-.build input::placeholder {
+.build > input::placeholder {
   color: var(--text-faint);
 }
-.build input:focus {
+.build > input:focus {
   outline: none;
   border-color: var(--ember);
   box-shadow: 0 0 10px oklch(0.66 0.17 45 / 0.3);
@@ -627,4 +627,16 @@ body.dragging #screen::after {
     animation: none !important;
     transition: none !important;
   }
+}
+.build label input {
+  accent-color: var(--ember);
+  margin: 0 4px 0 0;
+}
+.page a {
+  color: var(--lore);
+  text-underline-offset: 3px;
+}
+.page a:hover,
+.page a:focus-visible {
+  color: var(--gold);
 }

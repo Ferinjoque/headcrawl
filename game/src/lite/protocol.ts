@@ -4,6 +4,8 @@ export interface WorkerRequest {
   repo: string;
   /** A commit, tag or branch. Pinning a commit makes a link rebuild the same dungeon. */
   sha?: string;
+  /** The player's own GitHub token, if they gave one in settings. */
+  token?: string;
 }
 
 export type WorkerReply =
@@ -40,4 +42,9 @@ export function safePath(path: string): boolean {
 /** A git ref we are willing to put in an API URL: tags like v1.2.0, branches, commits. */
 export function validRef(ref: string): boolean {
   return /^[A-Za-z0-9._/-]{1,100}$/.test(ref) && !ref.includes("..") && !ref.startsWith("/") && !ref.endsWith("/");
+}
+
+/** Classic (ghp_) and fine-grained (github_pat_) personal access tokens. */
+export function validToken(token: string): boolean {
+  return /^(ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,255})$/.test(token);
 }

@@ -73,6 +73,13 @@ executed. It takes about ten seconds and a handful of GitHub's 60 hourly
 anonymous API calls. The link it gives you (`#/gh/owner/repo@commit`)
 rebuilds the same dungeon for anyone.
 
+Optionally, add your own GitHub token in settings (`,`). GitHub then allows
+5000 calls an hour instead of 60, and browser builds show the year each
+TODO was written, using GitHub's blame. A fine-grained token with read-only
+access to public repos is enough. It stays in your browser, for the tab
+unless you tick "remember", and is only ever sent to api.github.com. Dates
+are text only, so a link builds the same dungeon with or without a token.
+
 Give a repo and an old tag instead and you get **then vs now**: both
 versions built and compared, which functions grew, which got simpler, which
 notes appeared, and you can play either one.

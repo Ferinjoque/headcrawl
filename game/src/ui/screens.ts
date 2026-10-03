@@ -7,6 +7,7 @@ import type { Change, Comparison } from "../lite/compare";
 import type { Recent } from "./recent";
 import type { SavedRun } from "./save";
 import type { Settings } from "./settings";
+import type { TokenPlace } from "./token";
 
 // The wordmark is a 5x5 pixel font drawn with full blocks.
 const LETTERS: Record<string, string[]> = {
@@ -374,12 +375,26 @@ export interface SettingsHandlers {
   colors(): void;
   motion(): void;
   tips(): void;
+  saveToken(text: string, remember: boolean): void;
+  clearToken(): void;
   close(): void;
 }
 
+const TOKEN_PLACES: Record<TokenPlace, string> = {
+  none: "No token. GitHub allows 60 calls an hour, and built repos have no TODO dates.",
+  tab: "Token saved until this tab closes.",
+  device: "Token remembered on this device.",
+};
+
 const COLOR_NAMES = { glow: "glow (default)", colorblind: "colorblind friendly", contrast: "high contrast" } as const;
 
-export function settingsScreen(s: Settings, on: SettingsHandlers, note = "") {
+export interface TokenView {
+  place: TokenPlace;
+  /** What just happened to the token, if anything. */
+  note?: { text: string; ok: boolean };
+}
+
+export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", token: TokenView = { place: "none" }) {
   const row = (key: string, label: string, value: string, act: () => void) =>
     h(
       "p",
@@ -398,7 +413,50 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "") {
     row("4", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
     row("5", "tips", "show them again", on.tips),
     note ? h("p", { class: "t-good", role: "status" }, note) : null,
+    tokenSection(token, on),
     h("div", { class: "actions" }, btn("esc", "back", on.close)),
+  );
+}
+
+function tokenSection({ place, note }: TokenView, on: SettingsHandlers): HTMLElement {
+  return h(
+    "section",
+    { "aria-labelledby": "token-heading" },
+    h("h2", { id: "token-heading" }, "github token (optional)"),
+    h(
+      "p",
+      { class: "dim" },
+      "With your own token GitHub allows 5000 calls an hour, and repos built here show the year each TODO was written. ",
+      h("a", { href: "https://github.com/settings/personal-access-tokens/new", target: "_blank", rel: "noopener noreferrer" }, "Make a fine-grained token"),
+      " with public repos read-only and no other permissions. It stays in this browser and is only sent to api.github.com.",
+    ),
+    h("p", { class: place === "none" ? "faint" : "t-good" }, TOKEN_PLACES[place]),
+    h(
+      "form",
+      {
+        class: "build",
+        onsubmit: (e: Event) => {
+          e.preventDefault();
+          const form = e.target as HTMLFormElement;
+          const input = form.elements.namedItem("token") as HTMLInputElement;
+          const remember = form.elements.namedItem("remember") as HTMLInputElement;
+          on.saveToken(input.value, remember.checked);
+          input.value = "";
+        },
+      },
+      h("input", {
+        name: "token",
+        type: "password",
+        placeholder: "github_pat_...",
+        autocomplete: "off",
+        spellcheck: "false",
+        "aria-label": "GitHub token",
+      }),
+      h("label", { class: "dim" }, h("input", { name: "remember", type: "checkbox" }), " remember on this device"),
+      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " save"),
+      place === "none" ? null : h("button", { class: "btn", type: "button", onclick: on.clearToken }, "forget it"),
+    ),
+    note ? h("p", { class: note.ok ? "t-good" : "t-bad", role: "status" }, note.text) : null,
   );
 }
 

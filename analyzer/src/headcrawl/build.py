@@ -81,6 +81,9 @@ class _Context:
     root: Path
     in_git: bool
     head_year: int
+    # Supplied by callers without a checkout (the browser asks GitHub).
+    blame: dict[str, dict[int, int]]
+    subjects: dict[str, str]
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -134,6 +137,8 @@ def analyze(
     head: gitio.Head | None = None,
     history: dict[str, int] | None = None,
     window: int = 0,
+    blame: dict[str, dict[int, int]] | None = None,
+    subjects: dict[str, str] | None = None,
 ) -> DungeonSpec:
     """`head` is for callers that know the commit but have no git checkout,
     like the browser build that downloads files straight from GitHub."""
@@ -172,7 +177,9 @@ def analyze(
 
     edges = _import_edges(root, reports)
     head_year = time.gmtime(head.time).tm_year if head.time else 0
-    ctx = _Context(reports, edges, _heat(reports), commits, limits, _Ids(), root, in_git, head_year)
+    ctx = _Context(
+        reports, edges, _heat(reports), commits, limits, _Ids(), root, in_git, head_year, blame or {}, subjects or {}
+    )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
     floors = []
@@ -358,9 +365,7 @@ def _room(
 
 
 def _last_commit(ctx: _Context, rep: FileReport) -> str | None:
-    if not ctx.in_git:
-        return None
-    subject = gitio.last_subject(ctx.root, rep.path)
+    subject = gitio.last_subject(ctx.root, rep.path) if ctx.in_git else ctx.subjects.get(rep.path)
     return clean(subject, 120) or None if subject else None
 
 
@@ -391,12 +396,21 @@ def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> lis
 
 def _loot(ctx: _Context, rep: FileReport) -> list[Loot]:
     tags = sorted(rep.syntax.tags, key=lambda t: t.line)[: ctx.limits.max_loot_per_room]
-    years = gitio.line_years(ctx.root, rep.path, {t.line for t in tags}) if ctx.in_git and tags else {}
+    if ctx.in_git and tags:
+        years = gitio.line_years(ctx.root, rep.path, {t.line for t in tags})
+    else:
+        # Blame from outside covers the whole history, so never "or older".
+        known = ctx.blame.get(rep.path, {})
+        years = {t.line: gitio.LineAge(known[t.line], False) for t in tags if t.line in known}
     out = []
     for tag in tags:
         found = years.get(tag.line)
         year = found.year if found else None
-        age = ctx.head_year - year if year and ctx.head_year else 0
+        # Age only makes loot stronger when it comes from our own git history.
+        # Browser builds get years only if the player has a GitHub token, and
+        # the same link must give everyone the same dungeon, so there the year
+        # is text and nothing more.
+        age = ctx.head_year - year if year and ctx.head_year and ctx.in_git else 0
         out.append(
             Loot(
                 id=ctx.ids("l"),

@@ -37,7 +37,16 @@ def choose(tree_json: str) -> str:
     return json.dumps(picked)
 
 
-def dungeon(root: str, name: str, url: str, sha: str, committed: str, history_json: str = "{}") -> str:
+def dungeon(
+    root: str,
+    name: str,
+    url: str,
+    sha: str,
+    committed: str,
+    history_json: str = "{}",
+    blame_json: str = "{}",
+    subjects_json: str = "{}",
+) -> str:
     """committed: ISO 8601 time of the HEAD commit, as GitHub reports it.
     history_json: {"path": commits touching it among the last HISTORY_WINDOW}."""
     when = int(time.mktime(time.strptime(committed[:19], "%Y-%m-%dT%H:%M:%S"))) if committed else 0
@@ -52,6 +61,8 @@ def dungeon(root: str, name: str, url: str, sha: str, committed: str, history_js
         head=head,
         history=history,
         window=HISTORY_WINDOW if history else 0,
+        blame=_blame(blame_json),
+        subjects=_subjects(subjects_json),
     )
     return spec.model_dump_json(exclude_none=True)
 
@@ -66,3 +77,40 @@ def candidates(spec_json: str, per_floor: int = 2) -> str:
         rooms.sort(key=lambda r: (r["id"] != floor["lair"], -r["heat"], r["path"]))
         out.extend(r["path"] for r in rooms[:per_floor])
     return json.dumps(out)
+
+
+def loot_lines(spec_json: str) -> str:
+    """{path: [line, ...]} for every piece of loot, so the page can ask GitHub's
+    blame for just those lines."""
+    spec = json.loads(spec_json)
+    out: dict[str, list[int]] = {}
+    for floor in spec["floors"]:
+        for room in floor["rooms"]:
+            if room["loot"]:
+                out[room["path"]] = sorted({item["line"] for item in room["loot"]})
+    return json.dumps(out)
+
+
+def _blame(raw_json: str) -> dict[str, dict[int, int]]:
+    """{path: {line: year}}, everything checked: it comes from the network."""
+    raw = json.loads(raw_json)
+    out: dict[str, dict[int, int]] = {}
+    if not isinstance(raw, dict):
+        return out
+    for path, lines in raw.items():
+        if not isinstance(lines, dict):
+            continue
+        years = {}
+        for line, year in lines.items():
+            if str(line).isdigit() and isinstance(year, int) and 1970 <= year <= 2200:
+                years[int(line)] = year
+        out[str(path)] = years
+    return out
+
+
+def _subjects(raw_json: str) -> dict[str, str]:
+    raw = json.loads(raw_json)
+    if not isinstance(raw, dict):
+        return {}
+    # Only the subject line; the body can be pages long.
+    return {str(k): v.split("\n", 1)[0][:300] for k, v in raw.items() if isinstance(v, str)}

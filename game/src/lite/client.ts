@@ -12,6 +12,7 @@ export function analyzeInBrowser(
   repo: string,
   onProgress: (text: string) => void,
   sha?: string,
+  token?: string,
 ): Promise<string> {
   if (busy) return Promise.reject(new Error("Already analyzing a repo."));
   worker ??= new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
@@ -42,7 +43,7 @@ export function analyzeInBrowser(
       worker = null;
       reject(new Error("The analyzer crashed. Try again, or reload the page."));
     };
-    const request: WorkerRequest = { base: document.baseURI, owner, repo, sha };
+    const request: WorkerRequest = { base: document.baseURI, owner, repo, sha, token };
     w.postMessage(request);
   });
 }

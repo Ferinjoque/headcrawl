@@ -100,16 +100,20 @@ redraws the whole view at 20 fps when idle.
   six more gallery languages, GitHub history for browser builds, then vs
   now comparisons (#/vs/owner/repo@a..b).
 
+- Round 4: optional GitHub token in settings (tab or device storage, only
+  sent to api.github.com). With it, browser builds get TODO years from
+  GraphQL blame. Years in browser builds are text only and boss history is
+  all or nothing, so a link builds the same dungeon for everyone, token or
+  not. Boss rooms in browser builds also show their last commit subject.
+
 ## Next ideas
 
-- Browser mode still has no TODO years (blame needs the GraphQL API, which
-  needs a token).
 - PyPI release so `uvx headcrawl` works (needs the owner's account).
 
 - Sound: a few short synth blips with WebAudio, off by default.
 - Mini-map of the floor graph in the side panel.
-- Better flavor text needs a bigger local model; gemma4 lines get rejected
-  by the relevance filter.
+- Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
+  stays the default.
 - First push: create the GitHub repo, enable Pages (source: GitHub Actions),
   create the `dungeon` label.
 

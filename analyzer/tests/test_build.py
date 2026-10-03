@@ -298,3 +298,29 @@ def test_web_history_moves_the_boss(make_repo: MakeRepo) -> None:
     assert hot["repo"]["commits_scanned"] == 100
     boss = hot["floors"][-1]["boss"]
     assert boss["churn"] == 40
+
+
+def test_web_blame_and_subjects_from_outside(make_repo: MakeRepo) -> None:
+    import json as _json
+
+    from headcrawl import web
+
+    files = {
+        "pkg/a.py": "def a(x):\n    # TODO: old idea\n    if x:\n        return 1\n    return 2\n",
+        "pkg/b.py": "y = 1\n",
+        "pkg/c.py": "z = 1\n",
+    }
+    root = make_repo(files, git=False)
+    plain = _json.loads(web.dungeon(str(root), "o/r", "", "f" * 40, "2026-01-01T00:00:00Z"))
+    lines = _json.loads(web.loot_lines(_json.dumps(plain)))
+    assert lines == {"pkg/a.py": [2]}
+    blame = _json.dumps({"pkg/a.py": {"2": 2015, "x": 1999, "3": "nope"}, "bad": [1]})
+    subjects = _json.dumps({"pkg/a.py": "fix the thing\nwith details", "pkg/b.py": 5})
+    out = _json.loads(web.dungeon(str(root), "o/r", "", "f" * 40, "2026-01-01T00:00:00Z", "{}", blame, subjects))
+    loot = [item for f in out["floors"] for r in f["rooms"] for item in r["loot"]]
+    assert loot[0]["year"] == 2015 and not loot[0].get("year_or_older")
+    old_power = [item for f in plain["floors"] for r in f["rooms"] for item in r["loot"]][0]["power"]
+    assert loot[0]["power"] == old_power  # years are text only without a checkout
+    lair = next(r for f in out["floors"] for r in f["rooms"] if r["id"] == f["lair"])
+    if lair["path"] == "pkg/a.py":
+        assert lair["last_commit"] == "fix the thing"

@@ -4,7 +4,8 @@
 // downloads for the contents. Nothing in the repo is ever executed; Python
 // only reads the text, same as the command line tool.
 
-import { safePath, validRef, type WorkerReply, type WorkerRequest } from "./protocol";
+import { BLAME_BATCH, blameQuery, blameYears } from "./blame";
+import { safePath, validRef, validToken, type WorkerReply, type WorkerRequest } from "./protocol";
 
 interface PyProxy {
   callKwargs(...args: unknown[]): Promise<unknown>;
@@ -58,37 +59,74 @@ async function boot(base: string): Promise<Pyodide> {
 
 class GitHubError extends Error {}
 
-async function gh(url: string): Promise<Response> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(20_000), headers: { Accept: "application/vnd.github+json" } });
+/** The player's GitHub token for this request, if they gave one. Only ever sent to api.github.com. */
+let token: string | null = null;
+
+function minutesUntil(res: Response): number {
+  const reset = Number(res.headers.get("x-ratelimit-reset") ?? 0) * 1000;
+  return reset ? Math.max(1, Math.ceil((reset - Date.now()) / 60_000)) : 60;
+}
+
+async function gh(url: string, init: RequestInit = {}): Promise<Response> {
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json" };
+  if (token && url.startsWith("https://api.github.com/")) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(20_000), headers });
+  if (res.status === 401) throw new GitHubError("GitHub refused that token. Check it in settings, or remove it.");
   if (res.status === 403 || res.status === 429) {
-    const reset = Number(res.headers.get("x-ratelimit-reset") ?? 0) * 1000;
-    const minutes = reset ? Math.max(1, Math.ceil((reset - Date.now()) / 60_000)) : 60;
-    throw new GitHubError(`GitHub's limit for anonymous requests is used up. Try again in ${minutes} minutes.`);
+    throw new GitHubError(`GitHub's hourly limit is used up. Try again in ${minutesUntil(res)} minutes, or add a token in settings.`);
   }
   if (res.status === 404) throw new GitHubError("That repo doesn't exist, or it's private.");
   if (!res.ok) throw new GitHubError(`GitHub answered ${res.status}.`);
+  // GraphQL has its own points budget; only the REST one matters for history.
   const left = Number(res.headers.get("x-ratelimit-remaining"));
-  if (Number.isFinite(left)) remaining = left;
+  if (Number.isFinite(left) && !url.endsWith("/graphql")) remaining = left;
   return res;
 }
 
-/** GitHub's anonymous allowance left this hour, from the last answer. */
+/** GitHub's allowance left this hour, from the last answer: 60 without a token, 5000 with one. */
 let remaining = 60;
 // Calls kept back so the next repo someone types can still be built.
 const KEEP_FOR_NEXT = 6;
-const MAX_HISTORY_CALLS = 12;
 
-/** How many of the last 100 commits touched each file. Stops when the budget runs low. */
-async function history(api: string, sha: string, paths: string[]): Promise<Record<string, number>> {
-  const out: Record<string, number> = {};
-  for (const path of paths.slice(0, MAX_HISTORY_CALLS)) {
-    if (remaining <= KEEP_FOR_NEXT) break;
-    try {
-      const res = await gh(`${api}/commits?sha=${sha}&per_page=100&path=${encodeURIComponent(path)}`);
-      out[path] = ((await res.json()) as unknown[]).length;
-    } catch {
-      break;
-    }
+interface History {
+  counts: Record<string, number>;
+  subjects: Record<string, string>;
+}
+
+/**
+ * How many of the last 100 commits touched each file, and the subject of the
+ * newest one. All or nothing: a partial answer would make the same link
+ * build a different dungeon for someone else, so a short budget is an error.
+ */
+async function history(api: string, sha: string, paths: string[]): Promise<History> {
+  if (remaining - KEEP_FOR_NEXT < paths.length) {
+    throw new GitHubError(
+      `Building this repo needs ${paths.length} more GitHub calls and the hourly allowance is nearly used up. ` +
+        "Try again later, or add a token in settings.",
+    );
+  }
+  const out: History = { counts: {}, subjects: {} };
+  for (const path of paths) {
+    const res = await gh(`${api}/commits?sha=${sha}&per_page=100&path=${encodeURIComponent(path)}`);
+    const commits = (await res.json()) as { commit?: { message?: string } }[];
+    out.counts[path] = commits.length;
+    const message = commits[0]?.commit?.message;
+    if (typeof message === "string") out.subjects[path] = message;
+  }
+  return out;
+}
+
+/**
+ * Year each loot line was last changed, from GitHub's blame. Needs a token:
+ * GitHub's GraphQL API has no anonymous access.
+ */
+async function blame(owner: string, repo: string, sha: string, lines: Record<string, number[]>): Promise<Record<string, Record<string, number>>> {
+  const out: Record<string, Record<string, number>> = {};
+  const files = Object.keys(lines).slice(0, 40);
+  for (let i = 0; i < files.length; i += BLAME_BATCH) {
+    const batch = files.slice(i, i + BLAME_BATCH);
+    const res = await gh("https://api.github.com/graphql", { method: "POST", body: JSON.stringify(blameQuery(owner, repo, sha, batch)) });
+    Object.assign(out, blameYears(await res.json(), batch, lines));
   }
   return out;
 }
@@ -152,19 +190,35 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   });
 
   say({ type: "progress", text: "Turning the code into a dungeon" });
-  const build = (hist = "{}") =>
+  const build = (hist: History = { counts: {}, subjects: {} }, years = {}) =>
     String(
-      web.dungeon(root, meta.full_name, `https://github.com/${meta.full_name}`, commit.sha, commit.commit.committer.date, hist),
+      web.dungeon(
+        root,
+        meta.full_name,
+        `https://github.com/${meta.full_name}`,
+        commit.sha,
+        commit.commit.committer.date,
+        JSON.stringify(hist.counts),
+        JSON.stringify(years),
+        JSON.stringify(hist.subjects),
+      ),
     );
   try {
     const first = build();
     // Bosses come from how often code changes. We have no git history here,
     // so ask GitHub about the likely boss files, then build again with that.
     const picks = JSON.parse(String(web.candidates(first))) as string[];
-    if (!picks.length || remaining <= KEEP_FOR_NEXT) return first;
+    if (!picks.length) return first;
     say({ type: "progress", text: "Checking which files keep changing" });
-    const counts = await history(api, commit.sha, picks);
-    return Object.keys(counts).length ? build(JSON.stringify(counts)) : first;
+    const hist = await history(api, commit.sha, picks);
+    let years = {};
+    if (token) {
+      say({ type: "progress", text: "Dating every TODO with git blame" });
+      const lines = JSON.parse(String(web.loot_lines(build(hist)))) as Record<string, number[]>;
+      const [who, name] = meta.full_name.split("/");
+      years = await blame(who, name, commit.sha, lines);
+    }
+    return build(hist, years);
   } finally {
     // Each build is a few MB in memory; don't keep old ones around.
     py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);
@@ -173,6 +227,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { base, owner, repo, sha } = event.data;
+  token = event.data.token && validToken(event.data.token) ? event.data.token : null;
   try {
     say({ type: "done", json: await analyze(base, owner, repo, sha) });
   } catch (err) {

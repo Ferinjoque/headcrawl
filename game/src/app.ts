@@ -17,13 +17,14 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen } from "./ui/screens";
+import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, type TokenView } from "./ui/screens";
 import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
 import { dailyPick } from "./ui/daily";
 import { parseCode, runCode } from "./ui/codes";
 import { analyzeInBrowser } from "./lite/client";
+import { clearToken, loadToken, saveToken, tokenPlace } from "./ui/token";
 import { parseRepo } from "./lite/protocol";
 import { recentBuilds, rememberBuild } from "./ui/recent";
 import { dropSave, findSave, listSaves, putSave } from "./ui/save";
@@ -100,7 +101,7 @@ export class App {
     saveSettings(s);
   }
 
-  private openSettings(note = ""): void {
+  private openSettings(note = "", tokenNote?: TokenView["note"]): void {
     if (this.mode !== "settings") this.returnMode = this.mode === "dying" ? "play" : this.mode;
     this.mode = "settings";
     this.showScreen(
@@ -110,8 +111,19 @@ export class App {
         colors: () => this.changeSetting("colors"),
         motion: () => this.changeSetting("motion"),
         tips: () => this.changeSetting("tips"),
+        saveToken: (text, remember) =>
+          this.openSettings(
+            "",
+            saveToken(text, remember)
+              ? { text: "Saved. The next repo you build uses it.", ok: true }
+              : { text: "That isn't a GitHub token. They start with github_pat_ or ghp_.", ok: false },
+          ),
+        clearToken: () => {
+          clearToken();
+          this.openSettings("", { text: "Forgotten.", ok: true });
+        },
         close: () => this.closeOverlay(),
-      }, note),
+      }, note, { place: tokenPlace(), note: tokenNote }),
     );
   }
 
@@ -132,6 +144,8 @@ export class App {
   }
 
   private settingsKey(e: KeyboardEvent): void {
+    // The token field takes any key; only Escape leaves it.
+    if (e.target instanceof HTMLInputElement && e.key !== "Escape") return;
     const keys = { "1": "sound", "2": "text", "3": "colors", "4": "motion", "5": "tips" } as const;
     const which = keys[e.key as keyof typeof keys];
     if (which) this.changeSetting(which);
@@ -389,7 +403,7 @@ export class App {
     this.buildStatus(`Building ${owner}/${repo}`, "t-loot");
     document.getElementById("build-status")?.scrollIntoView({ block: "center" });
     try {
-      const json = await analyzeInBrowser(owner, repo, (text) => this.buildStatus(text, "t-loot"), sha);
+      const json = await analyzeInBrowser(owner, repo, (text) => this.buildStatus(text, "t-loot"), sha, loadToken() ?? undefined);
       this.built.set(key, json);
       return json;
     } catch (err) {
