@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const dir = fileURLToPath(new URL("../public/dungeons/", import.meta.url));
-const ORDER = ["itsdangerous", "flask", "requests", "express", "ky", "gin", "bubbletea", "ripgrep", "jq", "jsoup", "mediatr", "alamofire", "slim", "sinatra", "moshi", "headcrawl"];
+const ORDER = ["itsdangerous", "flask", "requests", "express", "ky", "gin", "bubbletea", "ripgrep", "jq", "jsoup", "mediatr", "alamofire", "slim", "sinatra", "moshi", "click", "cobra", "axum", "chalk", "headcrawl"];
 
 // Rough danger per dungeon: how much hurt the average monster can do, how
 // tough the bosses are, and how far down you have to go.

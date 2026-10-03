@@ -26,6 +26,10 @@ repos=(
   "slim slimphp/Slim"
   "sinatra sinatra/sinatra"
   "moshi square/moshi"
+  "click pallets/click"
+  "cobra spf13/cobra"
+  "axum tokio-rs/axum"
+  "chalk chalk/chalk"
   "headcrawl $root"
 )
 

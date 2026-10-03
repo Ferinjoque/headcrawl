@@ -30,7 +30,7 @@
     "rooms": 27,
     "enemies": 107,
     "boss": "should_bypass_proxies",
-    "difficulty": 1
+    "difficulty": 2
   },
   {
     "slug": "express",
@@ -63,7 +63,7 @@
     "rooms": 66,
     "enemies": 266,
     "boss": "Handle",
-    "difficulty": 2
+    "difficulty": 3
   },
   {
     "slug": "bubbletea",
@@ -74,7 +74,7 @@
     "rooms": 45,
     "enemies": 230,
     "boss": "Update",
-    "difficulty": 1
+    "difficulty": 2
   },
   {
     "slug": "ripgrep",
@@ -118,7 +118,7 @@
     "rooms": 70,
     "enemies": 189,
     "boss": "Runner::Run",
-    "difficulty": 3
+    "difficulty": 4
   },
   {
     "slug": "alamofire",
@@ -162,16 +162,60 @@
     "rooms": 88,
     "enemies": 314,
     "boss": "peekNumber",
+    "difficulty": 5
+  },
+  {
+    "slug": "click",
+    "repo": "pallets/click",
+    "head": "06b2a678741131fd577ce170e23e5ca0aeba0309",
+    "language": "python",
+    "floors": 3,
+    "rooms": 38,
+    "enemies": 192,
+    "boss": "get_help_extra",
+    "difficulty": 3
+  },
+  {
+    "slug": "cobra",
+    "repo": "spf13/cobra",
+    "head": "adbc8813901bba65827259daa8e22ff94ec1f30e",
+    "language": "go",
+    "floors": 2,
+    "rooms": 23,
+    "enemies": 114,
+    "boss": "execute",
+    "difficulty": 1
+  },
+  {
+    "slug": "axum",
+    "repo": "tokio-rs/axum",
+    "head": "f8b02f22cf10bee707bda19b58265b9e33677535",
+    "language": "rust",
+    "floors": 8,
+    "rooms": 102,
+    "enemies": 518,
+    "boss": "typed_get",
     "difficulty": 4
+  },
+  {
+    "slug": "chalk",
+    "repo": "chalk/chalk",
+    "head": "47fc05abd46171b235e24174cd2dba83d25bf037",
+    "language": "javascript",
+    "floors": 2,
+    "rooms": 13,
+    "enemies": 44,
+    "boss": "applyStyle",
+    "difficulty": 1
   },
   {
     "slug": "headcrawl",
     "repo": "headcrawl (this game)",
-    "head": "d4547764ae7d6f43fee5bd6da85597960f1bab9a",
+    "head": "98477abbed8aad35c1e75a77a99515352b0d4f41",
     "language": "typescript",
     "floors": 8,
-    "rooms": 85,
-    "enemies": 395,
+    "rooms": 88,
+    "enemies": 422,
     "boss": "act",
     "difficulty": 5
   }
