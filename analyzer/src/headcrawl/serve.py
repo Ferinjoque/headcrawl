@@ -56,8 +56,14 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
     slug = ""
     body = b""
     entry: dict[str, Any] = {}
+    # Host headers we answer to. Anything else is another site that pointed
+    # its own domain at 127.0.0.1 (DNS rebinding) to read the dungeon.
+    hosts: frozenset[str] = frozenset()
 
     def do_GET(self) -> None:  # noqa: N802 - the stdlib's name
+        if self.hosts and self.headers.get("Host", "") not in self.hosts:
+            self.send_error(403)
+            return
         path = self.path.split("?", 1)[0]
         if path == f"/dungeons/{self.slug}.json":
             return self._send(self.body)
@@ -67,7 +73,8 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
                 gallery = json.loads(index.read_text("utf-8")) if index.is_file() else []
             except ValueError:
                 gallery = []
-            listed = [self.entry, *(e for e in gallery if e.get("slug") != self.slug)]
+            rest = [e for e in gallery if isinstance(e, dict) and e.get("slug") != self.slug]
+            listed = [self.entry, *rest]
             return self._send(json.dumps(listed).encode())
         return super().do_GET()
 
@@ -76,6 +83,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(data)
 
@@ -88,13 +96,15 @@ def serve(spec: DungeonSpec, port: int = 0, open_browser: bool = True) -> None:
     if root is None:
         raise FileNotFoundError("no game files found: run scripts/bundle-game.sh, or npm run build in game/")
     slug = slug_for(spec)
-    handler = type(
+    handler: type[_Handler] = type(
         "Handler",
         (_Handler,),
         {"slug": slug, "body": spec.model_dump_json(exclude_none=True).encode(), "entry": entry_for(spec, slug)},
     )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(handler, directory=str(root)))
-    url = f"http://127.0.0.1:{server.server_address[1]}/#/play/{slug}"
+    bound = server.server_address[1]
+    handler.hosts = frozenset({f"127.0.0.1:{bound}", f"localhost:{bound}"})
+    url = f"http://127.0.0.1:{bound}/#/play/{slug}"
     print(f"{spec.repo.name} is at {url}  (Ctrl+C to stop)", flush=True)
     if open_browser:
         webbrowser.open(url)

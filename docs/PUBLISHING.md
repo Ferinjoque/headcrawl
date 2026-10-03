@@ -33,8 +33,8 @@ churn bosses work, which the in-browser builder can't fully do.
    - Workflow name: `pypi.yml`
    - Environment name: `pypi`
 4. On GitHub: repo Settings > Environments > New environment `pypi`.
-   Optionally add yourself as a required reviewer, so every publish waits
-   for your click.
+   Add yourself as a required reviewer, so every publish waits for your
+   click; without it anyone with write access could publish.
 
 Trusted publishing works for private repos too; PyPI only checks that the
 upload comes from that workflow in that repo.

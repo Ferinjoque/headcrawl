@@ -2,6 +2,7 @@
 
 import json
 import threading
+import urllib.error
 import urllib.request
 from functools import partial
 from http.server import ThreadingHTTPServer
@@ -35,6 +36,15 @@ def test_serves_the_game_with_the_new_dungeon_first(tmp_path: Path) -> None:
         body = json.loads(urllib.request.urlopen(f"{base}/dungeons/{slug}.json").read())
         assert body["repo"]["name"] == "My Repo!"
         assert urllib.request.urlopen(f"{base}/index.html").read() == b"<!doctype html>"
+        # Another site pointing its domain at us gets nothing.
+        handler.hosts = frozenset({f"127.0.0.1:{server.server_address[1]}"})
+        rebound = urllib.request.Request(f"{base}/dungeons/{slug}.json", headers={"Host": "evil.example"})
+        try:
+            urllib.request.urlopen(rebound)
+            raise AssertionError("expected 403")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 403
+        assert urllib.request.urlopen(f"{base}/dungeons/{slug}.json").status == 200
     finally:
         server.shutdown()
 

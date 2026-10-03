@@ -78,6 +78,9 @@ def run(args: list[str], cwd: Path | None = None, timeout: int = 60, stdin: str 
         )
     except subprocess.TimeoutExpired as exc:
         raise GitError(f"git {args[0]} timed out after {timeout}s") from exc
+    except OSError as exc:
+        # No git at all, or a command line too long for the OS.
+        raise GitError(f"git {args[0]} could not run: {exc}") from exc
     if out.returncode != 0:
         msg = out.stderr.decode("utf-8", "replace").strip().splitlines()
         raise GitError(f"git {args[0]} failed: {msg[-1] if msg else out.returncode}")

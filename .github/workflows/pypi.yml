@@ -2,6 +2,8 @@ name: pypi
 
 # Publishes the headcrawl package to PyPI. Never runs on its own: start it
 # from the Actions tab once PyPI trusts this workflow (docs/PUBLISHING.md).
+# Building and publishing are separate jobs, so the build tools never see
+# the publishing token.
 
 on:
   workflow_dispatch:
@@ -10,14 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: read
-      # Trusted publishing: PyPI checks a short-lived token from GitHub, so
-      # no PyPI password or API token is stored anywhere.
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -34,9 +30,31 @@ jobs:
       - name: build
         working-directory: analyzer
         run: uv build --out-dir dist
-      - name: check the wheel carries the game
+      - name: check the wheel
         working-directory: analyzer
-        run: unzip -l dist/*.whl | grep -q "headcrawl/game_dist/index.html"
-      - name: publish
-        working-directory: analyzer
-        run: uv publish --trusted-publishing always dist/*
+        run: |
+          unzip -l dist/*.whl > files.txt
+          grep -q "headcrawl/game_dist/index.html" files.txt
+          ! grep -q "pyodide" files.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: analyzer/dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Add yourself as a required reviewer on this environment, so every
+    # publish waits for your click.
+    environment: pypi
+    permissions:
+      # Trusted publishing: PyPI checks a short-lived token from GitHub, so
+      # no PyPI password or API token is stored anywhere.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv publish --trusted-publishing always dist/*
