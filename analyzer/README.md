@@ -10,7 +10,8 @@ uvx headcrawl play .                    # the repo you're standing in
 ```
 
 `play` clones (shallow, https only, hooks off), reads the code, and serves
-the game on 127.0.0.1. Nothing from the repo is ever executed, and nothing
+the game on 127.0.0.1:8573 (or any free port), so your saves and bestiary
+are still there next time. Nothing from the repo is ever executed, and nothing
 leaves your machine except the clone itself.
 
 Other commands:
