@@ -2,8 +2,8 @@
 // the Pyodide runtime, the Pyodide packages we use, a few pure Python wheels
 // from PyPI, and our own analyzer wheel. Every download is checked against
 // a pinned SHA-256 (Pyodide core), the pinned lock file (Pyodide packages) or
-// PyPI's published digest (the rest). Self-hosting means
-// the live site loads no third-party code.
+// PyPI's published digest (the rest). Serving it ourselves means the
+// game loads no third-party code at runtime.
 //
 // Needs ../analyzer/dist/headcrawl-*.whl first: `cd ../analyzer && uv build --wheel`.
 

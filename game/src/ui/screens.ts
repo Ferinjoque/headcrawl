@@ -143,10 +143,10 @@ export function titleScreen(
       h("input", {
         name: "code",
         type: "text",
-        placeholder: "run code, like flask-4821",
+        placeholder: "run code or link, like flask-4821",
         autocomplete: "off",
         spellcheck: "false",
-        "aria-label": "Run code",
+        "aria-label": "Run code or link",
       }),
       h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " play a code"),
     ),

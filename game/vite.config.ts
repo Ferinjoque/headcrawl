@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  // Relative paths so the build works under any GitHub Pages subpath.
+  // Relative paths so the built game works from any folder or subpath.
   base: "./",
   build: {
     target: "es2022",

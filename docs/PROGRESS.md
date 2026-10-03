@@ -3,8 +3,9 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-02): M0-M4 done, most of M5 done. Game is playable, tested, and
-ready for GitHub Pages once the repo is pushed.
+Status (2026-10-03): M0-M4 done, most of M5 done. Game is playable and
+tested. Shipped as a GitHub repo people clone and run locally; no hosted
+site (owner's call, 2026-10-03).
 
 ## M0 setup
 - [x] git init, .gitignore, README stub
@@ -41,7 +42,7 @@ ready for GitHub Pages once the repo is pushed.
 - [x] share links + result text
 - [x] gallery (5 repos)
 - [x] more gallery repos + rebuild script
-- [x] CI + Pages workflow
+- [x] CI workflow (Pages and issue-request workflows dropped 2026-10-03)
 - [x] e2e smoke test
 
 ## M5 extras
@@ -114,8 +115,7 @@ redraws the whole view at 20 fps when idle.
 - Mini-map of the floor graph in the side panel.
 - Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
   stays the default.
-- First push: create the GitHub repo, enable Pages (source: GitHub Actions),
-  create the `dungeon` label.
+- First push: create the GitHub repo. Nothing else to enable.
 
 ## Notes
 

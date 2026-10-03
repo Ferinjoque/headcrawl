@@ -11,10 +11,29 @@ loot. The file that changes most and is hardest to read is the boss of its
 floor. Imports are the corridors, and the deeper you go the closer you get
 to the code everything else depends on.
 
-Same commit, same dungeon. The seed is the HEAD hash, so a link to a run
-is a link to the same map for everyone.
+Same commit, same dungeon. The seed is the HEAD hash, so a run code like
+`flask-4821` gives anyone the same map and the same rolls.
 
 ![A boss shows up](docs/img/boss.png)
+
+## Running it
+
+You need Node 20 or newer.
+
+```
+git clone <this repo>
+cd headcrawl/game
+npm ci
+npm run dev          # then open http://localhost:5173
+```
+
+That's enough for the gallery, daily runs and run codes. To build any
+GitHub repo from the title screen you also need
+[uv](https://docs.astral.sh/uv/), once:
+
+```
+npm run py           # builds the analyzer and fetches Python for the browser (about 30 MB)
+```
 
 ## What maps to what
 
@@ -62,7 +81,9 @@ Runs save themselves in the browser; close the tab and pick it up later
 under "continue". Every run has a code like `flask-4821`: give it to a
 friend and they get the same dungeon with the same rolls. When a run ends
 you can copy a spoiler-free result, save the whole run log as text, or copy
-a replay link that plays your run back move by move.
+a replay link that plays your run back move by move. Links point at your
+own copy, so a friend pastes them into the run code box on theirs; only the
+part after `#` matters.
 
 ## Your own repo
 
@@ -70,8 +91,8 @@ Paste any public GitHub repo on the title screen and the game builds the
 dungeon right there: the same Python analyzer runs in your browser through
 Pyodide, files come straight from GitHub, and nothing in the repo is ever
 executed. It takes about ten seconds and a handful of GitHub's 60 hourly
-anonymous API calls. The link it gives you (`#/gh/owner/repo@commit`)
-rebuilds the same dungeon for anyone.
+anonymous API calls (it needs `npm run py` once, see above). Its run code
+(`owner/repo@commit-1234`) rebuilds the same dungeon for anyone.
 
 Optionally, add your own GitHub token in settings (`,`). GitHub then allows
 5000 calls an hour instead of 60, and browser builds show the year each
@@ -94,9 +115,9 @@ uv run headcrawl analyze ../path/to/repo -o mine.json
 uv run headcrawl analyze pallets/flask -o flask.json
 ```
 
-Open the page and press `o`, or drop the file on it. The game turns it into
-a link you can send. The whole dungeon lives in the part of the URL after
-`#`, so it never touches a server.
+Open the game and press `o`, or drop the file on it. The game turns it into
+a link you can send; the whole dungeon lives in the part of the URL after
+`#`.
 
 `--flavor` asks a local Ollama model (default `qwen2.5:7b`) for boss titles
 and taunts. It only keeps lines that talk about the actual function, checks
@@ -122,9 +143,8 @@ cd game && npm test && npx playwright test
 
 ## Adding to the gallery
 
-`scripts/gallery.sh` rebuilds the bundled dungeons. On GitHub, an issue
-titled `dungeon: owner/repo` plus the `dungeon` label from a maintainer runs
-a workflow that analyzes the repo and publishes it.
+`scripts/gallery.sh` rebuilds the bundled dungeons. Add a repo to its list,
+run it, and `npm run gallery` refreshes the index.
 
 ## License
 

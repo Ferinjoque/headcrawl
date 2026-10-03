@@ -51,3 +51,14 @@ test("a dungeon file can be opened and shared", async ({ page }) => {
   await page.goto(link);
   await expect(page.locator("#hud")).toContainText("pallets/itsdangerous");
 });
+
+test("a link from someone else's copy works in the code box", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("./");
+  const box = page.getByRole("textbox", { name: "Run code or link" });
+  await box.fill("http://192.168.1.20:5173/#/play/itsdangerous?run=77");
+  await box.press("Enter");
+  await expect(page).toHaveURL(/#\/play\/itsdangerous\?run=77$/);
+  await expect(page.locator("#hud")).toContainText("floor 1/");
+  expect(errors).toEqual([]);
+});

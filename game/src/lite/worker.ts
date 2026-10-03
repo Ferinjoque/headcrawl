@@ -41,7 +41,11 @@ function say(msg: WorkerReply): void {
 
 async function boot(base: string): Promise<Pyodide> {
   const index = new URL("pyodide/", base).href;
-  const manifest = (await (await fetch(index + "manifest.json")).json()) as Manifest;
+  const res = await fetch(index + "manifest.json");
+  if (!res.ok || !res.headers.get("content-type")?.includes("json")) {
+    throw new GitHubError("Building repos here needs a one-time setup: run `npm run py` in the game folder (needs uv), then reload.");
+  }
+  const manifest = (await res.json()) as Manifest;
   say({ type: "progress", text: "Starting Python (about 4 MB the first time)" });
   const mod = (await import(/* @vite-ignore */ index + "pyodide.mjs")) as {
     loadPyodide(opts: { indexURL: string }): Promise<Pyodide>;

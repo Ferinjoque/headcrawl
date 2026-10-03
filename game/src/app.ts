@@ -355,12 +355,18 @@ export class App {
         },
         compare: (repo, ref) => void this.buildCompare(repo, ref),
         code: (text) => {
+          // A whole link from someone else's copy works too: only the part after # matters.
+          const hash = text.trim().match(/#\/\S*$/)?.[0];
+          if (hash && parseRoute(hash).kind !== "title") {
+            location.hash = hash;
+            return;
+          }
           const route = parseCode(text);
           const status = document.getElementById("code-status");
           if (route) this.navigate(route);
           else if (status) {
             status.className = "error";
-            status.textContent = "Codes look like flask-4821 or owner/repo@abc1234-4821.";
+            status.textContent = "Codes look like flask-4821 or owner/repo@abc1234-4821. Whole links work too.";
           }
         },
         open: () => ($("file") as HTMLInputElement).click(),

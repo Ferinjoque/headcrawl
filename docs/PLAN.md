@@ -5,6 +5,9 @@ Python reads the repo and writes a DungeonSpec JSON file. A TypeScript game
 built on ROT.js loads that file and you play it. The site is static and lives
 on GitHub Pages.
 
+(2026-10-03: no hosted site after all. The game ships as a repo people clone
+and run with `npm run dev`. Pages bits below are history.)
+
 Name: **HEADCRAWL** (you crawl the HEAD of a repo). CLI and package: `headcrawl`.
 
 ## Why bother, since GitHub Dungeons exists
