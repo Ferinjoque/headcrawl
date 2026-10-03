@@ -121,6 +121,11 @@ export function placeVendor(state: FloorState, spec: DungeonSpec): Vendor | null
   return spot ? { x: spot[0], y: spot[1], offers, sold: false } : null;
 }
 
+/** The vendor stands still and takes up its cell. Paths go around it. */
+export function vendorAt(state: FloorState, x: number, y: number): boolean {
+  return !!state.vendor && state.vendor.x === x && state.vendor.y === y;
+}
+
 // ---- ghosts ---------------------------------------------------------------
 
 /** Dead code drifts straight at you, through walls if it has to. */

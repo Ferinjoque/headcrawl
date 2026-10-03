@@ -40,7 +40,8 @@ import { Hints } from "./ui/hints";
 import { addRun, loadCodex, saveCodex } from "./ui/codex";
 import { ghostAt, ghostFor, keepGhost, trackOf, type Track } from "./ui/ghostrun";
 import { Sound } from "./ui/sound";
-import { downloadText, logFileName, runLog } from "./ui/morgue";
+import { downloadBlob, downloadText, logFileName, runLog } from "./ui/morgue";
+import { castOf } from "./ui/cast";
 import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, shareLink, type PlayRoute, type Route } from "./ui/share";
 
 type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "compare" | "end" | "loading";
@@ -74,6 +75,7 @@ export class App {
   private dailyMod: ModId | null = null;
   /** The run being raced, step by step, and whose it is. */
   private race: { track: Track; whose: string } | null = null;
+  private endMore = false;
   private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
@@ -478,6 +480,23 @@ export class App {
     if (this.game) downloadText(logFileName(this.game), runLog(this.game, shareLink(location.href)));
   }
 
+  /** The end of the run as a GIF, rebuilt from the log. Loaded only when asked for. */
+  private async saveGif(): Promise<void> {
+    const game = this.game;
+    if (!game) return;
+    this.log.push("Drawing the GIF...", "info");
+    this.log.render();
+    const { gifOf } = await import("./ui/gif");
+    const blob = await gifOf(game.spec, game.run, game.mods, game.record());
+    if (blob) downloadBlob(logFileName(game).replace(/\.txt$/, ".gif"), blob);
+  }
+
+  private saveCast(): void {
+    const game = this.game;
+    const cast = game ? castOf(game.spec, game.run, game.mods, game.record()) : null;
+    if (game && cast) downloadBlob(logFileName(game).replace(/\.txt$/, ".cast"), new Blob([cast], { type: "application/x-asciicast" }));
+  }
+
   private buildStatus(text: string, tone = "dim"): void {
     const el = document.getElementById("build-status");
     if (!el) return;
@@ -659,8 +678,14 @@ export class App {
         save: () => this.saveLog(),
         replay: () => this.copyReplay(),
         race: () => this.copyReplay(true),
+        gif: () => void this.saveGif(),
+        cast: () => this.saveCast(),
         menu: () => this.navigate({ kind: "title" }),
-      }, this.route.kind !== "title" && !!this.route.watch),
+        more: () => {
+          this.endMore = !this.endMore;
+          this.showEnd();
+        },
+      }, this.route.kind !== "title" && !!this.route.watch, this.endMore),
     );
   }
 
@@ -709,6 +734,7 @@ export class App {
     window.clearTimeout(this.endTimer);
     this.titleError = null;
     this.copied = false;
+    this.endMore = false;
     this.stopAuto();
     this.fx.clear();
     this.log.clear();
@@ -993,6 +1019,13 @@ export class App {
       else if (e.key === "s" || e.key === "S") this.saveLog();
       else if (e.key === "w" || e.key === "W") this.copyReplay();
       else if (e.key === "g" || e.key === "G") this.copyReplay(true);
+      else if (e.key === "v" || e.key === "V") void this.saveGif();
+      else if (e.key === "a" || e.key === "A") this.saveCast();
+      else if (e.key === "Tab") {
+        e.preventDefault();
+        this.endMore = !this.endMore;
+        this.showEnd();
+      }
       else if (e.key === "Escape") this.navigate({ kind: "title" });
       return;
     }

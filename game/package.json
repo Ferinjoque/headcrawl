@@ -28,6 +28,7 @@
   "dependencies": {
     "@fontsource/vt323": "^5.3.0",
     "fflate": "^0.8.3",
+    "gifenc": "^1.0.3",
     "rot-js": "^2.2.1"
   }
 }

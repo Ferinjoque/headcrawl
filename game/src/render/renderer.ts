@@ -66,7 +66,13 @@ export class Renderer {
 
   resize(): void {
     const rect = this.canvas.getBoundingClientRect();
-    this.dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.sizeTo(rect.width, rect.height, Math.min(window.devicePixelRatio || 1, 1.5));
+  }
+
+  /** A fixed size, for canvases that are not on the page (clips). */
+  sizeTo(cssW: number, cssH: number, dpr = 1): void {
+    const rect = { width: cssW, height: cssH };
+    this.dpr = dpr;
     const w = Math.max(1, Math.round(rect.width * this.dpr));
     const h = Math.max(1, Math.round(rect.height * this.dpr));
     for (const c of [this.canvas, this.light]) {

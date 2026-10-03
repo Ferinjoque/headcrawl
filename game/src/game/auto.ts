@@ -2,6 +2,7 @@
 // Each call returns the next action, or null when it should stop.
 
 import { findPath } from "../map/astar";
+import { vendorAt } from "./extras";
 import { walkable } from "../map/grid";
 import type { Game } from "./game";
 import type { Action } from "./types";
@@ -22,7 +23,7 @@ function stepTo(game: Game, to: [number, number]): Action | null {
   const path = findPath(grid.width, grid.height, [p.x, p.y], to, (x, y) => {
     const i = grid.idx(x, y);
     if (!game.floor.seen[i] && !(x === to[0] && y === to[1])) return Infinity;
-    return walkable(grid.get(x, y)) ? 1 : Infinity;
+    return walkable(grid.get(x, y)) && !vendorAt(game.floor, x, y) ? 1 : Infinity;
   });
   if (!path || path.length < 2) return null;
   const [nx, ny] = path[1];
@@ -93,7 +94,7 @@ export function autoAction(game: Game, mode: AutoMode): Action | null {
           [0, -1],
         ]) {
           const i = grid.idx(p.x + dx, p.y + dy);
-          if (!game.floor.seen[i] && walkable(grid.get(p.x + dx, p.y + dy))) return { type: "move", dx, dy };
+          if (!game.floor.seen[i] && walkable(grid.get(p.x + dx, p.y + dy)) && !vendorAt(game.floor, p.x + dx, p.y + dy)) return { type: "move", dx, dy };
         }
         return null;
       }

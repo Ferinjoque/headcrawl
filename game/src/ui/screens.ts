@@ -308,12 +308,15 @@ export interface EndHandlers {
   save(): void;
   replay(): void;
   race(): void;
+  gif(): void;
+  cast(): void;
   menu(): void;
+  more(): void;
 }
 
 const TOMB = ["    _______", "   /       \\", "  /  R.I.P  \\", "  |         |", "  |  HEAD~1 |", "  |         |", "__|_________|__"].join("\n");
 
-export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers, watched = false) {
+export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers, watched = false, more = false) {
   const p = game.player;
   const won = game.outcome === "won";
   const f = game.floorSpec;
@@ -339,11 +342,20 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
         ? btn("r", "play this run yourself", on.again)
         : btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
       btn("c", copied ? "copied" : "copy result", on.copy),
-      btn("s", "save run log", on.save),
-      btn("w", "copy replay link", on.replay),
-      btn("g", "copy race link", on.race),
       btn("esc", "pick another repo", on.menu),
+      btn("tab", more ? "less" : "share and save", on.more),
     ),
+    more
+      ? h(
+          "div",
+          { class: "actions more" },
+          btn("g", "copy race link", on.race),
+          btn("w", "copy replay link", on.replay),
+          btn("v", "save a GIF", on.gif),
+          btn("a", "save an asciinema cast", on.cast),
+          btn("s", "save run log", on.save),
+        )
+      : null,
   );
 }
 
