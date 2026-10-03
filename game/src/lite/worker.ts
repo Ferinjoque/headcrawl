@@ -163,7 +163,8 @@ function python(base: string): Promise<Pyodide> {
 async function analyzeLocal(req: LocalRequest): Promise<string> {
   const py = await python(req.base);
   const web = py.pyimport("headcrawl.web");
-  const files = req.files.filter((f) => safePath(f.path));
+  // A folder full of node_modules can hold millions of entries; Python only reads a few hundred anyway.
+  const files = req.files.slice(0, 50_000).filter((f) => safePath(f.path));
   const listing = files.map((f) => ({ path: f.path, size: f.file.size }));
   const picked = new Set(JSON.parse(String(web.choose(JSON.stringify(listing)))) as string[]);
   if (!picked.size) throw new GitHubError("No source files I can read in that folder.");
@@ -172,8 +173,12 @@ async function analyzeLocal(req: LocalRequest): Promise<string> {
   for (const f of files) {
     if (!picked.has(f.path)) continue;
     const full = `${root}/${f.path}`;
-    py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
-    py.FS.writeFile(full, new Uint8Array(await f.file.arrayBuffer()));
+    try {
+      py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+      py.FS.writeFile(full, new Uint8Array(await f.file.arrayBuffer()));
+    } catch {
+      continue; // unreadable, or a file where a folder should be: skip it
+    }
     if (++done % 50 === 0) say({ type: "progress", text: `Read ${done} of ${picked.size} files` });
   }
   say({ type: "progress", text: "Turning the code into a dungeon" });

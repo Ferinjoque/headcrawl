@@ -34,8 +34,20 @@ export function loadSpec(input: string | unknown): LoadResult {
     return { ok: false, error: `Not a dungeon file: ${where} ${err?.message ?? "is wrong"}.` };
   }
   const spec = data as DungeonSpec;
+  if (hasControl(spec)) return { ok: false, error: "Not a dungeon file: it has control characters in its text." };
   const problem = checkLinks(spec);
   return problem ? { ok: false, error: problem } : { ok: true, spec };
+}
+
+// The analyzer strips these from everything it writes (text.clean). A spec
+// from a link could carry them anyway, and they would reach saved run logs
+// and asciinema casts, where a terminal acts on escape sequences.
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/;
+
+function hasControl(value: unknown, depth = 0): boolean {
+  if (typeof value === "string") return CONTROL.test(value);
+  if (depth > 12 || value === null || typeof value !== "object") return false;
+  return Object.values(value).some((v) => hasControl(v, depth + 1));
 }
 
 /** The parts of the contract JSON Schema can't express. Mirrors the Pydantic validators. */

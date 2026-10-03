@@ -112,7 +112,7 @@ def dependencies(root: Path) -> list[Dependency]:
         eco, parse = _PARSERS[name]
         try:
             names = parse(text)
-        except (ValueError, TypeError, AttributeError, tomllib.TOMLDecodeError):
+        except (ValueError, TypeError, AttributeError, RecursionError, tomllib.TOMLDecodeError):
             continue
         for raw in names:
             dep = clean(raw, 80)

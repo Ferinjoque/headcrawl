@@ -38,6 +38,12 @@ describe("safety", () => {
     const dup = structuredClone(s);
     dup.floors[0].rooms[1].id = dup.floors[0].rooms[0].id;
     expect(loadSpec(dup).ok).toBe(false);
+    // Escape sequences would end up in saved casts and run logs.
+    for (const bad of ["\u001b]0;pwned\u0007", "a‮b", "x\u0000"]) {
+      const sneaky = structuredClone(s);
+      sneaky.floors[0].name = bad;
+      expect(loadSpec(sneaky).ok).toBe(false);
+    }
     const extra = { ...s, evil: "<script>" };
     expect(loadSpec(extra).ok).toBe(false);
   });

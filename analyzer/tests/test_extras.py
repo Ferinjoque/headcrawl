@@ -115,3 +115,8 @@ def test_local_folder_without_git(tmp_path: Path) -> None:
     spec = json.loads(local_dungeon(str(tmp_path), "my folder"))
     assert spec["repo"]["name"] == "my folder"
     assert len(spec["seed"]) == 40
+
+
+def test_deeply_nested_manifest_does_not_sink_the_build(tmp_path: Path) -> None:
+    write_files(tmp_path, {"package.json": "[" * 100_000, "Cargo.toml": '[dependencies]\nserde = "1"\n'})
+    assert [d.name for d in dependencies(tmp_path)] == ["serde"]
