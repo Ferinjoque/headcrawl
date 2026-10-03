@@ -1,5 +1,6 @@
-// Small synth sounds made with WebAudio, no audio files. Off until the player
-// turns it on with m; the choice is remembered in this browser.
+// Small synth sounds made with WebAudio, no audio files. On unless the player
+// turned it off with m; the choice is remembered in this browser. Browsers
+// keep it silent until the first key press anyway.
 
 import type { GameEvent } from "../game/types";
 
@@ -14,9 +15,9 @@ export class Sound {
 
   constructor() {
     try {
-      this.enabled = localStorage.getItem(KEY) === "on";
+      this.enabled = localStorage.getItem(KEY) !== "off";
     } catch {
-      this.enabled = false;
+      this.enabled = true;
     }
   }
 

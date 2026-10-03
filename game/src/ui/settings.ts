@@ -18,7 +18,7 @@ const KEY = "headcrawl.settings.v1";
 export const TEXT_SCALE: Record<TextSize, number> = { small: 0.85, normal: 1, large: 1.2 };
 
 export function defaults(reducedMotion: boolean): Settings {
-  return { sound: false, music: true, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full" };
+  return { sound: true, music: true, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full" };
 }
 
 export function loadSettings(reducedMotion: boolean): Settings {
