@@ -102,3 +102,34 @@ describe("mood", () => {
     expect(tracker.mood(game, 10_000)).toBe("lost");
   });
 });
+
+describe("more music", () => {
+  const t = theme("abc", 0.5, "python", "boss");
+  const voicesOf = (notes: { voice: string }[]) => new Set(notes.map((n) => n.voice));
+
+  it("has a mood for menus, the vendor and building a repo", () => {
+    expect(voicesOf(bar(t, "menu", 0, 0))).toEqual(new Set(["pad", "arp"]));
+    expect(bar(t, "menu", 0, 0).every((n) => n.vel < 0.3)).toBe(true);
+    const shop = voicesOf(bar(t, "shop", 0, 0));
+    expect(shop.has("bass") && shop.has("hat") && !shop.has("kick")).toBe(true);
+    expect(bar(t, "build", 0, 0).filter((n) => n.voice === "arp")).toHaveLength(16);
+    expect(tempoFor(t, "build")).toBeGreaterThan(tempoFor(t, "explore"));
+  });
+
+  it("adds a bell on dailies and a hum near ghosts, only where they belong", () => {
+    expect(voicesOf(bar(t, "explore", 0, 0, { daily: true })).has("bell")).toBe(true);
+    expect(voicesOf(bar(t, "explore", 1, 0, { daily: true })).has("bell")).toBe(false);
+    expect(voicesOf(bar(t, "combat", 3, 0, { ghost: true })).has("ghost")).toBe(true);
+    expect(voicesOf(bar(t, "boss", 3, 0, { ghost: true })).has("ghost")).toBe(false);
+    expect(bar(t, "lost", 1, 0, { daily: true })).toEqual([]);
+  });
+
+  it("gives each language its own instruments", () => {
+    const go = theme("abc", 0.5, "go", "boss");
+    const js = theme("abc", 0.5, "javascript", "boss");
+    expect([go.arpWave, go.echo]).not.toEqual([js.arpWave, js.echo]);
+    expect(theme("abc", 0.5, "cobol", "boss").padWave).toBe("sawtooth");
+    // Same repo, same root and chords whatever the language.
+    expect([go.root, go.chords]).toEqual([js.root, js.chords]);
+  });
+});

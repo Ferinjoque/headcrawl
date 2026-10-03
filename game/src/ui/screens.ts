@@ -394,6 +394,25 @@ export function vendorCard(offers: Offer[], pick: (index: number) => void) {
   );
 }
 
+/** The big title card for a new floor or a boss, over the map. */
+export function bannerCard(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string) {
+  return h(
+    "div",
+    { class: "card" },
+    h("div", { class: "card-kicker" }, kicker),
+    h("div", { class: `card-name ${kind}${name.length > 14 ? " long" : ""}` }, name),
+    h("div", { class: "card-sub" }, sub),
+    quote ? h("div", { class: "card-quote" }, `"${quote}"`) : null,
+  );
+}
+
+/** The card for the floor you just arrived on, with the daily twist on the first one. */
+export function floorBanner(game: Game, twist: { name: string; text: string } | null) {
+  const f = game.floorSpec;
+  const today = f.index === 0 && twist ? `. Today: ${twist.name}. ${twist.text}` : "";
+  return bannerCard(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}${today}`);
+}
+
 export interface CompareHandlers {
   playThen(): void;
   playNow(): void;

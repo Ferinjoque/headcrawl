@@ -6,13 +6,15 @@
 // Shallow floors sit in Dorian, the middle in Aeolian, the deep end in
 // Phrygian. Combat adds drums on the next bar, bosses get a motif built from
 // their name, and every so often everything but the pad drops out so a long
-// session doesn't wear on the ear.
+// session doesn't wear on the ear. Each language brings its own instruments.
+// The vendor plays lounge music, menus hush everything down, and building a
+// repo sounds like a machine thinking.
 
 import { Rng } from "../core/rng";
 
-export type Mood = "title" | "explore" | "combat" | "boss" | "rage" | "won" | "lost";
+export type Mood = "title" | "explore" | "combat" | "boss" | "rage" | "won" | "lost" | "menu" | "shop" | "build";
 
-export type Voice = "pad" | "arp" | "bass" | "kick" | "hat" | "snare" | "lead";
+export type Voice = "pad" | "arp" | "bass" | "kick" | "hat" | "snare" | "lead" | "bell" | "ghost";
 
 export interface Note {
   voice: Voice;
@@ -25,6 +27,8 @@ export interface Note {
   vel: number;
 }
 
+export type Wave = "triangle" | "square" | "sawtooth" | "pulse";
+
 export interface Theme {
   root: number;
   tempo: number;
@@ -33,8 +37,22 @@ export interface Theme {
   chords: number[];
   /** Five scale degrees the boss plays, from the boss's name. */
   motif: number[];
-  /** OscillatorType for the arpeggio, from the floor's main language. */
-  arpWave: "triangle" | "square" | "sawtooth" | "pulse";
+  /** The floor's main language picks the instruments. */
+  arpWave: Wave;
+  padWave: "sawtooth" | "square" | "triangle";
+  bassWave: "square" | "sawtooth" | "triangle";
+  /** How much of the arpeggio goes into the echo, 0..0.5. */
+  echo: number;
+  /** The top arpeggio note: 7 is the octave, 8 the ninth, 5 the sixth. */
+  color: number;
+}
+
+/** Things happening on top of the mood, each with its own layer. */
+export interface Extras {
+  /** A ghost is in sight. */
+  ghost?: boolean;
+  /** A daily run: a bell marks every eighth bar. */
+  daily?: boolean;
 }
 
 export const MODES: Record<string, number[]> = {
@@ -54,7 +72,8 @@ const PROGRESSIONS = [
 ];
 
 // Sixteen steps each. Numbers are chord tones (0 root, 1 third, 2 fifth,
-// 3 octave), -1 is a rest. Eight of them so the line doesn't loop audibly.
+// 3 the language's colour tone), -1 is a rest. Eight of them so the line
+// doesn't loop audibly.
 const ARPS = [
   [0, -1, 1, -1, 2, -1, 1, -1, 3, -1, 2, -1, 1, -1, 2, -1],
   [0, -1, -1, 2, -1, -1, 1, -1, 0, -1, -1, 2, -1, 3, -1, -1],
@@ -66,16 +85,31 @@ const ARPS = [
   [0, -1, -1, -1, 1, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1],
 ];
 
-const WAVES: Record<string, Theme["arpWave"]> = {
-  python: "triangle",
-  ruby: "triangle",
-  rust: "pulse",
-  go: "pulse",
-  c: "square",
-  cpp: "square",
-  javascript: "sawtooth",
-  typescript: "sawtooth",
+type Voices = Pick<Theme, "arpWave" | "padWave" | "bassWave" | "echo" | "color">;
+
+// Instruments per language. Scripting languages get soft, round sounds and
+// open colour tones; systems languages get hard pulses and dry echoes; the
+// enterprise ones get a sixth on top, like a film score that's trying.
+const LANGUAGE: Record<string, Voices> = {
+  python: { arpWave: "triangle", padWave: "sawtooth", bassWave: "triangle", echo: 0.32, color: 8 },
+  ruby: { arpWave: "triangle", padWave: "sawtooth", bassWave: "triangle", echo: 0.38, color: 8 },
+  javascript: { arpWave: "sawtooth", padWave: "sawtooth", bassWave: "square", echo: 0.42, color: 7 },
+  typescript: { arpWave: "sawtooth", padWave: "sawtooth", bassWave: "square", echo: 0.36, color: 8 },
+  php: { arpWave: "sawtooth", padWave: "square", bassWave: "square", echo: 0.4, color: 5 },
+  go: { arpWave: "pulse", padWave: "triangle", bassWave: "square", echo: 0.18, color: 7 },
+  rust: { arpWave: "pulse", padWave: "square", bassWave: "sawtooth", echo: 0.22, color: 8 },
+  c: { arpWave: "square", padWave: "triangle", bassWave: "square", echo: 0.12, color: 7 },
+  cpp: { arpWave: "square", padWave: "triangle", bassWave: "sawtooth", echo: 0.15, color: 8 },
+  java: { arpWave: "triangle", padWave: "sawtooth", bassWave: "triangle", echo: 0.3, color: 5 },
+  kotlin: { arpWave: "triangle", padWave: "sawtooth", bassWave: "square", echo: 0.3, color: 5 },
+  csharp: { arpWave: "triangle", padWave: "sawtooth", bassWave: "triangle", echo: 0.28, color: 5 },
+  swift: { arpWave: "sawtooth", padWave: "triangle", bassWave: "triangle", echo: 0.35, color: 8 },
 };
+const DEFAULT_VOICES: Voices = { arpWave: "triangle", padWave: "sawtooth", bassWave: "square", echo: 0.28, color: 7 };
+
+export function voicesFor(language: string): Voices {
+  return LANGUAGE[language] ?? DEFAULT_VOICES;
+}
 
 /** How deep a floor is, 0 at the top and 1 at the bottom. */
 export function depthOf(index: number, floors: number): number {
@@ -91,14 +125,7 @@ export function theme(seed: string, depth: number, language: string, boss: strin
   const chords = PROGRESSIONS[floorRng.int(0, PROGRESSIONS.length - 1)];
   const bossRng = new Rng(`motif/${boss}`);
   const motif = Array.from({ length: 5 }, () => bossRng.int(0, 7));
-  return {
-    root,
-    tempo: Math.round(76 + depth * 16),
-    mode,
-    chords,
-    motif,
-    arpWave: WAVES[language] ?? "triangle",
-  };
+  return { root, tempo: Math.round(76 + depth * 16), mode, chords, motif, ...voicesFor(language) };
 }
 
 /** MIDI note for a scale degree, wrapping into higher octaves. */
@@ -110,33 +137,51 @@ export function degree(t: Theme, d: number, octave = 0): number {
 }
 
 function chordTones(t: Theme, deg: number): number[] {
-  return [degree(t, deg, 1), degree(t, deg + 2, 1), degree(t, deg + 4, 1), degree(t, deg, 2)];
+  return [degree(t, deg, 1), degree(t, deg + 2, 1), degree(t, deg + 4, 1), degree(t, deg + t.color, 1)];
 }
 
 /** Bars between breathers, and how long a breather lasts. */
 const BREATHE_EVERY = 64;
 const BREATHE_FOR = 8;
 
-/** The notes for bar number `bar` (counted from when the mood started). */
-export function bar(t: Theme, mood: Mood, n: number, pick: number): Note[] {
+/** The notes for bar number `n` (counted from when the mood started). */
+export function bar(t: Theme, mood: Mood, n: number, pick: number, extras: Extras = {}): Note[] {
+  const notes = moodBar(t, mood, n, pick);
+  const deg = t.chords[n % t.chords.length];
+  if (extras.daily && n % 8 === 0 && mood !== "won" && mood !== "lost") {
+    // The daily bell: root and fifth, high and clear, once every eight bars.
+    notes.push({ voice: "bell", step: 0, midi: degree(t, 0, 3), len: 8, vel: 0.5 });
+    notes.push({ voice: "bell", step: 6, midi: degree(t, 4, 2), len: 8, vel: 0.35 });
+  }
+  if (extras.ghost && (mood === "explore" || mood === "combat")) {
+    // Dead code hums: two high, wavering notes a tritone apart.
+    const r = degree(t, deg, 3);
+    notes.push({ voice: "ghost", step: 0, midi: r, len: 8, vel: 0.4 });
+    notes.push({ voice: "ghost", step: 8, midi: r + 6, len: 8, vel: 0.3 });
+  }
+  return notes;
+}
+
+function moodBar(t: Theme, mood: Mood, n: number, pick: number): Note[] {
   const notes: Note[] = [];
   const deg = t.chords[n % t.chords.length];
   const tones = chordTones(t, deg);
   const breathe = (mood === "explore" || mood === "title") && n % BREATHE_EVERY >= BREATHE_EVERY - BREATHE_FOR;
 
-  if (mood === "won") {
-    // A rising Lydian run that lands on the root, once.
-    if (n > 0) return [{ voice: "pad", step: 0, midi: degree(t, 0, 1), len: 16, vel: 0.5 }];
-    const lyd = { ...t, mode: MODES.lydian };
-    for (let i = 0; i < 8; i++) notes.push({ voice: "arp", step: i * 2, midi: degree(lyd, i, 2), len: 2, vel: 0.7 });
-    notes.push({ voice: "pad", step: 0, midi: degree(lyd, 0, 1), len: 16, vel: 0.6 });
-    return notes;
-  }
+  if (mood === "won") return ending(t, n);
   if (mood === "lost") {
     // One low chord in the parallel minor, then nothing.
     if (n > 0) return [];
     const minor = { ...t, mode: MODES.aeolian };
     for (const d of [0, 2, 4]) notes.push({ voice: "pad", step: 0, midi: degree(minor, d, 0), len: 32, vel: 0.5 });
+    return notes;
+  }
+  if (mood === "shop") return shop(t, n);
+  if (mood === "build") return build(t, n);
+  if (mood === "menu") {
+    // Hushed: the chord and a single soft note, so a menu never feels like a fight.
+    for (const m of tones.slice(0, 3)) notes.push({ voice: "pad", step: 0, midi: m - 12, len: 16, vel: 0.22 });
+    notes.push({ voice: "arp", step: 8, midi: tones[(n >> 1) % 3], len: 2, vel: 0.25 });
     return notes;
   }
 
@@ -176,6 +221,48 @@ export function bar(t: Theme, mood: Mood, n: number, pick: number): Note[] {
   return notes;
 }
 
+/** A rising Lydian run that lands on the root, once, then a held chord. */
+function ending(t: Theme, n: number): Note[] {
+  if (n > 0) return [{ voice: "pad", step: 0, midi: degree(t, 0, 1), len: 16, vel: 0.5 }];
+  const lyd = { ...t, mode: MODES.lydian };
+  const notes: Note[] = [];
+  for (let i = 0; i < 8; i++) notes.push({ voice: "arp", step: i * 2, midi: degree(lyd, i, 2), len: 2, vel: 0.7 });
+  notes.push({ voice: "pad", step: 0, midi: degree(lyd, 0, 1), len: 16, vel: 0.6 });
+  return notes;
+}
+
+// The vendor: lounge music in Lydian, a walking bass and brushed hats. It
+// should sound like a shop that has been open too long.
+const SHOP_CHORDS = [0, 3, 1, 4];
+const SHOP_MELODY = [4, -1, 2, -1, 3, -1, -1, 1, 2, -1, 0, -1, -1, -1, -1, -1];
+
+function shop(t: Theme, n: number): Note[] {
+  const lyd = { ...t, mode: MODES.lydian };
+  const deg = SHOP_CHORDS[n % SHOP_CHORDS.length];
+  const notes: Note[] = [];
+  for (const d of [0, 2, 4, 6]) notes.push({ voice: "pad", step: 0, midi: degree(lyd, deg + d, 0), len: 16, vel: 0.25 });
+  SHOP_MELODY.forEach((d, step) => {
+    if (d >= 0 && (n % 2 === 0 || step < 8)) notes.push({ voice: "arp", step, midi: degree(lyd, deg + d, 2), len: 2, vel: 0.4 });
+  });
+  for (const [s, d] of [[0, 0], [4, 2], [8, 4], [12, 5]] as const) {
+    notes.push({ voice: "bass", step: s, midi: degree(lyd, deg + d, -1), len: 3, vel: 0.35 });
+  }
+  for (const s of [4, 10, 12]) notes.push({ voice: "hat", step: s, midi: 0, len: 1, vel: 0.18 });
+  return notes;
+}
+
+// Building a repo: a fast, rising square arpeggio over one chord, like a
+// progress bar that hums. No drums, no bass: it is thinking, not fighting.
+function build(t: Theme, n: number): Note[] {
+  const notes: Note[] = [];
+  const deg = [0, 2, 4, 5][n % 4];
+  for (let s = 0; s < 16; s++) {
+    notes.push({ voice: "arp", step: s, midi: degree(t, deg + [0, 2, 4, 7][s % 4], 1 + (s >> 3)), len: 1, vel: 0.55 });
+  }
+  notes.push({ voice: "pad", step: 0, midi: degree(t, deg, 0), len: 16, vel: 0.35 });
+  return notes;
+}
+
 /** Next phrase in the arp walk: usually a neighbour, sometimes a jump. */
 export function nextPick(current: number, roll: number): number {
   if (roll < 0.6) return (current + 1) % ARPS.length;
@@ -184,7 +271,9 @@ export function nextPick(current: number, roll: number): number {
 }
 
 export function tempoFor(t: Theme, mood: Mood): number {
-  if (mood === "title") return 64;
+  if (mood === "title" || mood === "menu") return 64;
+  if (mood === "shop") return 92;
+  if (mood === "build") return 132;
   if (mood === "boss") return t.tempo + 8;
   if (mood === "rage") return t.tempo + 16;
   return t.tempo;

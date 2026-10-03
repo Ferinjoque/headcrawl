@@ -3,7 +3,7 @@
 // ("A Tale of Two Clocks"), so timing holds even when the main thread is busy.
 // Mood and theme changes wait for the next bar line, so nothing cuts mid-phrase.
 
-import { bar, hz, nextPick, tempoFor, type Mood, type Note, type Theme } from "./score";
+import { bar, hz, nextPick, tempoFor, type Extras, type Mood, type Note, type Theme } from "./score";
 
 /** How far ahead of the audio clock bars get scheduled, in seconds. */
 const AHEAD = 0.25;
@@ -23,6 +23,7 @@ export class Music {
   private nextTheme: Theme | null = null;
   private mood: Mood = "title";
   private nextMood: Mood = "title";
+  private extras: Extras = {};
   private barNo = 0;
   private barTime = 0;
   private pick = 0;
@@ -86,9 +87,10 @@ export class Music {
 
 
   /** Set what plays. Takes effect on the next bar line. */
-  set(theme: Theme, mood: Mood): void {
+  set(theme: Theme, mood: Mood, extras: Extras = {}): void {
     this.nextTheme = theme;
     this.nextMood = mood;
+    this.extras = extras;
     this.start();
   }
 
@@ -147,7 +149,8 @@ export class Music {
     if (!t) return;
     const sixteenth = 60 / tempoFor(t, this.mood) / 4;
     if (this.delay) this.delay.delayTime.setValueAtTime(sixteenth * 3, this.barTime);
-    for (const n of bar(t, this.mood, this.barNo, this.pick)) this.play(n, this.barTime + n.step * sixteenth, sixteenth);
+    if (this.echo) this.echo.gain.setValueAtTime(t.echo, this.barTime);
+    for (const n of bar(t, this.mood, this.barNo, this.pick, this.extras)) this.play(n, this.barTime + n.step * sixteenth, sixteenth);
     // A cheap, repeatable walk through the phrases.
     this.walk = (this.walk * 48271) % 2147483647;
     this.pick = nextPick(this.pick, this.walk / 2147483647);
@@ -174,6 +177,10 @@ export class Music {
         this.hit(n, at, "bandpass", 1800, 0.12);
         this.osc("triangle", 180, at, 0.12, n.vel * 0.3, this.bus!);
         return;
+      case "bell":
+        return this.bell(n, at);
+      case "ghost":
+        return this.ghost(n, at, n.len * sixteenth);
     }
   }
 
@@ -212,9 +219,9 @@ export class Music {
     f.connect(g);
     g.connect(this.bus!);
     g.connect(this.wet!);
-    for (const [type, cents] of [["sawtooth", -7], ["sawtooth", 7]] as const) {
+    for (const cents of [-7, 7]) {
       const o = ctx.createOscillator();
-      o.type = type;
+      o.type = this.theme?.padWave ?? "sawtooth";
       o.frequency.value = hz(n.midi);
       o.detune.value = cents;
       o.connect(f);
@@ -241,7 +248,37 @@ export class Music {
     f.frequency.setValueAtTime(900, at);
     f.frequency.exponentialRampToValueAtTime(200, at + 0.15);
     f.connect(this.bus!);
-    this.osc("square", hz(n.midi), at, Math.max(0.12, dur * 0.9), n.vel * 0.09, f);
+    this.osc(this.theme?.bassWave ?? "square", hz(n.midi), at, Math.max(0.12, dur * 0.9), n.vel * 0.09, f);
+  }
+
+  /** A struck bell: a sine and its inharmonic partials, long decay. */
+  private bell(n: Note, at: number): void {
+    const f = hz(n.midi);
+    for (const [ratio, vol] of [[1, 1], [2.76, 0.4], [5.4, 0.2]] as const) {
+      this.osc("sine", f * ratio, at, 2.2 / ratio, n.vel * 0.5 * vol, this.wet!);
+      this.osc("sine", f * ratio, at, 1.6 / ratio, n.vel * 0.3 * vol, this.bus!);
+    }
+  }
+
+  /** Dead code humming: a thin sine that slowly wavers, mostly reverb. */
+  private ghost(n: Note, at: number, dur: number): void {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.value = hz(n.midi);
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 5.5;
+    const depth = ctx.createGain();
+    depth.gain.value = 18;
+    lfo.connect(depth).connect(o.detune);
+    const g = this.env(at, Math.min(0.8, dur * 0.4), Math.max(0, dur * 0.4), dur * 0.6, n.vel * 0.07);
+    o.connect(g);
+    g.connect(this.wet!);
+    g.connect(this.bus!);
+    for (const x of [o, lfo]) {
+      x.start(at);
+      x.stop(at + dur * 1.5 + 0.1);
+    }
   }
 
   private lead(n: Note, at: number, dur: number): void {

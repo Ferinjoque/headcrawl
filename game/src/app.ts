@@ -1,48 +1,42 @@
 // Ties the rules, the renderer and the DOM together.
 
-import { ABILITY } from "./game/abilities";
 import { autoAction, type AutoMode } from "./game/auto";
 import { Game } from "./game/game";
 import type { GameEvent } from "./game/types";
 import { Attract } from "./attract";
-import { Music } from "./audio/music";
-import { MoodTracker } from "./audio/mood";
-import { depthOf, theme, type Theme } from "./audio/score";
+import { Watcher } from "./watch";
+import { TitleMenu } from "./ui/titlemenu";
+import { SettingsMenu } from "./ui/settingsmenu";
+import { MusicDirector, type Scene } from "./audio/director";
 import { PLAYER } from "./game/balance";
-import { walkable } from "./map/grid";
 import { Effects } from "./render/effects";
-import { C } from "./render/palette";
+import { eventFx } from "./render/eventfx";
 import { Renderer } from "./render/renderer";
 import { loadSpec, type DungeonSpec } from "./spec";
-import { h, plural, replace } from "./ui/dom";
+import { replace } from "./ui/dom";
 import { loadGallery, loadGalleryDungeon, type GalleryEntry } from "./ui/gallery";
 import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { bestiaryScreen, compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, vendorCard, type TitleView, type TokenView } from "./ui/screens";
-import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
+import { bannerCard, bestiaryScreen, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen, perkCard, vendorCard } from "./ui/screens";
+import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
-import { recordRun } from "./ui/best";
-import { dailyOf, dailyPick, dailyStarts, startDaily } from "./ui/daily";
+import { recordFinished } from "./ui/records";
+import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, type ModId } from "./game/extras";
-import { parseCode, runCode } from "./ui/codes";
-import { analyzeFolder, analyzeInBrowser } from "./lite/client";
-import { clearToken, loadToken, saveToken, tokenPlace } from "./ui/token";
-import { parseRepo } from "./lite/protocol";
-import { recentBuilds, rememberBuild } from "./ui/recent";
-import { dropSave, findSave, listSaves, putSave } from "./ui/save";
+import { runCode } from "./ui/codes";
+import { dropSave, findSave, putSave } from "./ui/save";
 import { RULES, decodeLog } from "./game/record";
 import { compareSpecs } from "./lite/compare";
-import { validRef } from "./lite/protocol";
-import type { Action } from "./game/types";
+import { Builder } from "./ui/builder";
+import { bindPointer } from "./ui/pointer";
+import { copyText, runLink, saveCast, saveGif, saveLog } from "./ui/exports";
 import { Hints } from "./ui/hints";
-import { addRun, loadCodex, saveCodex } from "./ui/codex";
-import { ghostAt, ghostFor, keepGhost, trackOf, type Track } from "./ui/ghostrun";
+import { loadCodex } from "./ui/codex";
+import { ghostAt, ghostFor, trackOf, type Track } from "./ui/ghostrun";
 import { Sound } from "./ui/sound";
-import { downloadBlob, downloadText, logFileName, runLog } from "./ui/morgue";
-import { castOf } from "./ui/cast";
-import { decodeSpec, encodeSpec, parseRoute, playRoute, resultText, routeHash, shareLink, type PlayRoute, type Route } from "./ui/share";
+import { decodeSpec, parseRoute, playRoute, resultText, routeHash, shareLink, type PlayRoute, type Route } from "./ui/share";
 
 type Mode = "title" | "play" | "watch" | "dying" | "help" | "pause" | "settings" | "compare" | "end" | "loading";
 
@@ -51,15 +45,6 @@ const $ = (id: string) => document.getElementById(id)!;
 /** A new run number for a fresh game. Shown to the player as part of the run code. */
 const freshRun = () => 1 + Math.floor(Math.random() * 9999);
 
-/** The title has its own theme, the same for everyone. */
-const TITLE_THEME = theme("HEADCRAWL", 0, "python", "HEADCRAWL");
-
-function mainLanguage(rooms: { language: string; loc: number }[]): string {
-  const loc = new Map<string, number>();
-  for (const r of rooms) loc.set(r.language, (loc.get(r.language) ?? 0) + r.loc);
-  return [...loc].sort((x, y) => y[1] - x[1])[0]?.[0] ?? "";
-}
-
 /** Frames per second when nothing is happening but the light still flickers. */
 const IDLE_FPS = 12;
 
@@ -67,9 +52,8 @@ export class App {
   private renderer: Renderer;
   private fx = new Effects();
   private sound = new Sound();
-  private music = new Music();
-  private moods = new MoodTracker();
-  private floorTheme: { key: string; theme: Theme } | null = null;
+  private director = new MusicDirector();
+  private builder: Builder;
   /** Which try at today's daily this is: 1 counts, later ones are practice. 0 when not a daily. */
   private dailyTry = 0;
   private dailyMod: ModId | null = null;
@@ -83,21 +67,19 @@ export class App {
   private mode: Mode = "loading";
   private returnMode: Mode = "title";
   private gallery: GalleryEntry[] = [];
-  private selected = 0;
-  private titleError: string | null = null;
   game: Game | null = null;
   /** The dungeon being played, or the title. Comparisons live outside it. */
   private route: PlayRoute | { kind: "title" } = { kind: "title" };
   private attract: Attract;
-  private titleView: TitleView = { more: false, code: false };
+  private title: TitleMenu;
+  private settingsMenu: SettingsMenu;
   private auto: AutoMode | null = null;
   private autoTimer = 0;
   private endTimer = 0;
   /** Bumped on every navigation so a slow fetch can't replace a newer game. */
   private navSeq = 0;
-  private built = new Map<string, string>();
   private saveTimer = 0;
-  private watching: { actions: Action[]; at: number; perSecond: number; paused: boolean; timer: number } | null = null;
+  private watcher: Watcher;
   private copied = false;
   private lastDraw = 0;
   private dirty = true;
@@ -112,6 +94,59 @@ export class App {
     this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 4);
     this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
     this.applySettings();
+    this.builder = new Builder({
+      status: (text, tone) => this.buildStatus(text, tone),
+      busy: (on) => {
+        if (on && this.mode !== "title") this.showTitle();
+        this.mode = on ? "loading" : "title";
+        this.syncMusic();
+      },
+      navigate: (route) => this.navigate(route),
+      fail: (msg) => this.failToTitle(msg),
+    });
+    this.settingsMenu = new SettingsMenu({
+      settings: () => this.settings,
+      apply: (next) => {
+        this.settings = next;
+        this.applySettings();
+        this.syncMusic();
+        if (this.game) this.refreshUi();
+      },
+      toggleSound: () => this.sound.toggle(),
+      resetTips: () => this.hints.reset(),
+      show: (node) => this.showScreen(node),
+      close: () => this.closeOverlay(),
+    });
+    this.title = new TitleMenu({
+      gallery: () => this.gallery,
+      show: (node) => this.showScreen(node, true),
+      navigate: (route) => this.navigate(route),
+      freshRun,
+      build: (target) => void this.builder.fromGitHub(target),
+      compare: (repo, ref) => void this.builder.compare(repo, ref),
+      openFile: () => ($("file") as HTMLInputElement).click(),
+      openFolder: () => ($("folder") as HTMLInputElement).click(),
+      help: () => this.openHelp(),
+      settings: () => this.openSettings(),
+      bestiary: () => this.openBestiary(),
+      caption: () => this.attract.caption(),
+    });
+    this.watcher = new Watcher({
+      game: () => (this.mode === "watch" ? this.game : null),
+      stepped: (game) => {
+        this.handleEvents(game.drain());
+        this.refreshUi();
+      },
+      say: (text, tone) => {
+        this.log.push(text, tone);
+        this.log.render();
+      },
+      finished: (over) => {
+        if (!over) this.mode = "play";
+        else window.setTimeout(() => this.showEnd(), this.reduced ? 200 : 900);
+      },
+      leave: () => this.navigate({ kind: "title" }),
+    });
     this.attract = new Attract({
       entries: () => this.gallery,
       events: (game, events) => {
@@ -143,61 +178,10 @@ export class App {
     saveSettings(s);
   }
 
-  private openSettings(note = "", tokenNote?: TokenView["note"]): void {
+  private openSettings(): void {
     if (this.mode !== "settings") this.returnMode = this.mode === "dying" ? "play" : this.mode;
     this.mode = "settings";
-    this.showScreen(
-      settingsScreen(this.settings, {
-        sound: () => this.changeSetting("sound"),
-        music: () => this.changeSetting("music"),
-        text: () => this.changeSetting("text"),
-        colors: () => this.changeSetting("colors"),
-        motion: () => this.changeSetting("motion"),
-        tips: () => this.changeSetting("tips"),
-        saveToken: (text, remember) =>
-          this.openSettings(
-            "",
-            saveToken(text, remember)
-              ? { text: "Saved. The next repo you build uses it.", ok: true }
-              : { text: "That isn't a GitHub token. They start with github_pat_ or ghp_.", ok: false },
-          ),
-        clearToken: () => {
-          clearToken();
-          this.openSettings("", { text: "Forgotten.", ok: true });
-        },
-        close: () => this.closeOverlay(),
-      }, note, { place: tokenPlace(), note: tokenNote }),
-    );
-  }
-
-  private changeSetting(which: "sound" | "music" | "text" | "colors" | "motion" | "tips"): void {
-    const s = this.settings;
-    let note = "";
-    if (which === "sound") s.sound = this.sound.toggle();
-    if (which === "music") s.music = !s.music;
-    if (which === "text") s.text = cycle(["small", "normal", "large"] as const, s.text);
-    if (which === "colors") s.colors = cycle(["glow", "colorblind", "contrast"] as const, s.colors);
-    if (which === "motion") s.motion = cycle(["full", "calm"] as const, s.motion);
-    if (which === "tips") {
-      this.hints.reset();
-      note = "Tips will show up again as things happen.";
-    }
-    this.applySettings();
-    this.syncMusic();
-    this.openSettings(note);
-    if (this.game) this.refreshUi();
-  }
-
-  private settingsKey(e: KeyboardEvent): void {
-    // The token field takes any key; only Escape leaves it.
-    if (e.target instanceof HTMLInputElement && e.key !== "Escape") return;
-    const keys = { "1": "sound", "2": "music", "3": "text", "4": "colors", "5": "motion", "6": "tips" } as const;
-    const which = keys[e.key as keyof typeof keys];
-    if (which) this.changeSetting(which);
-    else if (e.key === "Escape" || e.key === ",") {
-      e.preventDefault();
-      this.closeOverlay();
-    }
+    this.settingsMenu.open();
   }
 
   async start(): Promise<void> {
@@ -215,7 +199,15 @@ export class App {
       if (document.hidden) this.scheduleSave(true);
     });
     window.addEventListener("hashchange", () => void this.follow(parseRoute(location.hash)));
-    this.bindPointer();
+    bindPointer($("view"), $("tip"), $("stage"), {
+      playing: () => (this.mode === "play" ? this.game : null),
+      cellAt: (x, y) => this.renderer.cellAt(x, y),
+      command: (c) => this.command(c),
+      travel: (to) => {
+        this.stopAuto();
+        this.startAuto({ kind: "travel", to });
+      },
+    });
     this.bindFiles();
     if (window.matchMedia("(pointer: coarse)").matches) {
       const pad = $("touch");
@@ -227,9 +219,9 @@ export class App {
     await this.follow(parseRoute(location.hash));
   }
 
-
   private async follow(route: Route): Promise<void> {
     const seq = ++this.navSeq;
+    this.watcher.stop();
     window.clearTimeout(this.endTimer);
     if (route.kind === "title") {
       this.game = null;
@@ -249,7 +241,7 @@ export class App {
       if (seq !== this.navSeq) return;
       if (!text) return this.failToTitle(`No dungeon called "${route.slug}" here.`);
     } else if (route.kind === "github") {
-      text = await this.buildGitHub(route.owner, route.repo, route.sha);
+      text = await this.builder.github(route.owner, route.repo, route.sha);
       if (seq !== this.navSeq) return;
       if (!text) return;
     } else {
@@ -264,7 +256,8 @@ export class App {
       const actions = raw === null ? null : decodeLog(raw);
       if (!actions) return this.failToTitle("That replay link is broken.");
       this.begin(res.spec, route.run, undefined, true);
-      this.startWatch(actions);
+      this.mode = "watch";
+      this.watcher.start(actions);
       return;
     }
     this.begin(res.spec, route.run, findSave(this.saveKey())?.log);
@@ -296,63 +289,6 @@ export class App {
     else this.saveTimer = window.setTimeout(write, 400);
   }
 
-  private startWatch(actions: Action[]): void {
-    this.mode = "watch";
-    this.watching = { actions, at: 0, perSecond: 8, paused: false, timer: 0 };
-    this.log.push("Watching a recorded run. Space pauses, + and - change speed, Esc leaves.", "lore");
-    this.log.render();
-    this.tickWatch();
-  }
-
-  private tickWatch(): void {
-    const w = this.watching;
-    const game = this.game;
-    if (!w || !game || this.mode !== "watch") return;
-    window.clearTimeout(w.timer);
-    if (w.paused) return;
-    if (w.at >= w.actions.length || game.outcome !== "playing") {
-      this.watching = null;
-      if (game.outcome === "playing") {
-        this.log.push("That's where the recording stops.", "lore");
-        this.log.render();
-        this.mode = "play";
-        return;
-      }
-      window.setTimeout(() => this.showEnd(), this.reduced ? 200 : 900);
-      return;
-    }
-    game.act(w.actions[w.at++]);
-    this.handleEvents(game.drain());
-    this.refreshUi();
-    w.timer = window.setTimeout(() => this.tickWatch(), 1000 / w.perSecond);
-  }
-
-  private watchKey(e: KeyboardEvent): void {
-    const w = this.watching;
-    if (e.key === "Escape") {
-      if (w) window.clearTimeout(w.timer);
-      this.watching = null;
-      this.navigate({ kind: "title" });
-      return;
-    }
-    if (!w) return;
-    if (e.key === " ") {
-      e.preventDefault();
-      w.paused = !w.paused;
-      this.log.push(w.paused ? "Paused. Space goes on, the right arrow steps." : "Playing.", "info");
-      this.log.render();
-      if (!w.paused) this.tickWatch();
-    } else if (e.key === "+" || e.key === "=") {
-      w.perSecond = Math.min(64, w.perSecond * 2);
-    } else if (e.key === "-") {
-      w.perSecond = Math.max(1, w.perSecond / 2);
-    } else if (e.key === "ArrowRight" && w.paused) {
-      w.paused = false;
-      this.tickWatch();
-      w.paused = true;
-    }
-  }
-
   private navigate(route: Route): void {
     const hash = routeHash(route);
     if (location.hash === hash) void this.follow(route);
@@ -360,11 +296,10 @@ export class App {
   }
 
   private failToTitle(msg: string): void {
-    this.titleError = msg;
+    this.title.error = msg;
     history.replaceState(null, "", "#/");
     this.showTitle();
   }
-
 
   private showScreen(node: HTMLElement | null, clear = false): void {
     this.touch();
@@ -377,11 +312,12 @@ export class App {
     screen.classList.toggle("clear", clear);
     replace(screen, node);
     screen.hidden = false;
+    this.syncMusic();
   }
 
   private showTitle(): void {
     this.mode = "title";
-    this.titleView = { more: false, code: false };
+    this.title.reset();
     this.attract.start();
     this.syncMusic();
     document.body.classList.add("titling");
@@ -390,114 +326,20 @@ export class App {
     renderHud($("hud"), null);
     replace($("panel"));
     document.title = "HEADCRAWL";
-    this.renderTitle();
+    this.title.render();
   }
 
-  private renderTitle(): void {
-    const daily = dailyPick(this.gallery, new Date());
-    this.showScreen(
-      titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label, played: dailyStarts(daily.label) > 0 }, {
-        play: (slug) => this.navigate({ kind: "gallery", slug, run: freshRun() }),
-        daily: () => this.playDaily(),
-        build: (target) => void this.buildFromGitHub(target),
-        reopen: (r) => this.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
-        resume: (s) => {
-          location.hash = s.hash;
-        },
-        compare: (repo, ref) => void this.buildCompare(repo, ref),
-        code: (text) => {
-          // A whole link from someone else's copy works too: only the part after # matters.
-          const hash = text.trim().match(/#\/\S*$/)?.[0];
-          if (hash && parseRoute(hash).kind !== "title") {
-            location.hash = hash;
-            return;
-          }
-          const route = parseCode(text);
-          const status = document.getElementById("code-status");
-          if (route) this.navigate(route);
-          else if (status) {
-            status.className = "error";
-            status.textContent = "Codes look like flask-4821 or owner/repo@abc1234-4821. Whole links work too.";
-          }
-        },
-        open: () => ($("file") as HTMLInputElement).click(),
-        help: () => this.openHelp(),
-        settings: () => this.openSettings(),
-        toggleMore: () => this.toggleMore(),
-        bestiary: () => this.openBestiary(),
-        folder: () => ($("folder") as HTMLInputElement).click(),
-        showCode: () => this.showCodeBox(),
-      },
-      recentBuilds(),
-      listSaves(),
-      this.titleView,
-      ),
-      true,
-    );
-    const current = document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`);
-    current?.scrollIntoView({ block: "nearest" });
-    const caption = document.getElementById("attract");
-    if (caption) caption.textContent = this.attract.caption();
-  }
-
-  /** Keeps the music in step with the screen: title theme, or the floor's theme in the right mood. */
+  /** Keeps the music in step with the screen. */
   private syncMusic(): void {
-    this.music.attach(this.sound.context);
-    this.music.enabled = this.sound.enabled && this.settings.music;
-    if (!this.music.enabled) return this.music.stop();
-    const game = this.game;
-    if (!game || this.route.kind === "title") {
-      this.moods.reset();
-      this.music.set(TITLE_THEME, "title");
-      return;
-    }
-    const f = game.floorSpec;
-    const key = `${game.spec.repo.head}/${f.index}`;
-    if (this.floorTheme?.key !== key) {
-      this.floorTheme = { key, theme: theme(game.spec.repo.head, depthOf(f.index, game.spec.floors.length), mainLanguage(f.rooms), f.boss.name) };
-    }
-    this.music.set(this.floorTheme.theme, this.moods.mood(game, performance.now()));
-  }
-
-  private toggleMore(): void {
-    this.titleView = { ...this.titleView, more: !this.titleView.more };
-    this.renderTitle();
-    if (this.titleView.more) document.querySelector<HTMLInputElement>('input[name="repo"]')?.focus();
-  }
-
-  private showCodeBox(): void {
-    this.titleView = { ...this.titleView, code: true };
-    this.renderTitle();
-    document.querySelector<HTMLInputElement>('input[name="code"]')?.focus();
+    const game = this.route.kind === "title" ? null : this.game;
+    const menu = this.mode === "help" || this.mode === "settings" || this.mode === "pause";
+    const scene: Scene =
+      this.mode === "loading" && !game ? "build" : menu ? "menu" : game?.vendorChoice && this.mode === "play" ? "shop" : "game";
+    this.director.sync(this.sound.context, this.sound.enabled && this.settings.music, game, scene);
   }
 
   private dailyLabel(): string {
-    const r = this.route;
-    const daily = r.kind === "gallery" ? dailyOf(this.gallery, r.slug, r.run) : null;
-    if (!daily) return "";
-    const twist = daily.mod ? ` (${MODS[daily.mod].name})` : "";
-    return `daily ${daily.label}${twist}${this.dailyTry > 1 ? " practice" : ""}`;
-  }
-
-  private saveLog(): void {
-    if (this.game) downloadText(logFileName(this.game), runLog(this.game, shareLink(location.href)));
-  }
-
-  /** The end of the run as a GIF, rebuilt from the log. Loaded only when asked for. */
-  private async saveGif(): Promise<void> {
-    const game = this.game;
-    if (!game) return;
-    this.log.push("Drawing the GIF...", "info");
-    this.log.render();
-    const { gifOf } = await import("./ui/gif");
-    const blob = await gifOf(game.spec, game.run, game.mods, game.record());
-    if (blob) downloadBlob(logFileName(game).replace(/\.txt$/, ".gif"), blob);
-  }
-
-  private saveCast(): void {
-    const game = this.game;
-    const cast = game ? castOf(game.spec, game.run, game.mods, game.record()) : null;
-    if (game && cast) downloadBlob(logFileName(game).replace(/\.txt$/, ".cast"), new Blob([cast], { type: "application/x-asciicast" }));
+    return this.route.kind === "gallery" ? dailyLabel(this.gallery, this.route.slug, this.route.run, this.dailyTry) : "";
   }
 
   private buildStatus(text: string, tone = "dim"): void {
@@ -507,55 +349,11 @@ export class App {
     el.textContent = text;
   }
 
-  /** Runs the in-browser analyzer, remembering results so a link opens instantly. */
-  private async buildGitHub(owner: string, repo: string, sha?: string): Promise<string | null> {
-    const key = `${owner}/${repo}@${sha ?? "latest"}`.toLowerCase();
-    const cached = this.built.get(key);
-    if (cached) return cached;
-    if (this.mode !== "title") this.showTitle();
-    this.mode = "loading";
-    this.buildStatus(`Building ${owner}/${repo}`, "t-loot");
-    document.getElementById("build-status")?.scrollIntoView({ block: "center" });
-    try {
-      const json = await analyzeInBrowser(owner, repo, (text) => this.buildStatus(text, "t-loot"), sha, loadToken() ?? undefined);
-      this.built.set(key, json);
-      return json;
-    } catch (err) {
-      this.mode = "title";
-      this.buildStatus(err instanceof Error ? err.message : String(err), "error");
-      return null;
-    }
-  }
-
-  /** Build the same repo at an old ref and at its latest commit, then compare. */
-  private async buildCompare(target: string, ref: string): Promise<void> {
-    const repo = parseRepo(target);
-    if (!repo) return this.buildStatus("That doesn't look like owner/repo or a GitHub link.", "error");
-    const then = ref.trim();
-    if (!validRef(then)) return this.buildStatus("For then, give a tag, a branch or a commit, like v1.0.0.", "error");
-    const old = await this.buildGitHub(repo.owner, repo.repo, then);
-    if (!old) return;
-    const latest = await this.buildGitHub(repo.owner, repo.repo);
-    if (!latest) return;
-    const a = loadSpec(old);
-    const b = loadSpec(latest);
-    if (!a.ok || !b.ok) return this.buildStatus("One of the two builds came out broken.", "error");
-    for (const [json, spec] of [[old, a.spec], [latest, b.spec]] as const) {
-      this.built.set(`${repo.owner}/${repo.repo}@${spec.repo.head}`.toLowerCase(), json);
-    }
-    this.navigate({ kind: "compare", owner: repo.owner, repo: repo.repo, a: a.spec.repo.head, b: b.spec.repo.head });
-  }
-
   private compareRoutes: { then: PlayRoute; now: PlayRoute } | null = null;
 
   private async showCompare(owner: string, repo: string, a: string, b: string, seq: number): Promise<void> {
-    const old = await this.buildGitHub(owner, repo, a);
-    if (seq !== this.navSeq || !old) return;
-    const latest = await this.buildGitHub(owner, repo, b);
-    if (seq !== this.navSeq || !latest) return;
-    const then = loadSpec(old);
-    const now = loadSpec(latest);
-    if (!then.ok || !now.ok) return this.failToTitle("One of the two builds came out broken.");
+    const pair = await this.builder.pair(owner, repo, a, b, () => seq === this.navSeq);
+    if (!pair) return;
     this.mode = "compare";
     this.route = { kind: "title" };
     this.compareRoutes = {
@@ -564,54 +362,13 @@ export class App {
     };
     document.body.classList.add("titling");
     this.showScreen(
-      compareScreen(`${owner}/${repo}`, compareSpecs(then.spec, now.spec), {
+      compareScreen(`${owner}/${repo}`, compareSpecs(...pair), {
         playThen: () => this.compareRoutes && this.navigate(this.compareRoutes.then),
         playNow: () => this.compareRoutes && this.navigate(this.compareRoutes.now),
         menu: () => this.navigate({ kind: "title" }),
       }),
       true,
     );
-  }
-
-  private async buildFromGitHub(target: string): Promise<void> {
-    const repo = parseRepo(target);
-    if (!repo) return this.buildStatus("That doesn't look like owner/repo or a GitHub link.", "error");
-    const json = await this.buildGitHub(repo.owner, repo.repo);
-    if (!json) return;
-    const res = loadSpec(json);
-    if (!res.ok) return this.buildStatus(res.error, "error");
-    const sha = res.spec.repo.head;
-    this.built.set(`${repo.owner}/${repo.repo}@${sha}`.toLowerCase(), json);
-    rememberBuild({ owner: repo.owner, repo: repo.repo, sha });
-    this.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0 });
-  }
-
-  /** A folder from the player's own disk, analyzed in the worker like a GitHub repo. */
-  private async buildFromFolder(list: FileList): Promise<void> {
-    const all = [...list];
-    if (!all.length) return;
-    const top = all[0].webkitRelativePath.split("/")[0] || "folder";
-    const junk = /(^|\/)(node_modules|\.git|vendor|dist|build|target|__pycache__|\.venv|venv)\//;
-    const files = all
-      .filter((f) => f.size <= 1024 * 1024 && !junk.test(f.webkitRelativePath))
-      .slice(0, 20_000)
-      .map((file) => ({ path: file.webkitRelativePath.split("/").slice(1).join("/"), file }));
-    this.mode = "loading";
-    this.buildStatus(`Reading ${top}`);
-    try {
-      const json = await analyzeFolder(top, files, (text) => this.buildStatus(text));
-      const res = loadSpec(json);
-      if (!res.ok) throw new Error(res.error);
-      this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
-    } catch (err) {
-      this.mode = "title";
-      this.buildStatus(err instanceof Error ? err.message : String(err), "error");
-    }
-  }
-
-  private playDaily(): void {
-    const daily = dailyPick(this.gallery, new Date());
-    if (daily) this.navigate({ kind: "gallery", slug: daily.entry.slug, run: daily.run });
   }
 
   private openHelp(): void {
@@ -655,23 +412,9 @@ export class App {
   private showEnd(): void {
     const game = this.game;
     if (!game || game.outcome === "playing") return;
-    if (!this.recorded && this.route.kind !== "title" && !this.route.watch) {
-      saveCodex(addRun(loadCodex(), game));
-      keepGhost(this.saveKey(), {
-        log: game.record(),
-        won: game.outcome === "won",
-        floor: game.floor.index + 1,
-        turns: game.player.turns,
-      });
-    }
     if (!this.recorded) {
       this.recorded = true;
-      recordRun(game.spec.repo.head, {
-        floor: game.floor.index + 1,
-        floors: game.spec.floors.length,
-        won: game.outcome === "won",
-        turns: game.player.turns,
-      });
+      recordFinished(game, this.saveKey(), this.route.kind !== "title" && !!this.route.watch);
     }
     this.mode = "end";
     this.stopAuto();
@@ -680,11 +423,11 @@ export class App {
       endScreen(game, share, this.copied, {
         again: () => this.again(),
         copy: () => this.copyResult(share),
-        save: () => this.saveLog(),
+        save: () => this.game && saveLog(this.game),
         replay: () => this.copyReplay(),
         race: () => this.copyReplay(true),
-        gif: () => void this.saveGif(),
-        cast: () => this.saveCast(),
+        gif: () => this.exportGif(),
+        cast: () => this.game && saveCast(this.game),
         menu: () => this.navigate({ kind: "title" }),
         more: () => {
           this.endMore = !this.endMore;
@@ -700,13 +443,6 @@ export class App {
     this.navigate({ ...playRoute(this.route), run: freshRun() });
   }
 
-  private replayLink(race = false): string {
-    if (!this.game || this.route.kind === "title") return shareLink(location.href);
-    const log = encodeSpec(this.game.record());
-    const route: PlayRoute = race ? { ...playRoute(this.route), race: log, v: RULES } : { ...playRoute(this.route), watch: log, v: RULES };
-    return shareLink(location.href.split("#")[0] + routeHash(route));
-  }
-
   private again(): void {
     if (!this.game || this.route.kind === "title") return;
     // After watching someone's run, "again" means: your turn, same dungeon, same rolls.
@@ -715,29 +451,31 @@ export class App {
   }
 
   private copyReplay(race = false): void {
-    void navigator.clipboard?.writeText(this.replayLink(race)).then(
-      () => {
-        this.log.push(race ? "Race link copied. Whoever opens it plays against your run." : "Replay link copied.", "good");
-        this.log.render();
-      },
-      () => undefined,
-    );
+    if (!this.game || this.route.kind === "title") return;
+    void copyText(runLink(this.game, this.route, race)).then((ok) => {
+      if (!ok) return;
+      this.log.push(race ? "Race link copied. Whoever opens it plays against your run." : "Replay link copied.", "good");
+      this.log.render();
+    });
   }
 
   private copyResult(text: string): void {
-    void navigator.clipboard?.writeText(text).then(
-      () => {
-        this.copied = true;
-        if (this.mode === "end") this.showEnd();
-      },
-      () => undefined,
-    );
+    void copyText(text).then((ok) => {
+      this.copied = ok;
+      if (ok && this.mode === "end") this.showEnd();
+    });
   }
 
+  private exportGif(): void {
+    if (!this.game) return;
+    this.log.push("Drawing the GIF...", "info");
+    this.log.render();
+    void saveGif(this.game);
+  }
 
   private begin(spec: DungeonSpec, run: number, resume?: string, watching = false): void {
     window.clearTimeout(this.endTimer);
-    this.titleError = null;
+    this.title.error = null;
     this.copied = false;
     this.endMore = false;
     this.stopAuto();
@@ -749,7 +487,7 @@ export class App {
     const mod = this.route.kind === "gallery" ? dailyMod(run) : null;
     const mods = mod ? [mod] : [];
     this.dailyMod = mod;
-    this.moods.reset();
+    this.director.reset();
     this.recorded = false;
     const resumed = resume ? Game.replay(spec, run, resume, mods) : null;
     this.game = resumed ?? new Game(spec, { run, mods });
@@ -823,7 +561,7 @@ export class App {
     }
     if (c.kind === "sound") {
       const on = this.sound.toggle();
-      this.settings.sound = on;
+      this.settings = { ...this.settings, sound: on };
       saveSettings(this.settings);
       this.syncMusic();
       this.log.push(on ? "Sound on. m turns it off." : "Sound off.", "info");
@@ -907,117 +645,37 @@ export class App {
   /** Quiet is for the attract demo: effects only, no sound, log or cards. */
   private handleEvents(events: GameEvent[], game: Game = this.game!, quiet = false): void {
     const now = performance.now();
-    const fx = this.fx;
     for (const e of events) {
-      if (quiet && (e.t === "msg" || e.t === "taunt" || e.t === "intro" || e.t === "descend")) {
-        if (e.t === "descend") fx.clear();
-        continue;
+      eventFx(e, this.fx, game, now);
+      if (quiet) continue;
+      this.sound.play(e);
+      if (e.t === "msg" && !e.quiet) this.log.push(e.text, e.tone);
+      else if (e.t === "hit" && e.onPlayer) this.director.duck();
+      else if (e.t === "taunt") this.log.push(`${e.name}: "${e.text}"`, "boss");
+      else if (e.t === "intro") {
+        this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
+        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text));
       }
-      if (!quiet) this.sound.play(e);
-      switch (e.t) {
-        case "msg":
-          if (!e.quiet) this.log.push(e.text, e.tone);
-          break;
-        case "hit":
-          fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);
-          fx.flash(e.x, e.y, e.onPlayer ? C.danger : C.player, now);
-          if (e.onPlayer && e.amount >= 5) fx.shake(4, now);
-          if (e.onPlayer && !quiet) this.music.duck();
-          if (e.crit) {
-            fx.shake(3, now);
-            fx.burst(e.x, e.y, "*+*+", C.gold, now, 0.7);
-          }
-          break;
-        case "miss":
-          fx.float(e.x, e.y, "miss", C.dim, now);
-          break;
-        case "kill":
-          fx.flash(e.x, e.y, e.boss ? C.boss : C.ember, now);
-          fx.burst(e.x, e.y, e.name, e.boss ? C.boss : C.ember, now, e.boss ? 1.6 : 1);
-          if (e.boss) fx.shake(9, now);
-          break;
-        case "heal":
-          if (e.amount > 0) fx.float(e.x, e.y, `+${e.amount}`, C.hp, now);
-          break;
-        case "pickup":
-          fx.flash(e.x, e.y, C.loot, now);
-          break;
-        case "levelup": {
-          const p = game.player;
-          fx.float(p.x, p.y, `LEVEL ${e.level}`, C.gold, now);
-          break;
-        }
-        case "taunt":
-          this.log.push(`${e.name}: "${e.text}"`, "boss");
-          break;
-        case "intro":
-          this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
-          this.card(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text);
-          fx.shake(5, now);
-          break;
-        case "descend":
-          this.renderer.snapCamera();
-          fx.clear();
-          this.floorCard();
-          break;
-        case "death":
-          fx.shake(10, now);
-          break;
-        case "telegraph":
-          fx.flash(e.x, e.y, C.danger, now);
-          break;
-        case "dodge":
-          fx.float(e.x, e.y, "dodge", C.dim, now);
-          break;
-        case "split":
-          fx.float(e.x, e.y, "split", C.danger, now);
-          fx.flash(e.x, e.y, C.danger, now);
-          break;
-        case "loop":
-          this.renderer.snapCamera();
-          fx.flash(game.player.x, game.player.y, C.violet, now);
-          break;
-        case "reveal":
-        case "victory":
-          break;
-      }
+      if (e.t === "descend" || e.t === "loop") this.renderer.snapCamera();
+      if (e.t === "descend") this.floorCard();
     }
   }
 
-  private card(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string): void {
-    const el = $("banner");
-    replace(
-      el,
-      h(
-        "div",
-        { class: "card" },
-        h("div", { class: "card-kicker" }, kicker),
-        h("div", { class: `card-name ${kind}${name.length > 14 ? " long" : ""}` }, name),
-        h("div", { class: "card-sub" }, sub),
-        quote ? h("div", { class: "card-quote" }, `"${quote}"`) : null,
-      ),
-    );
-  }
-
   private floorCard(): void {
-    const game = this.game!;
-    const f = game.floorSpec;
-    const twist = f.index === 0 && this.dailyMod ? `. Today: ${MODS[this.dailyMod].name}. ${MODS[this.dailyMod].text}` : "";
-    this.card(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}${twist}`);
+    replace($("banner"), floorBanner(this.game!, this.dailyMod ? MODS[this.dailyMod] : null));
   }
-
 
   private onKey(e: KeyboardEvent): void {
     this.sound.wake();
     this.syncMusic();
-    if (this.mode === "settings") return this.settingsKey(e);
+    if (this.mode === "settings") return this.settingsMenu.key(e);
     const typing = e.target instanceof HTMLInputElement;
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
       e.preventDefault();
       return this.openSettings();
     }
-    if (this.mode === "title") return this.titleKey(e);
-    if (this.mode === "watch") return this.watchKey(e);
+    if (this.mode === "title") return this.title.key(e);
+    if (this.mode === "watch") return this.watcher.key(e);
     if (this.mode === "compare") {
       if (e.target instanceof HTMLInputElement || !this.compareRoutes) return;
       if (e.key === "1") this.navigate(this.compareRoutes.then);
@@ -1029,11 +687,11 @@ export class App {
     if (this.mode === "end") {
       if (e.key === "r" || e.key === "R") this.again();
       else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, shareLink(location.href), this.dailyLabel(), this.code()));
-      else if (e.key === "s" || e.key === "S") this.saveLog();
+      else if (e.key === "s" || e.key === "S") saveLog(this.game!);
       else if (e.key === "w" || e.key === "W") this.copyReplay();
       else if (e.key === "g" || e.key === "G") this.copyReplay(true);
-      else if (e.key === "v" || e.key === "V") void this.saveGif();
-      else if (e.key === "a" || e.key === "A") this.saveCast();
+      else if (e.key === "v" || e.key === "V") this.exportGif();
+      else if (e.key === "a" || e.key === "A") saveCast(this.game!);
       else if (e.key === "Tab") {
         e.preventDefault();
         this.endMore = !this.endMore;
@@ -1064,160 +722,16 @@ export class App {
     this.command(cmd);
   }
 
-  private titleKey(e: KeyboardEvent): void {
-    const idle = e.target === document.body || e.target === document.documentElement;
-    if (e.key === "Tab" && !e.shiftKey && idle) {
-      e.preventDefault();
-      this.toggleMore();
-      return;
-    }
-    // Typing a repo name must not trigger the list shortcuts.
-    if (e.target instanceof HTMLInputElement) {
-      if (e.key === "Escape") {
-        this.titleView = { more: false, code: false };
-        this.renderTitle();
-      }
-      return;
-    }
-    const n = this.gallery.length;
-    if (e.key === "c" || e.key === "C") {
-      e.preventDefault();
-      this.showCodeBox();
-      return;
-    }
-    if (e.key === " " && idle) {
-      const save = listSaves()[0];
-      if (save) {
-        e.preventDefault();
-        location.hash = save.hash;
-      }
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key === "j") this.selected = n ? (this.selected + 1) % n : 0;
-    else if (e.key === "ArrowUp" || e.key === "k") this.selected = n ? (this.selected - 1 + n) % n : 0;
-    else if (e.key === "Enter") {
-      // Let a focused button handle its own Enter.
-      if (document.activeElement instanceof HTMLButtonElement) return;
-      const entry = this.gallery[this.selected];
-      if (entry) this.navigate({ kind: "gallery", slug: entry.slug, run: freshRun() });
-      return;
-    } else if (e.key === "o" || e.key === "O") {
-      ($("file") as HTMLInputElement).click();
-      return;
-    } else if (e.key === "d" || e.key === "D") {
-      this.playDaily();
-      return;
-    } else if (e.key === "?") {
-      this.openHelp();
-      return;
-    } else if (e.key === "b" || e.key === "B") {
-      this.openBestiary();
-      return;
-    } else if ((e.key === "f" || e.key === "F") && this.titleView.more) {
-      ($("folder") as HTMLInputElement).click();
-      return;
-    } else return;
-    e.preventDefault();
-    this.renderTitle();
-  }
-
-  private showTip(clientX: number, clientY: number): void {
-    const tip = $("tip");
-    const game = this.game;
-    if (this.mode !== "play" || !game) {
-      tip.hidden = true;
-      return;
-    }
-    const [x, y] = this.renderer.cellAt(clientX, clientY);
-    const m = game.isVisible(x, y) ? game.monsterAt(x, y) : undefined;
-    const item = game.isVisible(x, y) ? game.itemAt(x, y) : undefined;
-    if (!m && !item) {
-      tip.hidden = true;
-      return;
-    }
-    if (m) {
-      const e = m.enemy;
-      replace(
-        tip,
-        h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
-        h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
-        h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
-        h("div", { class: "t-lore" }, ABILITY[m.archetype]),
-        e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
-        m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
-        m.awake ? null : h("div", { class: "faint" }, "asleep"),
-      );
-    } else if (item) {
-      const names = { potion: "TODO", blade: "FIXME", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
-      replace(
-        tip,
-        h("div", { class: "tip-name t-loot" }, names[item.kind]),
-        item.loot ? h("div", null, `"${item.loot.text}"`) : h("div", null, "Still warm."),
-        item.loot?.year
-          ? h("div", { class: "faint" }, `written in ${item.loot.year}${item.loot.year_or_older ? " or earlier" : ""}`)
-          : null,
-        item.source ? h("div", { class: "faint" }, item.source) : null,
-      );
-    }
-    const stage = $("stage").getBoundingClientRect();
-    tip.hidden = false;
-    const left = Math.min(clientX - stage.left + 16, stage.width - tip.offsetWidth - 8);
-    const top = Math.min(clientY - stage.top + 16, stage.height - tip.offsetHeight - 8);
-    tip.style.left = `${Math.max(8, left)}px`;
-    tip.style.top = `${Math.max(8, top)}px`;
-  }
-
-  private bindPointer(): void {
-    const canvas = $("view");
-    canvas.addEventListener("mousemove", (e) => this.showTip(e.clientX, e.clientY));
-    canvas.addEventListener("mouseleave", () => ($("tip").hidden = true));
-    // Phones have no hover. The first tap on a monster or item shows what it
-    // is; tapping the same cell again walks there.
-    let touch = false;
-    let tipped = "";
-    canvas.addEventListener("pointerdown", (e) => {
-      touch = e.pointerType !== "mouse";
-    });
-    canvas.addEventListener("click", (e) => {
-      if (this.mode !== "play" || !this.game) return;
-      const [x, y] = this.renderer.cellAt(e.clientX, e.clientY);
-      const p = this.game.player;
-      const dx = x - p.x;
-      const dy = y - p.y;
-      const near = Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
-      if (touch && !near) {
-        const cell = `${x},${y}`;
-        const visible = this.game.isVisible(x, y);
-        if (visible && (this.game.monsterAt(x, y) || this.game.itemAt(x, y)) && tipped !== cell) {
-          tipped = cell;
-          this.showTip(e.clientX, e.clientY);
-          return;
-        }
-      }
-      tipped = "";
-      $("tip").hidden = true;
-      if (near) {
-        if (dx || dy) this.command({ kind: "move", dx, dy });
-        else this.command({ kind: "wait" });
-        return;
-      }
-      const grid = this.game.floor.map.grid;
-      if (!grid.inside(x, y) || !this.game.floor.seen[grid.idx(x, y)] || !walkable(grid.get(x, y))) return;
-      this.stopAuto();
-      this.startAuto({ kind: "travel", to: [x, y] });
-    });
-  }
-
   private bindFiles(): void {
     const folder = $("folder") as HTMLInputElement;
     folder.addEventListener("change", () => {
-      if (folder.files) void this.buildFromFolder(folder.files);
+      if (folder.files) void this.builder.fromFolder(folder.files);
       folder.value = "";
     });
     const input = $("file") as HTMLInputElement;
     input.addEventListener("change", () => {
       const file = input.files?.[0];
-      if (file) void this.openFile(file);
+      if (file) void this.builder.openFile(file);
       input.value = "";
     });
     let depth = 0;
@@ -1236,19 +750,9 @@ export class App {
       depth = 0;
       document.body.classList.remove("dragging");
       const file = e.dataTransfer?.files?.[0];
-      if (file) void this.openFile(file);
+      if (file) void this.builder.openFile(file);
     });
   }
-
-  private async openFile(file: File): Promise<void> {
-    if (file.size > 8 * 1024 * 1024) return this.failToTitle("That file is too big for a dungeon.");
-    const text = await file.text();
-    const res = loadSpec(text);
-    if (!res.ok) return this.failToTitle(res.error);
-    // Re-serialise so the link holds exactly what was validated.
-    this.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
-  }
-
 
   /** Ask for a fresh frame: something on screen changed. */
   private touch(): void {

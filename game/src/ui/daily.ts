@@ -1,5 +1,5 @@
 import { hashString } from "../core/rng";
-import { dailyMod, type ModId } from "../game/extras";
+import { MODS, dailyMod, type ModId } from "../game/extras";
 
 /** Same repo and same rolls for everyone on a given UTC day. */
 export function dailyPick<T extends { slug: string }>(entries: T[], date: Date): { entry: T; run: number; label: string } | null {
@@ -62,4 +62,12 @@ export function startDaily(label: string): number {
     // Blocked storage: every try looks like the first. Fine.
   }
   return next;
+}
+
+/** "daily 2026-10-03 (legacy code)" for the share text, "practice" after the first try. Empty when not a daily. */
+export function dailyLabel<T extends { slug: string }>(entries: T[], slug: string, run: number, tries: number): string {
+  const daily = dailyOf(entries, slug, run);
+  if (!daily) return "";
+  const twist = daily.mod ? ` (${MODS[daily.mod].name})` : "";
+  return `daily ${daily.label}${twist}${tries > 1 ? " practice" : ""}`;
 }

@@ -13,9 +13,10 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 await page.goto(base);
 
-for (const mood of ["title", "explore", "combat", "boss", "rage", "won", "lost"]) {
+for (const [mood, extras] of [["title"], ["explore"], ["combat"], ["boss"], ["rage"], ["won"], ["lost"], ["menu"], ["shop"], ["build"], ["explore", { ghost: true }], ["explore", { daily: true }]]) {
+  const name = mood + (extras ? "-" + Object.keys(extras)[0] : "");
   const res = await page.evaluate(
-    async ({ mood, head }) => {
+    async ({ mood, head, extras }) => {
       const { Music } = await import("/src/audio/music.ts");
       const { theme } = await import("/src/audio/score.ts");
       const secs = mood === "won" || mood === "lost" ? 8 : 20;
@@ -25,6 +26,7 @@ for (const mood of ["title", "explore", "combat", "boss", "rage", "won", "lost"]
       const depth = mood === "explore" ? 0 : mood === "combat" ? 0.5 : 1;
       m.nextTheme = mood === "title" ? theme("HEADCRAWL", 0, "python", "HEADCRAWL") : theme(head, depth, "python", "parse_args");
       m.nextMood = mood;
+      m.extras = extras ?? {};
       m.barTime = 0.05;
       while (m.barTime < secs - 0.5) m.scheduleBar();
       const buf = await ctx.startRendering();
@@ -41,7 +43,7 @@ for (const mood of ["title", "explore", "combat", "boss", "rage", "won", "lost"]
       }
       return { peak, rms: Math.sqrt(sum / L.length), pcm: Array.from(new Uint8Array(pcm.buffer)) };
     },
-    { mood, head },
+    { mood, head, extras },
   );
   const data = Buffer.from(res.pcm);
   const header = Buffer.alloc(44);
@@ -58,8 +60,8 @@ for (const mood of ["title", "explore", "combat", "boss", "rage", "won", "lost"]
   header.writeUInt16LE(16, 34);
   header.write("data", 36);
   header.writeUInt32LE(data.length, 40);
-  writeFileSync(`${out}/${mood}.wav`, Buffer.concat([header, data]));
+  writeFileSync(`${out}/${name}.wav`, Buffer.concat([header, data]));
   const db = (v) => (20 * Math.log10(Math.max(v, 1e-9))).toFixed(1);
-  console.log(`${mood.padEnd(8)} peak ${db(res.peak)} dB  rms ${db(res.rms)} dB`);
+  console.log(`${name.padEnd(14)} peak ${db(res.peak)} dB  rms ${db(res.rms)} dB`);
 }
 await browser.close();
