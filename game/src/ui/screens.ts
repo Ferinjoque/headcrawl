@@ -378,6 +378,7 @@ export function compareScreen(repo: string, c: Comparison, on: CompareHandlers) 
 
 export interface SettingsHandlers {
   sound(): void;
+  music(): void;
   text(): void;
   colors(): void;
   motion(): void;
@@ -415,10 +416,11 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", tok
     h("h1", null, "settings"),
     h("p", { class: "dim" }, "Press the key or click the value to change it. Saved in this browser."),
     row("1", "sound", s.sound ? "on" : "off", on.sound),
-    row("2", "text size", s.text, on.text),
-    row("3", "colors", COLOR_NAMES[s.colors], on.colors),
-    row("4", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
-    row("5", "tips", "show them again", on.tips),
+    row("2", "music", !s.music ? "off" : s.sound ? "on" : "on, once sound is on", on.music),
+    row("3", "text size", s.text, on.text),
+    row("4", "colors", COLOR_NAMES[s.colors], on.colors),
+    row("5", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
+    row("6", "tips", "show them again", on.tips),
     note ? h("p", { class: "t-good", role: "status" }, note) : null,
     tokenSection(token, on),
     h("div", { class: "actions" }, btn("esc", "back", on.close)),

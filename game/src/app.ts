@@ -5,6 +5,9 @@ import { autoAction, type AutoMode } from "./game/auto";
 import { Game } from "./game/game";
 import type { GameEvent } from "./game/types";
 import { Attract } from "./attract";
+import { Music } from "./audio/music";
+import { MoodTracker } from "./audio/mood";
+import { depthOf, theme, type Theme } from "./audio/score";
 import { PLAYER } from "./game/balance";
 import { walkable } from "./map/grid";
 import { Effects } from "./render/effects";
@@ -44,6 +47,15 @@ const $ = (id: string) => document.getElementById(id)!;
 /** A new run number for a fresh game. Shown to the player as part of the run code. */
 const freshRun = () => 1 + Math.floor(Math.random() * 9999);
 
+/** The title has its own theme, the same for everyone. */
+const TITLE_THEME = theme("HEADCRAWL", 0, "python", "HEADCRAWL");
+
+function mainLanguage(rooms: { language: string; loc: number }[]): string {
+  const loc = new Map<string, number>();
+  for (const r of rooms) loc.set(r.language, (loc.get(r.language) ?? 0) + r.loc);
+  return [...loc].sort((x, y) => y[1] - x[1])[0]?.[0] ?? "";
+}
+
 /** Frames per second when nothing is happening but the light still flickers. */
 const IDLE_FPS = 12;
 
@@ -51,6 +63,9 @@ export class App {
   private renderer: Renderer;
   private fx = new Effects();
   private sound = new Sound();
+  private music = new Music();
+  private moods = new MoodTracker();
+  private floorTheme: { key: string; theme: Theme } | null = null;
   private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
@@ -122,6 +137,7 @@ export class App {
     this.showScreen(
       settingsScreen(this.settings, {
         sound: () => this.changeSetting("sound"),
+        music: () => this.changeSetting("music"),
         text: () => this.changeSetting("text"),
         colors: () => this.changeSetting("colors"),
         motion: () => this.changeSetting("motion"),
@@ -142,10 +158,11 @@ export class App {
     );
   }
 
-  private changeSetting(which: "sound" | "text" | "colors" | "motion" | "tips"): void {
+  private changeSetting(which: "sound" | "music" | "text" | "colors" | "motion" | "tips"): void {
     const s = this.settings;
     let note = "";
     if (which === "sound") s.sound = this.sound.toggle();
+    if (which === "music") s.music = !s.music;
     if (which === "text") s.text = cycle(["small", "normal", "large"] as const, s.text);
     if (which === "colors") s.colors = cycle(["glow", "colorblind", "contrast"] as const, s.colors);
     if (which === "motion") s.motion = cycle(["full", "calm"] as const, s.motion);
@@ -154,6 +171,7 @@ export class App {
       note = "Tips will show up again as things happen.";
     }
     this.applySettings();
+    this.syncMusic();
     this.openSettings(note);
     if (this.game) this.refreshUi();
   }
@@ -161,7 +179,7 @@ export class App {
   private settingsKey(e: KeyboardEvent): void {
     // The token field takes any key; only Escape leaves it.
     if (e.target instanceof HTMLInputElement && e.key !== "Escape") return;
-    const keys = { "1": "sound", "2": "text", "3": "colors", "4": "motion", "5": "tips" } as const;
+    const keys = { "1": "sound", "2": "music", "3": "text", "4": "colors", "5": "motion", "6": "tips" } as const;
     const which = keys[e.key as keyof typeof keys];
     if (which) this.changeSetting(which);
     else if (e.key === "Escape" || e.key === ",") {
@@ -178,6 +196,8 @@ export class App {
       this.touch();
     }).observe($("stage"));
     window.addEventListener("keydown", (e) => this.onKey(e));
+    // Fights end by the clock as well as by turns, so check the mood now and then.
+    window.setInterval(() => this.syncMusic(), 1000);
     window.addEventListener("pagehide", () => this.scheduleSave(true));
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.scheduleSave(true);
@@ -350,6 +370,7 @@ export class App {
     this.mode = "title";
     this.titleView = { more: false, code: false };
     this.attract.start();
+    this.syncMusic();
     document.body.classList.add("titling");
     this.stopAuto();
     this.log.clear();
@@ -402,6 +423,25 @@ export class App {
     current?.scrollIntoView({ block: "nearest" });
     const caption = document.getElementById("attract");
     if (caption) caption.textContent = this.attract.caption();
+  }
+
+  /** Keeps the music in step with the screen: title theme, or the floor's theme in the right mood. */
+  private syncMusic(): void {
+    this.music.attach(this.sound.context);
+    this.music.enabled = this.sound.enabled && this.settings.music;
+    if (!this.music.enabled) return this.music.stop();
+    const game = this.game;
+    if (!game || this.route.kind === "title") {
+      this.moods.reset();
+      this.music.set(TITLE_THEME, "title");
+      return;
+    }
+    const f = game.floorSpec;
+    const key = `${game.spec.repo.head}/${f.index}`;
+    if (this.floorTheme?.key !== key) {
+      this.floorTheme = { key, theme: theme(game.spec.repo.head, depthOf(f.index, game.spec.floors.length), mainLanguage(f.rooms), f.boss.name) };
+    }
+    this.music.set(this.floorTheme.theme, this.moods.mood(game, performance.now()));
   }
 
   private toggleMore(): void {
@@ -656,6 +696,7 @@ export class App {
     if (this.mode !== "watch") for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
     renderHud($("hud"), this.game);
     renderPanel($("panel"), this.game);
+    this.syncMusic();
     this.log.render();
   }
 
@@ -671,6 +712,7 @@ export class App {
       const on = this.sound.toggle();
       this.settings.sound = on;
       saveSettings(this.settings);
+      this.syncMusic();
       this.log.push(on ? "Sound on. m turns it off." : "Sound off.", "info");
       this.log.render();
       return;
@@ -767,6 +809,7 @@ export class App {
           fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);
           fx.flash(e.x, e.y, e.onPlayer ? C.danger : C.player, now);
           if (e.onPlayer && e.amount >= 5) fx.shake(4, now);
+          if (e.onPlayer && !quiet) this.music.duck();
           if (e.crit) {
             fx.shake(3, now);
             fx.burst(e.x, e.y, "*+*+", C.gold, now, 0.7);
@@ -848,6 +891,7 @@ export class App {
 
   private onKey(e: KeyboardEvent): void {
     this.sound.wake();
+    this.syncMusic();
     if (this.mode === "settings") return this.settingsKey(e);
     const typing = e.target instanceof HTMLInputElement;
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {

@@ -6,6 +6,8 @@ export type Motion = "full" | "calm";
 
 export interface Settings {
   sound: boolean;
+  /** Music plays only while sound is on; this turns just the music off. */
+  music: boolean;
   text: TextSize;
   colors: Colors;
   motion: Motion;
@@ -16,7 +18,7 @@ const KEY = "headcrawl.settings.v1";
 export const TEXT_SCALE: Record<TextSize, number> = { small: 0.85, normal: 1, large: 1.2 };
 
 export function defaults(reducedMotion: boolean): Settings {
-  return { sound: false, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full" };
+  return { sound: false, music: true, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full" };
 }
 
 export function loadSettings(reducedMotion: boolean): Settings {
@@ -27,6 +29,7 @@ export function loadSettings(reducedMotion: boolean): Settings {
     const r = raw as Record<string, unknown>;
     return {
       sound: typeof r.sound === "boolean" ? r.sound : base.sound,
+      music: typeof r.music === "boolean" ? r.music : base.music,
       text: r.text === "small" || r.text === "large" || r.text === "normal" ? r.text : base.text,
       colors: r.colors === "colorblind" || r.colors === "contrast" || r.colors === "glow" ? r.colors : base.colors,
       motion: r.motion === "calm" || r.motion === "full" ? r.motion : base.motion,

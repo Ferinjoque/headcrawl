@@ -20,6 +20,11 @@ export class Sound {
     }
   }
 
+  /** The audio context, once the player has turned sound on and pressed a key. */
+  get context(): AudioContext | null {
+    return this.ctx;
+  }
+
   set(on: boolean): void {
     if (on !== this.enabled) this.toggle();
   }
