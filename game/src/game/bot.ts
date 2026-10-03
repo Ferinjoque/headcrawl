@@ -36,10 +36,14 @@ export function botAction(game: Game): Action {
   const threat = game.floor.monsters.some((m) => m.awake && Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y)) < 10);
   if (!threat && p.hp < p.maxHp * 0.8) return { type: "wait" };
 
-  const target = pickTarget(game);
+  // Shop first: one dependency per floor, always the first offer.
+  const v = game.floor.vendor;
+  const shopping = v && !v.sold && !threat;
+  if (shopping && Math.abs(v.x - p.x) <= 1 && Math.abs(v.y - p.y) <= 1) return { type: "move", dx: v.x - p.x, dy: v.y - p.y };
+  const target: [number, number] | null = shopping ? [v.x, v.y] : pickTarget(game);
   if (!target) return { type: "wait" };
   const path = findPath(grid.width, grid.height, [p.x, p.y], target, (x, y) =>
-    walkable(grid.get(x, y)) && !vendorAt(game.floor, x, y) ? 1 : Infinity,
+    walkable(grid.get(x, y)) && (!vendorAt(game.floor, x, y) || (x === target[0] && y === target[1])) ? 1 : Infinity,
   );
   if (!path || path.length < 2) return { type: "wait" };
   const [nx, ny] = path[1];
