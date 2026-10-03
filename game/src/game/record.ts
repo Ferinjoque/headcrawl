@@ -15,6 +15,8 @@ const MOVES: Record<string, [number, number]> = {
   n: [1, 1],
 };
 const PERKS = "ABC";
+// Vendor: first offer, second offer, walk away.
+const BUYS = "VWX";
 
 export function actionCode(a: Action): string {
   switch (a.type) {
@@ -33,6 +35,8 @@ export function actionCode(a: Action): string {
       return "r";
     case "perk":
       return PERKS[a.index] ?? "A";
+    case "buy":
+      return a.index < 0 ? "X" : (BUYS[a.index] ?? "X");
   }
 }
 
@@ -43,6 +47,8 @@ export function codeAction(c: string): Action | null {
   if (c === ">") return { type: "descend" };
   if (c === "q") return { type: "quaff" };
   if (c === "r") return { type: "read" };
+  const buy = BUYS.indexOf(c);
+  if (buy >= 0) return { type: "buy", index: buy === 2 ? -1 : buy };
   const perk = PERKS.indexOf(c);
   return perk >= 0 ? { type: "perk", index: perk } : null;
 }
@@ -63,7 +69,7 @@ const MAX_ACTIONS = 200_000;
 /** Null if the text isn't a valid log. */
 export function decodeLog(text: string): Action[] | null {
   const out: Action[] = [];
-  const re = /([hjklyubn.>qrABC])(\d{0,6})/gy;
+  const re = /([hjklyubn.>qrABCVWX])(\d{0,6})/gy;
   let m: RegExpExecArray | null;
   let at = 0;
   while (at < text.length && (m = re.exec(text))) {

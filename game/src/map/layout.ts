@@ -34,6 +34,14 @@ export interface FloorMap {
   /** Letters used to fill solid rock, taken from this floor's identifiers. */
   rockText: string;
   rowShift: Int16Array;
+  /** Import cycles: the middle cell of each loop corridor and the two files. */
+  loops: LoopTrap[];
+}
+
+export interface LoopTrap {
+  cell: number;
+  a: string;
+  b: string;
 }
 
 const GAP = 3;
@@ -151,7 +159,8 @@ function isCorner(r: RoomRect, x: number, y: number): boolean {
   return (x === r.x || x === r.x + r.w - 1) && (y === r.y || y === r.y + r.h - 1);
 }
 
-function digCorridors(grid: Grid, floor: Floor, rects: RoomRect[], byId: Map<string, RoomRect>): void {
+function digCorridors(grid: Grid, floor: Floor, rects: RoomRect[], byId: Map<string, RoomRect>): LoopTrap[] {
+  const loops: LoopTrap[] = [];
   const edges = [...floor.edges].sort(
     (a, b) =>
       (a.kind === b.kind ? b.weight - a.weight : a.kind === "import" ? -1 : 1) ||
@@ -161,7 +170,7 @@ function digCorridors(grid: Grid, floor: Floor, rects: RoomRect[], byId: Map<str
   for (const edge of edges) {
     const a = byId.get(edge.a)!;
     const b = byId.get(edge.b)!;
-    const way = edge.kind === "import" ? Way.Import : Way.Passage;
+    const way = edge.kind !== "import" ? Way.Passage : edge.loop ? Way.Loop : Way.Import;
     const path = findPath(grid.width, grid.height, [a.cx, a.cy], [b.cx, b.cy], (x, y) => {
       if (x === 0 || y === 0 || x === grid.width - 1 || y === grid.height - 1) return Infinity;
       const t = grid.get(x, y);
@@ -175,18 +184,23 @@ function digCorridors(grid: Grid, floor: Floor, rects: RoomRect[], byId: Map<str
       return 2;
     });
     if (!path) continue;
+    const dug: number[] = [];
     for (const [x, y] of path) {
       const t = grid.get(x, y);
       if (t === Tile.Rock) {
         grid.set(x, y, Tile.Corridor);
         grid.way[grid.idx(x, y)] = way;
+        dug.push(grid.idx(x, y));
       } else if (t === Tile.Wall) {
         const ri = grid.roomAt(x, y);
         if (ri >= 0 && isCorner(rects[ri], x, y)) continue;
         grid.set(x, y, Tile.Door);
       }
     }
+    // A loop needs a few cells of its own to hide the trap in.
+    if (way === Way.Loop && dug.length >= 3) loops.push({ cell: dug[dug.length >> 1], a: a.spec.path, b: b.spec.path });
   }
+  return loops;
 }
 
 /** Every walkable cell reachable from `from`. */
@@ -236,7 +250,7 @@ function buildOnce(floor: Floor, rng: Rng): FloorMap | null {
   });
   const byId = new Map(rects.map((r) => [r.spec.id, r]));
   carveRooms(grid, rects);
-  digCorridors(grid, floor, rects, byId);
+  const loops = digCorridors(grid, floor, rects, byId);
 
   const entry = byId.get(floor.entry)!;
   const lair = byId.get(floor.lair)!;
@@ -259,6 +273,7 @@ function buildOnce(floor: Floor, rng: Rng): FloorMap | null {
     start: [entry.cx, entry.cy],
     stairsDown: [lair.cx, lair.cy],
     rockText: rockText(floor),
+    loops,
     rowShift,
   };
 }

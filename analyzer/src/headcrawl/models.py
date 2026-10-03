@@ -34,6 +34,8 @@ class Archetype(StrEnum):
     WALL = "wall"
     IMP = "imp"
     BUG = "bug"
+    # Nothing in the repo mentions it, tests included: dead code.
+    GHOST = "ghost"
 
 
 class LootKind(StrEnum):
@@ -79,6 +81,15 @@ class Loot(_Model):
     power: int = Field(ge=1, le=20)
     year: int | None = Field(default=None, ge=1970, le=2200)
     year_or_older: bool = False
+    author: Name | None = None
+
+
+class BossPast(_Model):
+    """The boss function as it was about a year before HEAD."""
+
+    year: int = Field(ge=1970, le=2200)
+    ccn: int = Field(ge=1, le=100_000)
+    nloc: int = Field(ge=0, le=10_000_000)
 
 
 class Boss(_Model):
@@ -95,6 +106,7 @@ class Boss(_Model):
     churn: int = Field(ge=0, le=1_000_000)
     taunts: list[Line] = Field(min_length=1, max_length=6)
     final: bool = False
+    past: BossPast | None = None
 
 
 class Wing(_Model):
@@ -126,6 +138,8 @@ class Edge(_Model):
     b: Id
     kind: EdgeKind
     weight: int = Field(ge=1, le=1_000_000)
+    # Both files sit on one import cycle.
+    loop: bool = False
 
 
 class Floor(_Model):
@@ -162,6 +176,20 @@ class LanguageShare(_Model):
     loc: int = Field(ge=0, le=1_000_000_000)
 
 
+class Ecosystem(StrEnum):
+    NPM = "npm"
+    PYPI = "pypi"
+    GO = "go"
+    CARGO = "cargo"
+    GEM = "gem"
+    COMPOSER = "composer"
+
+
+class Dependency(_Model):
+    name: Name
+    ecosystem: Ecosystem
+
+
 class RepoInfo(_Model):
     name: Name
     url: Line | None = None
@@ -170,6 +198,7 @@ class RepoInfo(_Model):
     committed_at: int = Field(ge=0, le=2**40)
     commits_scanned: int = Field(ge=0, le=1_000_000_000)
     languages: list[LanguageShare] = Field(max_length=32)
+    dependencies: list[Dependency] = Field(default_factory=list, max_length=40)
 
 
 class Totals(_Model):

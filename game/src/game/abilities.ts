@@ -11,6 +11,7 @@ export const ABILITY: Record<Monster["archetype"], string> = {
   wall: "armored, takes 2 less damage, slow",
   imp: "small and fast",
   bug: "dodges one hit in five. Can't reproduce.",
+  ghost: "dead code: drifts through walls, hits softly",
   spawn: "a helper its boss called in",
   boss: "winds up an area attack, get out of the red",
 };

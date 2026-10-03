@@ -9,6 +9,7 @@ import type { Action } from "./types";
 
 export function botAction(game: Game): Action {
   if (game.perkChoice) return { type: "perk", index: 0 };
+  if (game.vendorChoice) return { type: "buy", index: 0 };
   const p = game.player;
   const grid = game.floor.map.grid;
 

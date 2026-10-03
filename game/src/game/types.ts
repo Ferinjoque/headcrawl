@@ -82,6 +82,7 @@ export type GameEvent =
   | { t: "dodge"; x: number; y: number }
   | { t: "split"; x: number; y: number }
   | { t: "reveal" }
+  | { t: "loop" }
   | { t: "death"; killer: string }
   | { t: "victory" };
 
@@ -91,6 +92,8 @@ export type Action =
   | { type: "descend" }
   | { type: "quaff" }
   | { type: "read" }
-  | { type: "perk"; index: number };
+  | { type: "perk"; index: number }
+  /** At the vendor: which offer, or -1 to walk away. */
+  | { type: "buy"; index: number };
 
 export type Outcome = "playing" | "dead" | "won";

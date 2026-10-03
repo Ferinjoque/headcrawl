@@ -94,7 +94,7 @@ describe("blame", () => {
             f0: {
               ranges: [
                 { startingLine: 1, endingLine: 4, commit: { committedDate: "2014-03-01T10:00:00Z" } },
-                { startingLine: 5, endingLine: 9, commit: { committedDate: "2021-07-12T10:00:00Z" } },
+                { startingLine: 5, endingLine: 9, commit: { committedDate: "2021-07-12T10:00:00Z", author: { name: " Ada " } } },
               ],
             },
             f1: null,
@@ -103,7 +103,7 @@ describe("blame", () => {
       },
     };
     const years = blameYears(body, ["a.py", "gone.py"], { "a.py": [2, 7, 40], "gone.py": [1] });
-    expect(years).toEqual({ "a.py": { "2": 2014, "7": 2021 }, "gone.py": {} });
+    expect(years).toEqual({ "a.py": { "2": { year: 2014 }, "7": { year: 2021, author: "Ada" } }, "gone.py": {} });
   });
 
   it("skips odd answers instead of trusting them", () => {

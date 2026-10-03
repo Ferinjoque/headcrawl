@@ -1,5 +1,6 @@
 import type {
   Boss,
+  Dependency,
   DungeonSpec,
   Edge,
   Enemy,
@@ -10,7 +11,7 @@ import type {
 } from "./types.generated";
 import { validate } from "./validate.generated.js";
 
-export type { Boss, DungeonSpec, Edge, Enemy, Floor, Loot, Room, Wing };
+export type { Boss, Dependency, DungeonSpec, Edge, Enemy, Floor, Loot, Room, Wing };
 
 export type LoadResult = { ok: true; spec: DungeonSpec } | { ok: false; error: string };
 

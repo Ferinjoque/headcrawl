@@ -248,7 +248,13 @@ export class Renderer {
             break;
           }
           case Tile.Corridor:
-            if (grid.way[i] === 1) {
+            if (grid.way[i] === 3) {
+              // An import cycle: the current runs in a circle.
+              ch = (x + y + wave) % 2 === 0 ? "o" : "~";
+              col = C.violet;
+              bg = C.violet;
+              bgA = 0.12;
+            } else if (grid.way[i] === 1) {
               ch = (x + y + wave) % 3 === 0 ? "-" : "~";
               col = C.current;
               bg = C.currentDeep;
@@ -315,6 +321,15 @@ export class Renderer {
       lctx.fillStyle = rgba(col, this.lightAt(scene, item.x, item.y) + 0.15);
       lctx.fillText(ch, ox + item.x * cellW + cellW / 2, oy + item.y * cellH + cellH / 2);
     }
+    const v = floor.vendor;
+    if (v && show(v.x, v.y)) {
+      const px = ox + v.x * cellW;
+      const py = oy + v.y * cellH;
+      ctx.fillStyle = rgba(C.gold, v.sold ? 0.05 : 0.16);
+      ctx.fillRect(px, py, cellW, cellH);
+      lctx.fillStyle = rgba(C.gold, v.sold ? 0.4 : this.lightAt(scene, v.x, v.y) + 0.15);
+      lctx.fillText("$", px + cellW / 2, py + cellH / 2);
+    }
     for (const m of floor.monsters) {
       if (!show(m.x, m.y)) continue;
       this.drawMonster(scene, m, ox, oy, now);
@@ -348,7 +363,8 @@ export class Renderer {
       lctx.fillText(m.glyph, px + cellW / 2, py + cellH / 2);
       return;
     }
-    lctx.fillStyle = rgba(col, m.awake ? Math.min(1, light + 0.2) : light * 0.75);
+    const fade = m.archetype === "ghost" ? 0.6 : 1;
+    lctx.fillStyle = rgba(col, (m.awake ? Math.min(1, light + 0.2) : light * 0.75) * fade);
     lctx.fillText(m.glyph, px + cellW / 2, py + cellH / 2);
     if (m.hp < m.maxHp) {
       const w = Math.max(1, Math.round((cellW - 2) * (m.hp / m.maxHp)));

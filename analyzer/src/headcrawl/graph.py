@@ -74,3 +74,59 @@ def corridors(paths: list[str], imports: dict[tuple[str, str], int], extra_ratio
     budget = math.ceil(len(paths) * extra_ratio)
     links.extend(leftovers[:budget])
     return links
+
+
+def cycle_members(edges: set[tuple[str, str]]) -> dict[str, int]:
+    """Files that sit on an import cycle, mapped to an id for their cycle.
+    Tarjan's strongly connected components, iterative so deep graphs can't
+    blow the stack."""
+    adj: dict[str, list[str]] = {}
+    for a, b in sorted(edges):
+        adj.setdefault(a, []).append(b)
+        adj.setdefault(b, [])
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    on_stack: set[str] = set()
+    stack: list[str] = []
+    out: dict[str, int] = {}
+    counter = 0
+    group = 0
+    for start in sorted(adj):
+        if start in index:
+            continue
+        work = [(start, 0)]
+        while work:
+            node, i = work.pop()
+            if i == 0:
+                index[node] = low[node] = counter
+                counter += 1
+                stack.append(node)
+                on_stack.add(node)
+            recurse = False
+            for j in range(i, len(adj[node])):
+                nxt = adj[node][j]
+                if nxt not in index:
+                    work.append((node, j + 1))
+                    work.append((nxt, 0))
+                    recurse = True
+                    break
+                if nxt in on_stack:
+                    low[node] = min(low[node], index[nxt])
+            if recurse:
+                continue
+            if low[node] == index[node]:
+                members = []
+                while True:
+                    w = stack.pop()
+                    on_stack.discard(w)
+                    members.append(w)
+                    if w == node:
+                        break
+                if len(members) > 1:
+                    for m in members:
+                        out[m] = group
+                    group += 1
+            if work:
+                parent = work[-1][0]
+                low[parent] = min(low[parent], low[node])
+    return out

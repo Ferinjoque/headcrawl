@@ -4,7 +4,7 @@
 // downloads for the contents. Nothing in the repo is ever executed; Python
 // only reads the text, same as the command line tool.
 
-import { BLAME_BATCH, blameQuery, blameYears } from "./blame";
+import { BLAME_BATCH, blameQuery, blameYears, type LineBlame } from "./blame";
 import { safePath, validRef, validToken, type WorkerReply, type WorkerRequest } from "./protocol";
 
 interface PyProxy {
@@ -124,8 +124,8 @@ async function history(api: string, sha: string, paths: string[]): Promise<Histo
  * Year each loot line was last changed, from GitHub's blame. Needs a token:
  * GitHub's GraphQL API has no anonymous access.
  */
-async function blame(owner: string, repo: string, sha: string, lines: Record<string, number[]>): Promise<Record<string, Record<string, number>>> {
-  const out: Record<string, Record<string, number>> = {};
+async function blame(owner: string, repo: string, sha: string, lines: Record<string, number[]>): Promise<Record<string, Record<string, LineBlame>>> {
+  const out: Record<string, Record<string, LineBlame>> = {};
   const files = Object.keys(lines).slice(0, 40);
   for (let i = 0; i < files.length; i += BLAME_BATCH) {
     const batch = files.slice(i, i + BLAME_BATCH);

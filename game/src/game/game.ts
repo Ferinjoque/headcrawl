@@ -9,11 +9,16 @@ import { TUNING } from "./abilities";
 import { PERKS, available, type PerkId } from "./perks";
 import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
+import { GHOST_DAMAGE, boss, ghostStep, installLine, modFloor, modPlayer, placeVendor, timeTravel, type ModId, type Offer } from "./extras";
+import type { LoopTrap } from "../map/layout";
+import { chaseMap, stepToward } from "./chase";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
 export interface GameOptions {
   /** Changes combat rolls but not the dungeon, so friends can race the same map. */
   run?: number;
+  /** The daily run's twist. Part of what makes a run, like the run number. */
+  mods?: ModId[];
 }
 
 export class Game {
@@ -29,6 +34,10 @@ export class Game {
   private visited = new Set<string>();
   /** Three perks to pick from after a level up, or null. */
   perkChoice: PerkId[] | null = null;
+  /** What the vendor you just bumped into is selling, or null. */
+  vendorChoice: Offer[] | null = null;
+  readonly mods: ModId[];
+  private lastRoom = -1;
   private perksOwed = 0;
   /** Every action that changed the game, as codes from record.ts. */
   readonly log: string[] = [];
@@ -38,8 +47,9 @@ export class Game {
   constructor(spec: DungeonSpec, opts: GameOptions = {}) {
     this.spec = spec;
     this.run = opts.run ?? 0;
+    this.mods = opts.mods ?? [];
     this.rng = new Rng(`${spec.seed}/run/${this.run}`);
-    this.floor = buildFloor(spec.floors[0], spec.seed, spec.floors.length);
+    this.floor = this.makeFloor(0);
     const [x, y] = this.floor.map.start;
     this.player = {
       x,
@@ -61,8 +71,21 @@ export class Game {
       bosses: 0,
       turns: 0,
     };
+    modPlayer(this.player, this.mods);
     this.updateSight();
     this.enterFloorMessages();
+  }
+
+  private makeFloor(index: number): FloorState {
+    const floor = buildFloor(this.spec.floors[index], this.spec.seed, this.spec.floors.length);
+    modFloor(floor, this.mods);
+    floor.vendor = placeVendor(floor, this.spec);
+    return floor;
+  }
+
+  /** How far you see. Less on a lights-out day. */
+  get sight(): number {
+    return PLAYER.sight - (this.mods.includes("lightsout") ? 2 : 0);
   }
 
   /** The run so far, compact enough for a URL. */
@@ -71,10 +94,10 @@ export class Game {
   }
 
   /** Play a recorded run forward from the start. Null if the log is broken. */
-  static replay(spec: DungeonSpec, run: number, text: string): Game | null {
+  static replay(spec: DungeonSpec, run: number, text: string, mods: ModId[] = []): Game | null {
     const actions = decodeLog(text);
     if (!actions) return null;
-    const game = new Game(spec, { run });
+    const game = new Game(spec, { run, mods });
     for (const a of actions) {
       if (game.outcome !== "playing") break;
       game.act(a);
@@ -133,6 +156,13 @@ export class Game {
       }
       return false;
     }
+    if (this.vendorChoice) {
+      if (action.type === "buy") {
+        this.log.push(actionCode(action));
+        this.buy(action.index);
+      }
+      return false;
+    }
     let took = false;
     switch (action.type) {
       case "move":
@@ -151,6 +181,7 @@ export class Game {
         took = this.readScroll();
         break;
       case "perk":
+      case "buy":
         break;
     }
     if (took) this.log.push(actionCode(action));
@@ -173,6 +204,12 @@ export class Game {
     const target = this.monsterAt(nx, ny);
     if (target) {
       this.playerAttack(target);
+      return true;
+    }
+    const vendor = this.floor.vendor;
+    if (vendor && vendor.x === nx && vendor.y === ny) {
+      if (vendor.sold) this.say("The vendor has nothing left for you on this floor.");
+      else this.vendorChoice = vendor.offers;
       return true;
     }
     const grid = this.floor.map.grid;
@@ -201,10 +238,34 @@ export class Game {
       this.say("The tests pass. You feel whole again.", "good");
     }
     if (tile === Tile.StairsDown) this.say("Stairs down. Press > to descend.", "info");
+    const trap = this.floor.map.loops.find((l) => l.cell === grid.idx(p.x, p.y));
+    if (trap && !this.floor.loopsDone.has(trap.cell)) return this.loopBack(trap);
     if (roomIndex >= 0 && roomIndex !== prevRoom && grid.get(p.x, p.y) !== Tile.Wall) this.enterRoom(roomIndex);
   }
 
+  /** An import cycle walks you back to the room you came from, once. */
+  private loopBack(trap: LoopTrap): void {
+    this.floor.loopsDone.add(trap.cell);
+    const room = this.floor.map.rooms[this.lastRoom] ?? this.floor.map.entry;
+    const spot = this.freeNeighbour(room.cx, room.cy) ?? [room.cx, room.cy];
+    [this.player.x, this.player.y] = spot;
+    this.emit({ t: "loop" });
+    this.say(`Circular import: ${trap.a} needs ${trap.b}, which needs ${trap.a}. You end up back where you started.`, "lore");
+  }
+
+  private buy(index: number): void {
+    const offer = this.vendorChoice?.[index];
+    this.vendorChoice = null;
+    const vendor = this.floor.vendor;
+    if (!offer || !vendor) return this.say("You walk away. Fewer dependencies, fewer problems.");
+    vendor.sold = true;
+    offer.deal.apply(this.player);
+    this.emit({ t: "pickup", x: vendor.x, y: vendor.y, kind: "scroll" });
+    this.say(`${installLine(offer.dep)}. ${offer.deal.text}`, "loot");
+  }
+
   private enterRoom(index: number): void {
+    this.lastRoom = index;
     const rect = this.floor.map.rooms[index];
     const room = rect.spec;
     if (rect === this.floor.map.lair && !this.floor.bossDead) {
@@ -277,6 +338,7 @@ export class Game {
     this.floor.monsters = this.floor.monsters.filter((x) => x !== m);
     p.kills++;
     p.killsBy[m.archetype] = (p.killsBy[m.archetype] ?? 0) + 1;
+    if (this.mods.includes("review")) this.heal(1);
     this.emit({ t: "kill", x: m.x, y: m.y, name: m.name, boss: !!m.boss });
     if (m.boss) {
       p.bosses++;
@@ -466,7 +528,8 @@ export class Game {
     this.emit({ t: "pickup", x: item.x, y: item.y, kind: item.kind });
     const quote = item.loot ? `"${item.loot.text || item.loot.tag}"` : "";
     // "a TODO from 2019" is half the joke.
-    const since = item.loot?.year ? ` from ${item.loot.year}${item.loot.year_or_older ? " or earlier" : ""}` : "";
+    const year = item.loot?.year ? ` from ${item.loot.year}${item.loot.year_or_older ? " or earlier" : ""}` : "";
+    const since = item.loot?.author ? `${year} by ${item.loot.author}` : year;
     switch (item.kind) {
       case "potion":
         p.potions.push(item);
@@ -525,8 +588,13 @@ export class Game {
       return false;
     }
     const power = item.loot?.power ?? 3;
-    const roll = this.rng.int(0, 2);
-    if (roll === 0) {
+    const target = boss(this.floor);
+    const roll = this.rng.int(0, target?.boss?.past ? 3 : 2);
+    if (roll === 3 && target) {
+      const t = timeTravel(target)!;
+      const way = t.after < t.before ? "simpler" : "worse";
+      this.say(`git checkout ${t.year}. ${target.name} goes back to ${t.after} branches from ${t.before}. It was ${way} back then.`, "loot");
+    } else if (roll === 0) {
       const targets = this.floor.monsters.filter((m) => this.isVisible(m.x, m.y));
       this.say(`force push. ${targets.length ? "Everything in sight takes a hit." : "Nothing in sight. What a waste."}`, "loot");
       for (const m of targets) {
@@ -557,7 +625,8 @@ export class Game {
       return false;
     }
     const next = this.floor.index + 1;
-    this.floor = buildFloor(this.spec.floors[next], this.spec.seed, this.spec.floors.length);
+    this.floor = this.makeFloor(next);
+    this.lastRoom = -1;
     [p.x, p.y] = this.floor.map.start;
     this.emit({ t: "descend", floor: next });
     this.enterFloorMessages();
@@ -574,9 +643,10 @@ export class Game {
 
   private monstersAct(): void {
     const grid = this.floor.map.grid;
-    const chase = this.chaseMap();
+    const chase = chaseMap(this.floor.map.grid, this.player);
     const taken = new Uint8Array(grid.width * grid.height);
     for (const m of this.floor.monsters) taken[grid.idx(m.x, m.y)] = 1;
+    if (this.floor.vendor) taken[grid.idx(this.floor.vendor.x, this.floor.vendor.y)] = 1;
     for (const m of [...this.floor.monsters]) {
       if (!this.floor.monsters.includes(m)) continue;
       if (!m.awake && this.isVisible(m.x, m.y) && dist(m, this.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;
@@ -614,66 +684,13 @@ export class Game {
       return;
     }
     if (m.boss && p.turns - m.lastTaunt >= BOSS.tauntEvery && this.isVisible(m.x, m.y)) this.taunt(m);
-    const step = this.stepToward(m, chase, taken);
+    const step = m.archetype === "ghost" ? ghostStep(m, p, this.floor.map.grid, taken) : stepToward(this.floor.map.grid, m, chase, taken);
     if (step) {
       const grid = this.floor.map.grid;
       taken[grid.idx(m.x, m.y)] = 0;
       [m.x, m.y] = step;
       taken[grid.idx(m.x, m.y)] = 1;
     }
-  }
-
-  /**
-   * Steps from every walkable cell to the player, out to CHASE_RANGE. One
-   * breadth-first pass per turn serves every monster, instead of an A* each.
-   */
-  private chaseMap(): Int16Array {
-    const grid = this.floor.map.grid;
-    const dist = new Int16Array(grid.width * grid.height).fill(-1);
-    const start = grid.idx(this.player.x, this.player.y);
-    dist[start] = 0;
-    const queue = [start];
-    for (let qi = 0; qi < queue.length; qi++) {
-      const i = queue[qi];
-      if (dist[i] >= CHASE_RANGE) continue;
-      const x = i % grid.width;
-      const y = (i - x) / grid.width;
-      for (const [dx, dy] of STEPS) {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (!grid.inside(nx, ny) || !this.canStep(x, y, dx, dy)) continue;
-        const ni = grid.idx(nx, ny);
-        if (dist[ni] !== -1) continue;
-        dist[ni] = dist[i] + 1;
-        queue.push(ni);
-      }
-    }
-    return dist;
-  }
-
-  private canStep(x: number, y: number, dx: number, dy: number): boolean {
-    const grid = this.floor.map.grid;
-    if (!walkable(grid.get(x + dx, y + dy))) return false;
-    return !(dx && dy && !walkable(grid.get(x + dx, y)) && !walkable(grid.get(x, y + dy)));
-  }
-
-  private stepToward(m: Monster, chase: Int16Array, taken: Uint8Array): [number, number] | null {
-    const grid = this.floor.map.grid;
-    const here = chase[grid.idx(m.x, m.y)];
-    if (here === -1) return null;
-    let best: [number, number] | null = null;
-    let bestDist = here;
-    for (const [dx, dy] of STEPS) {
-      const nx = m.x + dx;
-      const ny = m.y + dy;
-      if (!grid.inside(nx, ny) || !this.canStep(m.x, m.y, dx, dy)) continue;
-      const ni = grid.idx(nx, ny);
-      const d = chase[ni];
-      if (d === -1 || d >= bestDist || taken[ni] || d === 0) continue;
-      best = [nx, ny];
-      bestDist = d;
-    }
-    return best;
   }
 
   /** Mark every open cell within `radius` as about to be hit. */
@@ -722,7 +739,7 @@ export class Game {
       return;
     }
     const roll = this.rng.int(Math.max(1, Math.ceil(m.damage / 2)), m.damage);
-    let dmg = Math.round(roll * mult);
+    let dmg = Math.max(1, Math.round(roll * mult * (m.archetype === "ghost" ? GHOST_DAMAGE : 1)));
     if (this.has("rubberduck") && p.hp < p.maxHp / 3) dmg = Math.max(1, dmg - 2);
     p.hp -= dmg;
     this.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
@@ -741,7 +758,7 @@ export class Game {
     const { visible, seen } = this.floor;
     visible.fill(0);
     const fov = new FOV.PreciseShadowcasting((x, y) => seeThrough(grid.get(x, y)), { topology: 8 });
-    fov.compute(this.player.x, this.player.y, PLAYER.sight, (x, y) => {
+    fov.compute(this.player.x, this.player.y, this.sight, (x, y) => {
       if (!grid.inside(x, y)) return;
       const i = grid.idx(x, y);
       visible[i] = 1;
@@ -750,7 +767,6 @@ export class Game {
   }
 }
 
-const CHASE_RANGE = 30;
 const JOURNAL_CAP = 5000;
 
 const KILL_VERB: Record<string, string> = {
@@ -760,6 +776,7 @@ const KILL_VERB: Record<string, string> = {
   wall: "You split up",
   imp: "You inline",
   bug: "You fix",
+  ghost: "You garbage-collect",
   spawn: "You delete",
 };
 

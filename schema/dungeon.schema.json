@@ -7,7 +7,8 @@
         "hydra",
         "wall",
         "imp",
-        "bug"
+        "bug",
+        "ghost"
       ],
       "title": "Archetype",
       "type": "string"
@@ -62,6 +63,17 @@
           "title": "Name",
           "type": "string"
         },
+        "past": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BossPast"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "signature": {
           "maxLength": 200,
           "title": "Signature",
@@ -113,6 +125,69 @@
       "title": "Boss",
       "type": "object"
     },
+    "BossPast": {
+      "additionalProperties": false,
+      "description": "The boss function as it was about a year before HEAD.",
+      "properties": {
+        "ccn": {
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Ccn",
+          "type": "integer"
+        },
+        "nloc": {
+          "maximum": 10000000,
+          "minimum": 0,
+          "title": "Nloc",
+          "type": "integer"
+        },
+        "year": {
+          "maximum": 2200,
+          "minimum": 1970,
+          "title": "Year",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "year",
+        "ccn",
+        "nloc"
+      ],
+      "title": "BossPast",
+      "type": "object"
+    },
+    "Dependency": {
+      "additionalProperties": false,
+      "properties": {
+        "ecosystem": {
+          "$ref": "#/$defs/Ecosystem"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "ecosystem"
+      ],
+      "title": "Dependency",
+      "type": "object"
+    },
+    "Ecosystem": {
+      "enum": [
+        "npm",
+        "pypi",
+        "go",
+        "cargo",
+        "gem",
+        "composer"
+      ],
+      "title": "Ecosystem",
+      "type": "string"
+    },
     "Edge": {
       "additionalProperties": false,
       "properties": {
@@ -130,6 +205,11 @@
         },
         "kind": {
           "$ref": "#/$defs/EdgeKind"
+        },
+        "loop": {
+          "default": false,
+          "title": "Loop",
+          "type": "boolean"
         },
         "weight": {
           "maximum": 1000000,
@@ -358,6 +438,20 @@
     "Loot": {
       "additionalProperties": false,
       "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Author"
+        },
         "id": {
           "maxLength": 12,
           "pattern": "^[a-z][0-9]+$",
@@ -458,6 +552,14 @@
           "minimum": 0,
           "title": "Committed At",
           "type": "integer"
+        },
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          },
+          "maxItems": 40,
+          "title": "Dependencies",
+          "type": "array"
         },
         "head": {
           "pattern": "^[0-9a-f]{40}$",

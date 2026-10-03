@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import gitio
 from .build import analyze
+from .deps import MANIFESTS
 from .limits import Limits
 from .walk import wanted
 
@@ -24,11 +25,14 @@ def choose(tree_json: str) -> str:
     """tree_json: [{"path": str, "size": int}, ...] from the GitHub tree API.
     Returns the paths to download, smallest set that still covers the repo."""
     entries = json.loads(tree_json)
-    picked: list[str] = []
+    # Dependency manifests at the root, for the vendor. Small and few.
+    picked: list[str] = [
+        str(e["path"]) for e in entries if e.get("path") in MANIFESTS and 0 < int(e.get("size") or 0) <= 256 * 1024
+    ]
     total = 0
     for e in sorted(entries, key=lambda e: str(e.get("path", ""))):
         path, size = str(e.get("path", "")), int(e.get("size") or 0)
-        if not path or size <= 0 or size > BROWSER.max_file_bytes or not wanted(path):
+        if not path or size <= 0 or size > BROWSER.max_file_bytes or not wanted(path) or path in picked:
             continue
         if total + size > BROWSER.max_read_bytes or len(picked) >= BROWSER.max_files:
             break
@@ -53,6 +57,7 @@ def dungeon(
     head = gitio.Head(sha=sha, time=max(0, when), branch=None)
     raw = json.loads(history_json)
     history = {str(k): max(0, min(int(v), HISTORY_WINDOW)) for k, v in raw.items()} if isinstance(raw, dict) else {}
+    years, authors = _blame(blame_json)
     spec = analyze(
         Path(root),
         name=name,
@@ -61,8 +66,9 @@ def dungeon(
         head=head,
         history=history,
         window=HISTORY_WINDOW if history else 0,
-        blame=_blame(blame_json),
+        blame=years,
         subjects=_subjects(subjects_json),
+        authors=authors,
     )
     return spec.model_dump_json(exclude_none=True)
 
@@ -91,21 +97,32 @@ def loot_lines(spec_json: str) -> str:
     return json.dumps(out)
 
 
-def _blame(raw_json: str) -> dict[str, dict[int, int]]:
-    """{path: {line: year}}, everything checked: it comes from the network."""
+def _blame(raw_json: str) -> tuple[dict[str, dict[int, int]], dict[str, dict[int, str]]]:
+    """{path: {line: year or {"year": y, "author": name}}} into years and
+    authors, everything checked: it comes from the network."""
     raw = json.loads(raw_json)
-    out: dict[str, dict[int, int]] = {}
+    years_out: dict[str, dict[int, int]] = {}
+    authors_out: dict[str, dict[int, str]] = {}
     if not isinstance(raw, dict):
-        return out
+        return years_out, authors_out
     for path, lines in raw.items():
         if not isinstance(lines, dict):
             continue
-        years = {}
-        for line, year in lines.items():
-            if str(line).isdigit() and isinstance(year, int) and 1970 <= year <= 2200:
-                years[int(line)] = year
-        out[str(path)] = years
-    return out
+        years: dict[int, int] = {}
+        authors: dict[int, str] = {}
+        for line, value in lines.items():
+            if not str(line).isdigit():
+                continue
+            year = value.get("year") if isinstance(value, dict) else value
+            if not isinstance(year, int) or not 1970 <= year <= 2200:
+                continue
+            years[int(line)] = year
+            author = value.get("author") if isinstance(value, dict) else None
+            if isinstance(author, str) and author.strip():
+                authors[int(line)] = author[:100]
+        years_out[str(path)] = years
+        authors_out[str(path)] = authors
+    return years_out, authors_out
 
 
 def _subjects(raw_json: str) -> dict[str, str]:

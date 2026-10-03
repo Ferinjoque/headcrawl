@@ -10,8 +10,8 @@ export const Tile = {
 } as const;
 export type Tile = (typeof Tile)[keyof typeof Tile];
 
-/** Which kind of edge carved a corridor cell. Only used for drawing. */
-export const Way = { None: 0, Import: 1, Passage: 2 } as const;
+/** Which kind of edge carved a corridor cell. Loop corridors also hold a trap. */
+export const Way = { None: 0, Import: 1, Passage: 2, Loop: 3 } as const;
 export type Way = (typeof Way)[keyof typeof Way];
 
 export class Grid {

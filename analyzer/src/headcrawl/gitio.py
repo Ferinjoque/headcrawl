@@ -287,6 +287,7 @@ class LineAge:
     year: int
     # Blamed on the oldest commit a shallow clone has, so this year or earlier.
     or_older: bool
+    author: str | None = None
 
 
 def line_years(path: Path, rel: str, lines: set[int]) -> dict[int, LineAge]:
@@ -307,17 +308,49 @@ def line_years(path: Path, rel: str, lines: set[int]) -> dict[int, LineAge]:
     current = 0
     year = 0
     boundary = False
+    author: str | None = None
     for row in out.splitlines():
         parts = row.split(" ")
         if len(parts) >= 3 and _SHA.match(parts[0]):
-            current, year, boundary = int(parts[2]), 0, False
+            current, year, boundary, author = int(parts[2]), 0, False, None
+        elif row.startswith("author ") and row != "author Not Committed Yet":
+            author = row[7:]
         elif row.startswith("committer-time "):
             year = time.gmtime(int(row.split(" ", 1)[1])).tm_year
         elif row == "boundary":
             boundary = True
         elif row.startswith("\t") and current in lines and year:
-            ages[current] = LineAge(year, boundary)
+            ages[current] = LineAge(year, boundary, author)
     return ages
+
+
+def past_text(path: Path, rel: str, before: int) -> tuple[int, str] | None:
+    """The file as of the last commit at or before `before` (unix time), with
+    that commit's year. None when history doesn't reach back that far."""
+    try:
+        out = run(
+            [
+                "--literal-pathspecs",
+                "log",
+                "-1",
+                "--no-show-signature",
+                f"--before={before}",
+                "--format=%H %ct",
+                "HEAD",
+                "--",
+                rel,
+            ],
+            cwd=path,
+        ).strip()
+        if not out:
+            return None
+        sha, when = out.split(" ", 1)
+        if not _SHA.match(sha):
+            return None
+        text = run(["--literal-pathspecs", "show", "--no-textconv", f"{sha}:{rel}"], cwd=path, timeout=30)
+    except (GitError, ValueError):
+        return None
+    return time.gmtime(int(when)).tm_year, text
 
 
 def last_subject(path: Path, rel: str) -> str | None:

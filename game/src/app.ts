@@ -20,11 +20,12 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, type TitleView, type TokenView } from "./ui/screens";
+import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, vendorCard, type TitleView, type TokenView } from "./ui/screens";
 import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
-import { dailyPick } from "./ui/daily";
+import { dailyOf, dailyPick, dailyStarts, startDaily } from "./ui/daily";
+import { MODS, type ModId } from "./game/extras";
 import { parseCode, runCode } from "./ui/codes";
 import { analyzeInBrowser } from "./lite/client";
 import { clearToken, loadToken, saveToken, tokenPlace } from "./ui/token";
@@ -66,6 +67,9 @@ export class App {
   private music = new Music();
   private moods = new MoodTracker();
   private floorTheme: { key: string; theme: Theme } | null = null;
+  /** Which try at today's daily this is: 1 counts, later ones are practice. 0 when not a daily. */
+  private dailyTry = 0;
+  private dailyMod: ModId | null = null;
   private hints = new Hints();
   private log: Log;
   private mode: Mode = "loading";
@@ -251,7 +255,7 @@ export class App {
       const raw = decodeSpec(route.watch);
       const actions = raw === null ? null : decodeLog(raw);
       if (!actions) return this.failToTitle("That replay link is broken.");
-      this.begin(res.spec, route.run);
+      this.begin(res.spec, route.run, undefined, true);
       this.startWatch(actions);
       return;
     }
@@ -383,7 +387,7 @@ export class App {
   private renderTitle(): void {
     const daily = dailyPick(this.gallery, new Date());
     this.showScreen(
-      titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label }, {
+      titleScreen(this.gallery, this.selected, this.titleError, daily && { repo: daily.entry.repo, label: daily.label, played: dailyStarts(daily.label) > 0 }, {
         play: (slug) => this.navigate({ kind: "gallery", slug, run: freshRun() }),
         daily: () => this.playDaily(),
         build: (target) => void this.buildFromGitHub(target),
@@ -457,9 +461,11 @@ export class App {
   }
 
   private dailyLabel(): string {
-    const daily = dailyPick(this.gallery, new Date());
     const r = this.route;
-    return daily && r.kind === "gallery" && r.slug === daily.entry.slug && r.run === daily.run ? `daily ${daily.label}` : "";
+    const daily = r.kind === "gallery" ? dailyOf(this.gallery, r.slug, r.run) : null;
+    if (!daily) return "";
+    const twist = daily.mod ? ` (${MODS[daily.mod].name})` : "";
+    return `daily ${daily.label}${twist}${this.dailyTry > 1 ? " practice" : ""}`;
   }
 
   private saveLog(): void {
@@ -654,15 +660,19 @@ export class App {
   }
 
 
-  private begin(spec: DungeonSpec, run: number, resume?: string): void {
+  private begin(spec: DungeonSpec, run: number, resume?: string, watching = false): void {
     window.clearTimeout(this.endTimer);
     this.titleError = null;
     this.copied = false;
     this.stopAuto();
     this.fx.clear();
     this.log.clear();
-    const resumed = resume ? Game.replay(spec, run, resume) : null;
-    this.game = resumed ?? new Game(spec, { run });
+    const daily = this.route.kind === "gallery" ? dailyOf(this.gallery, this.route.slug, run) : null;
+    const mods = daily?.mod ? [daily.mod] : [];
+    this.dailyMod = daily?.mod ?? null;
+    const resumed = resume ? Game.replay(spec, run, resume, mods) : null;
+    this.game = resumed ?? new Game(spec, { run, mods });
+    this.dailyTry = !daily ? 0 : watching ? 1 : resumed ? Math.max(1, dailyStarts(daily.label)) : startDaily(daily.label);
     document.body.classList.remove("titling");
     this.renderer.snapCamera();
     document.title = `${spec.repo.name} | HEADCRAWL`;
@@ -688,9 +698,12 @@ export class App {
     this.touch();
     if (!this.game) return;
     const card = $("banner").querySelector(".choice");
+    const vendor = this.game.vendorChoice;
     if (this.game.perkChoice && !card) {
       replace($("banner"), perkCard(this.game.perkChoice, (i) => this.pickPerk(i)));
-    } else if (!this.game.perkChoice && card) {
+    } else if (vendor && !card) {
+      replace($("banner"), vendorCard(vendor, (i) => this.step({ type: "buy", index: i })));
+    } else if (!this.game.perkChoice && !vendor && card) {
       replace($("banner"));
     }
     if (this.mode !== "watch") for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
@@ -702,6 +715,11 @@ export class App {
 
   private command(c: Command): void {
     if (this.mode === "title") return;
+    if (this.game?.vendorChoice && this.mode === "play") {
+      if (c.kind === "perk" && c.index < 2) this.step({ type: "buy", index: c.index });
+      else if (c.kind === "menu") this.step({ type: "buy", index: -1 });
+      return;
+    }
     if (c.kind === "help") return this.openHelp();
     if (c.kind === "menu") return this.mode === "play" ? this.openPause() : this.closeOverlay();
     if (c.kind === "panel") {
@@ -860,6 +878,10 @@ export class App {
           fx.float(e.x, e.y, "split", C.danger, now);
           fx.flash(e.x, e.y, C.danger, now);
           break;
+        case "loop":
+          this.renderer.snapCamera();
+          fx.flash(game.player.x, game.player.y, C.violet, now);
+          break;
         case "reveal":
         case "victory":
           break;
@@ -885,7 +907,8 @@ export class App {
   private floorCard(): void {
     const game = this.game!;
     const f = game.floorSpec;
-    this.card(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}.`);
+    const twist = f.index === 0 && this.dailyMod ? `. Today: ${MODS[this.dailyMod].name}. ${MODS[this.dailyMod].text}` : "";
+    this.card(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}${twist}`);
   }
 
 
@@ -1130,7 +1153,7 @@ export class App {
     if (this.game && this.mode !== "title") {
       const dim = this.mode === "play" || this.mode === "dying" || this.mode === "watch" ? 0 : 0.55;
       this.renderer.render(
-        { floor: this.game.floor, player: this.game.player, sight: PLAYER.sight, dim, threat: this.game.threatened() },
+        { floor: this.game.floor, player: this.game.player, sight: this.game.sight, dim, threat: this.game.threatened() },
         this.fx,
         now,
       );

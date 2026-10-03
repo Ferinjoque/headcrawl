@@ -59,6 +59,7 @@ const GLOW_ARCHETYPE: Record<string, RGB> = {
   wall: oklch(0.7, 0.1, 250),
   imp: oklch(0.88, 0.17, 100),
   bug: oklch(0.85, 0.2, 130),
+  ghost: oklch(0.86, 0.05, 280),
   spawn: oklch(0.75, 0.15, 340),
   boss: GLOW.boss,
 };
@@ -88,6 +89,7 @@ const PALETTES: Record<string, { roles: Partial<Record<ColorRole, RGB>>; archety
       wall: CB.blue,
       imp: CB.yellow,
       bug: CB.green,
+      ghost: [200, 200, 220],
       spawn: [200, 160, 190],
       boss: CB.purple,
     },

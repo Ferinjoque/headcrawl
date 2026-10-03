@@ -6,6 +6,7 @@ import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
 import { TUNING } from "./abilities";
 import { capsFor, depthScale, softCap } from "./balance";
 import type { Item, Monster } from "./types";
+import type { Vendor } from "./extras";
 
 export interface FloorState {
   index: number;
@@ -17,6 +18,9 @@ export interface FloorState {
   bossDead: boolean;
   bossMet: boolean;
   shrinesUsed: Set<number>;
+  vendor: Vendor | null;
+  /** Loop traps already sprung on this floor. */
+  loopsDone: Set<number>;
 }
 
 // Skip prefixes that half the functions share, or every monster on a test
@@ -136,5 +140,7 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     bossDead: false,
     bossMet: false,
     shrinesUsed: new Set(),
+    vendor: null,
+    loopsDone: new Set(),
   };
 }

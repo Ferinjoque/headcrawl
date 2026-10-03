@@ -13,6 +13,9 @@ export type Hp = number;
 export type Id = string;
 export type Line = number;
 export type Name = string;
+export type Ccn1 = number;
+export type Nloc = number;
+export type Year = number;
 export type Signature = string;
 export type Speed = number;
 /**
@@ -29,6 +32,7 @@ export type B = string;
  * via the `definition` "EdgeKind".
  */
 export type EdgeKind = "import" | "passage";
+export type Loop = boolean;
 export type Weight = number;
 /**
  * @maxItems 160
@@ -51,15 +55,15 @@ export type Churn1 = number;
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
  * via the `definition` "Archetype".
  */
-export type Archetype = "tangle" | "nest" | "hydra" | "wall" | "imp" | "bug";
-export type Ccn1 = number;
+export type Archetype = "tangle" | "nest" | "hydra" | "wall" | "imp" | "bug" | "ghost";
+export type Ccn2 = number;
 export type Damage1 = number;
 export type Hp1 = number;
 export type Id2 = string;
 export type Line1 = number;
 export type Name2 = string;
 export type Nesting = number;
-export type Nloc = number;
+export type Nloc1 = number;
 export type Params = number;
 export type Signature1 = string;
 export type Speed1 = number;
@@ -79,6 +83,7 @@ export type RoomKind = "hall" | "shrine" | "lair";
 export type Language = string;
 export type LastCommit = string | null;
 export type Loc = number;
+export type Author = string | null;
 export type Id4 = string;
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -89,7 +94,7 @@ export type Line2 = number;
 export type Power = number;
 export type Tag = string;
 export type Text = string;
-export type Year = number | null;
+export type Year1 = number | null;
 export type YearOrOlder = boolean;
 /**
  * @maxItems 8
@@ -111,14 +116,24 @@ export type Generator = string;
 export type Branch = string | null;
 export type CommitsScanned = number;
 export type CommittedAt = number;
+/**
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "Ecosystem".
+ */
+export type Ecosystem = "npm" | "pypi" | "go" | "cargo" | "gem" | "composer";
+export type Name5 = string;
+/**
+ * @maxItems 40
+ */
+export type Dependencies = Dependency[];
 export type Head = string;
 export type Loc1 = number;
-export type Name5 = string;
+export type Name6 = string;
 /**
  * @maxItems 32
  */
 export type Languages = LanguageShare[];
-export type Name6 = string;
+export type Name7 = string;
 export type Url = string | null;
 export type SchemaVersion = number;
 export type Seed = string;
@@ -167,11 +182,23 @@ export interface Boss {
   id: Id;
   line: Line;
   name: Name;
+  past?: BossPast | null;
   signature: Signature;
   speed: Speed;
   taunts: Taunts;
   title: Title;
   xp: Xp;
+}
+/**
+ * The boss function as it was about a year before HEAD.
+ *
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "BossPast".
+ */
+export interface BossPast {
+  ccn: Ccn1;
+  nloc: Nloc;
+  year: Year;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -181,6 +208,7 @@ export interface Edge {
   a: A;
   b: B;
   kind: EdgeKind;
+  loop?: Loop;
   weight: Weight;
 }
 /**
@@ -210,14 +238,14 @@ export interface Room {
  */
 export interface Enemy {
   archetype: Archetype;
-  ccn: Ccn1;
+  ccn: Ccn2;
   damage: Damage1;
   hp: Hp1;
   id: Id2;
   line: Line1;
   name: Name2;
   nesting: Nesting;
-  nloc: Nloc;
+  nloc: Nloc1;
   params: Params;
   signature: Signature1;
   speed: Speed1;
@@ -228,13 +256,14 @@ export interface Enemy {
  * via the `definition` "Loot".
  */
 export interface Loot1 {
+  author?: Author;
   id: Id4;
   kind: LootKind;
   line: Line2;
   power: Power;
   tag: Tag;
   text: Text;
-  year?: Year;
+  year?: Year1;
   year_or_older?: YearOrOlder;
 }
 /**
@@ -254,10 +283,19 @@ export interface RepoInfo {
   branch?: Branch;
   commits_scanned: CommitsScanned;
   committed_at: CommittedAt;
+  dependencies?: Dependencies;
   head: Head;
   languages: Languages;
-  name: Name6;
+  name: Name7;
   url?: Url;
+}
+/**
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "Dependency".
+ */
+export interface Dependency {
+  ecosystem: Ecosystem;
+  name: Name5;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -265,7 +303,7 @@ export interface RepoInfo {
  */
 export interface LanguageShare {
   loc: Loc1;
-  name: Name5;
+  name: Name6;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema

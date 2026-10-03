@@ -1,19 +1,23 @@
 """Repo on disk -> DungeonSpec."""
 
 import hashlib
+import re
 import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from . import __version__, gitio, stats
+from .deps import dependencies
 from .floors import Group, group_floors, order_floors, wing_of
-from .graph import corridors
+from .graph import corridors, cycle_members
 from .languages import is_test_path
 from .limits import DEFAULT, Limits
 from .metrics import FileMetric, FunctionMetric, measure
 from .models import (
+    Archetype,
     Boss,
+    BossPast,
     DungeonSpec,
     Edge,
     EdgeKind,
@@ -33,6 +37,46 @@ from .text import clean
 from .walk import SourceFile, walk
 
 ENTRY_NAMES = ("main", "index", "__init__", "__main__", "app", "lib", "mod", "cli")
+
+# Names frameworks call by convention. Nobody writes them out, so they would
+# all look like dead code.
+CALLED_BY_CONVENTION = {
+    "main",
+    "init",
+    "new",
+    "setup",
+    "teardown",
+    "setUp",
+    "tearDown",
+    "constructor",
+    "render",
+    "componentDidMount",
+    "componentWillUnmount",
+    "ngOnInit",
+    "handle",
+    "run",
+    "execute",
+    "invoke",
+    "call",
+    "apply",
+    "start",
+    "stop",
+    "close",
+    "configure",
+    "register",
+    "default",
+    "toString",
+    "equals",
+    "hashCode",
+    "compareTo",
+    "Dispose",
+    "ServeHTTP",
+    "Error",
+    "String",
+    "Main",
+}
+_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+YEAR_SECONDS = 365 * 24 * 3600
 
 
 class AnalysisError(RuntimeError):
@@ -81,9 +125,15 @@ class _Context:
     root: Path
     in_git: bool
     head_year: int
+    head_time: int
     # Supplied by callers without a checkout (the browser asks GitHub).
     blame: dict[str, dict[int, int]]
     subjects: dict[str, str]
+    authors: dict[str, dict[int, str]]
+    # How often each identifier appears across the whole repo, tests included.
+    mentions: Counter[str]
+    # File -> id of the import cycle it sits on.
+    cycles: dict[str, int]
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -139,6 +189,7 @@ def analyze(
     window: int = 0,
     blame: dict[str, dict[int, int]] | None = None,
     subjects: dict[str, str] | None = None,
+    authors: dict[str, dict[int, str]] | None = None,
 ) -> DungeonSpec:
     """`head` is for callers that know the commit but have no git checkout,
     like the browser build that downloads files straight from GitHub."""
@@ -177,8 +228,25 @@ def analyze(
 
     edges = _import_edges(root, reports)
     head_year = time.gmtime(head.time).tm_year if head.time else 0
+    mentions: Counter[str] = Counter()
+    for r in reports.values():
+        mentions.update(_WORD.findall(r.src.text))
     ctx = _Context(
-        reports, edges, _heat(reports), commits, limits, _Ids(), root, in_git, head_year, blame or {}, subjects or {}
+        reports,
+        edges,
+        _heat(reports),
+        commits,
+        limits,
+        _Ids(),
+        root,
+        in_git,
+        head_year,
+        head.time,
+        blame or {},
+        subjects or {},
+        authors or {},
+        mentions,
+        cycle_members(edges),
     )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
@@ -206,6 +274,7 @@ def analyze(
             committed_at=head.time,
             commits_scanned=commits,
             languages=[LanguageShare(name=k, loc=v) for k, v in sorted(langs.items(), key=lambda kv: (-kv[1], kv[0]))],
+            dependencies=dependencies(root),
         ),
         floors=floors,
         totals=Totals(
@@ -273,7 +342,14 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
             weights[tuple(sorted((src, dst)))] += 1  # type: ignore[index]
     links = corridors(sorted(local), dict(weights), ctx.limits.max_extra_edges_ratio)
     edges = [
-        Edge(a=room_ids[link.a], b=room_ids[link.b], kind=EdgeKind(link.kind), weight=link.weight) for link in links
+        Edge(
+            a=room_ids[link.a],
+            b=room_ids[link.b],
+            kind=EdgeKind(link.kind),
+            weight=link.weight,
+            loop=link.kind == "import" and ctx.cycles.get(link.a, -1) == ctx.cycles.get(link.b, -2),
+        )
+        for link in links
     ]
 
     floor = Floor(
@@ -379,7 +455,7 @@ def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> lis
                 id=ctx.ids("e"),
                 name=_display_name(f, rep.path),
                 signature=clean(f.long_name, 200),
-                archetype=stats.archetype(f),
+                archetype=Archetype.GHOST if _is_dead(ctx, f, rep) else stats.archetype(f),
                 hp=stats.enemy_hp(f),
                 damage=stats.enemy_damage(f),
                 speed=stats.enemy_speed(f),
@@ -394,6 +470,18 @@ def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> lis
     return out
 
 
+def _is_dead(ctx: _Context, f: FunctionMetric, rep: FileReport) -> bool:
+    """Nothing in the repo mentions the name except its own definition. Tests
+    count as mentions, so a library's public API, which its tests call, is
+    not dead. A rough guess, and the game says so."""
+    if rep.is_test or _is_anonymous(f):
+        return False
+    bare = re.split(r"[.:]+", f.name)[-1]
+    if len(bare) < 4 or bare.startswith(("__", "test", "Test")) or bare in CALLED_BY_CONVENTION:
+        return False
+    return ctx.mentions[bare] <= 1
+
+
 def _loot(ctx: _Context, rep: FileReport) -> list[Loot]:
     tags = sorted(rep.syntax.tags, key=lambda t: t.line)[: ctx.limits.max_loot_per_room]
     if ctx.in_git and tags:
@@ -401,7 +489,8 @@ def _loot(ctx: _Context, rep: FileReport) -> list[Loot]:
     else:
         # Blame from outside covers the whole history, so never "or older".
         known = ctx.blame.get(rep.path, {})
-        years = {t.line: gitio.LineAge(known[t.line], False) for t in tags if t.line in known}
+        who = ctx.authors.get(rep.path, {})
+        years = {t.line: gitio.LineAge(known[t.line], False, who.get(t.line)) for t in tags if t.line in known}
     out = []
     for tag in tags:
         found = years.get(tag.line)
@@ -421,6 +510,7 @@ def _loot(ctx: _Context, rep: FileReport) -> list[Loot]:
                 power=stats.loot_power(tag.kind, tag.text, age),
                 year=year if year and 1970 <= year <= 2200 else None,
                 year_or_older=bool(found and found.or_older),
+                author=(clean(found.author, 60) or None) if found and found.author else None,
             )
         )
     return out
@@ -461,4 +551,24 @@ def _boss(ctx: _Context, rep: FileReport, f: FunctionMetric, depth: int, final: 
         churn=rep.churn,
         taunts=_taunts(ctx, rep, f, final),
         final=final,
+        past=_past(ctx, rep, f),
     )
+
+
+def _past(ctx: _Context, rep: FileReport, f: FunctionMetric) -> BossPast | None:
+    """The boss function a year before HEAD, if git history reaches that far
+    and the function existed then."""
+    if not ctx.in_git or not ctx.head_time or _is_anonymous(f):
+        return None
+    old = gitio.past_text(ctx.root, rep.path, ctx.head_time - YEAR_SECONDS)
+    if old is None:
+        return None
+    year, text = old
+    try:
+        then = measure(rep.path, text)
+    except Exception:  # noqa: BLE001 - an old version that lizard can't read is just no history
+        return None
+    match = next((g for g in then.functions if g.name == f.name), None)
+    if match is None or not 1970 <= year <= 2200:
+        return None
+    return BossPast(year=year, ccn=max(1, match.ccn), nloc=max(0, match.nloc))

@@ -1,5 +1,6 @@
 import type { Game } from "../game/game";
 import { PERKS, type PerkId } from "../game/perks";
+import type { Offer } from "../game/extras";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
@@ -324,6 +325,24 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
         h("span", { class: "perk-text" }, PERKS[id].text),
       ),
     ),
+  );
+}
+
+export function vendorCard(offers: Offer[], pick: (index: number) => void) {
+  return h(
+    "div",
+    { class: "card choice", role: "dialog", "aria-label": "The vendor" },
+    h("div", { class: "card-kicker" }, "a vendor. one dependency per floor"),
+    ...offers.map((o, i) =>
+      h(
+        "button",
+        { class: "perk", type: "button", onclick: () => pick(i) },
+        h("kbd", null, `[${i + 1}]`),
+        h("span", { class: "perk-name" }, o.dep.name),
+        h("span", { class: "perk-text" }, o.deal.text),
+      ),
+    ),
+    h("button", { class: "perk", type: "button", onclick: () => pick(-1) }, h("kbd", null, "[esc]"), h("span", { class: "perk-name" }, "walk away"), h("span")),
   );
 }
 

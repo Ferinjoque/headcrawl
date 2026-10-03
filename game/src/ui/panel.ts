@@ -50,7 +50,7 @@ function foe(m: Monster, detail: boolean) {
 function lootNote(i: Game["floor"]["items"][number]): string {
   if (!i.loot) return "still warm";
   const year = i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}` : "";
-  const who = "";
+  const who = i.loot.author ? ` by ${i.loot.author}` : "";
   const when = year || who ? `${year}${who}: ` : "";
   return `${when}"${i.loot.text}"`;
 }
