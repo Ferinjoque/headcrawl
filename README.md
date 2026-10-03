@@ -18,7 +18,12 @@ Same commit, same dungeon. The seed is the HEAD hash, so a run code like
 
 ## Running it
 
-You need Node 20 or newer.
+The quickest way: grab the zip from the latest release, unzip it, and run
+`python play.py` inside the folder. It serves the game on 127.0.0.1 and
+opens your browser. Everything works from the zip, building any GitHub
+repo included.
+
+From source you need Node 20 or newer.
 
 ```
 git clone <this repo>
