@@ -4,6 +4,7 @@ import hashlib
 import re
 import time
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -531,14 +532,17 @@ def _top_from(rows: dict[str, list[tuple[str, str, str, str]]], paths: list[str]
     return name, n, latest[1]
 
 
+def _shape(funcs: Sequence[FunctionMetric]) -> list[tuple[str, int, int]]:
+    return sorted((f.name, f.ccn, f.nloc) for f in funcs)
+
+
 def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> RoomPast | None:
     old = _old(ctx, rep)
     if old is None or not 1970 <= old[0] <= 2200:
         return None
     year, metric = old
-    shape = lambda fs: sorted((f.name, f.ccn, f.nloc) for f in fs)  # noqa: E731
     # Unchanged in a year: nothing to rewind, and nothing to ship.
-    if shape(metric.functions) == shape(rep.metric.functions):
+    if _shape(metric.functions) == _shape(rep.metric.functions):
         return None
     funcs = [f for f in metric.functions if not skip or f.name != skip.name]
     funcs.sort(key=lambda f: (-stats.threat(f), f.start_line))
