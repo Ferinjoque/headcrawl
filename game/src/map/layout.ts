@@ -123,7 +123,7 @@ function placeRooms(floor: Floor, rng: Rng): Map<string, Box> {
 function rockText(floor: Floor): string {
   const words = new Set<string>();
   const add = (s: string) => {
-    const w = s.toUpperCase().replace(/[^A-Z0-9_]/g, "");
+    const w = s.toLowerCase().replace(/[^a-z0-9_]/g, "");
     if (w.length >= 3) words.add(w);
   };
   add(floor.boss.name);
@@ -131,7 +131,7 @@ function rockText(floor: Floor): string {
     add(r.name.replace(/\.[^.]+$/, ""));
     for (const e of r.enemies) add(e.name);
   }
-  if (!words.size) words.add("HEAD");
+  if (!words.size) words.add("head");
   return [...words].join(" ") + " ";
 }
 

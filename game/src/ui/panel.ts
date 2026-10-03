@@ -2,7 +2,7 @@ import type { Game } from "../game/game";
 import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
-import { bar, h, plural, replace } from "./dom";
+import { h, plural, replace } from "./dom";
 
 const ARCH_NAME: Record<string, string> = {
   tangle: "tangle: regrows",
@@ -11,6 +11,7 @@ const ARCH_NAME: Record<string, string> = {
   wall: "wall: armored, slow",
   imp: "imp: fast",
   bug: "bug: dodgy",
+  ghost: "ghost: dead code, walks through walls",
   spawn: "helper",
   boss: "boss",
 };
@@ -23,7 +24,13 @@ const ITEM: Record<string, [string, string]> = {
   coffee: ["c", "coffee"],
 };
 
-function foe(m: Monster) {
+function hpBar(hp: number, max: number): HTMLElement {
+  const fill = h("i");
+  fill.style.width = `${max > 0 ? Math.max(0, Math.min(100, (hp / max) * 100)).toFixed(1) : 0}%`;
+  return h("span", { class: hp < max * 0.3 ? "mini-bar low" : "mini-bar", title: `${hp} of ${max}` }, fill);
+}
+
+function foe(m: Monster, detail: boolean) {
   const e = m.enemy;
   const stats = m.boss
     ? `${m.boss.title}. ${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
@@ -35,82 +42,77 @@ function foe(m: Monster) {
     { class: "foe" },
     h("span", { class: m.boss ? "t-boss glow" : m.awake ? "t-bad" : "dim" }, m.glyph),
     h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, m.name),
-    h("span", { class: m.hp < m.maxHp * 0.3 ? "t-bad" : "dim" }, `${bar(m.hp, m.maxHp, 6)} ${m.hp}`),
-    h("span", { class: "stats" }, stats),
+    hpBar(m.hp, m.maxHp),
+    detail ? h("span", { class: "stats" }, stats) : null,
   );
+}
+
+function lootNote(i: Game["floor"]["items"][number]): string {
+  if (!i.loot) return "still warm";
+  const year = i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}` : "";
+  const who = "";
+  const when = year || who ? `${year}${who}: ` : "";
+  return `${when}"${i.loot.text}"`;
 }
 
 export function renderPanel(el: HTMLElement, game: Game): void {
   const room = game.roomOfPlayer();
   const p = game.player;
-  const here = room
-    ? h(
-        "section",
-        { class: "pane" },
-        h("h2", null, "here"),
-        h("p", { class: "path" }, room.spec.path),
-        h(
-          "p",
-          { class: "dim" },
-          `${room.spec.language}, ${room.spec.loc} loc, ${plural(room.spec.functions, "function")}`,
-        ),
-        h("p", { class: "dim" }, `changed in ${plural(room.spec.churn, "commit")}, heat ${bar(room.spec.heat, 1, 6)}`),
-        room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
-        room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
-        room.spec.last_commit ? h("p", { class: "dim" }, "last commit: ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
-      )
-    : h("section", { class: "pane" }, h("h2", null, "here"), h("p", { class: "dim" }, "a corridor between files"));
 
+  // What is near you comes first. Full stats only for the closest one; the
+  // rest get a name and a health bar, and hovering a monster tells the rest.
   const seen = game.floor.monsters
     .filter((m) => game.isVisible(m.x, m.y))
     .sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p))
     .slice(0, 8);
   const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y)).slice(0, 5);
-  const sight = h(
-    "section",
-    { class: "pane" },
-    h("h2", null, "in sight"),
-    ...(seen.length ? seen.map(foe) : [h("p", { class: "dim" }, "nothing moving")]),
-    ...items.map((i) =>
-      h(
-        "div",
-        { class: "foe" },
-        h("span", { class: "t-loot" }, ITEM[i.kind][0]),
-        h("span", { class: "name t-loot" }, ITEM[i.kind][1]),
-        h("span", null, ""),
-        h("span", { class: "stats" }, i.loot ? `${i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}: ` : ""}"${i.loot.text}"` : "still warm"),
-      ),
-    ),
-  );
+  const sight =
+    seen.length || items.length
+      ? h(
+          "section",
+          { class: "pane" },
+          h("h2", null, "in sight"),
+          ...seen.map((m, i) => foe(m, i === 0)),
+          ...items.map((i) =>
+            h(
+              "div",
+              { class: "foe" },
+              h("span", { class: "t-loot" }, ITEM[i.kind][0]),
+              h("span", { class: "name t-loot" }, ITEM[i.kind][1]),
+              h("span", null, ""),
+              h("span", { class: "stats" }, lootNote(i)),
+            ),
+          ),
+        )
+      : null;
 
-  const count = (n: number) => (n ? ` x${n}` : "");
-  const pack = h(
-    "section",
-    { class: "pane" },
-    h("h2", null, "pack"),
-    h("p", { class: p.potions.length ? "t-good" : "faint" }, `! TODO${count(p.potions.length)}`, h("span", { class: "faint" }, "  q to drink")),
-    h("p", { class: p.scrolls.length ? "t-loot" : "faint" }, `? HACK${count(p.scrolls.length)}`, h("span", { class: "faint" }, "  r to read")),
-    h("p", { class: p.blade ? "" : "faint" }, `/ FIXME ${p.blade ? `+${p.blade} attack` : "none yet"}`),
-    p.curses ? h("p", { class: "t-bad" }, `% XXX x${p.curses}`) : null,
-    p.perks.length ? h("p", { class: "t-loot" }, `tools: ${p.perks.map((id) => PERKS[id].name).join(", ")}`) : null,
-  );
-
-  const keys = h(
-    "section",
-    { class: "pane keys" },
-    h("h2", null, "keys"),
-    h("p", null, h("b", null, "arrows hjkl yubn"), " move, bump to attack"),
-    h("p", null, h("b", null, "x"), " explore  ", h("b", null, "z"), " rest  ", h("b", null, "."), " wait"),
-    h("p", null, h("b", null, ">"), " descend  ", h("b", null, "q"), " drink  ", h("b", null, "r"), " read"),
-    h("p", null, h("b", null, "?"), " help  ", h("b", null, "esc"), " menu  ", h("b", null, "m"), " sound  ", h("b", null, ","), " settings"),
-    h("p", null, h("b", null, "click"), " walk there, ", h("b", null, "hover"), " inspect"),
-  );
+  // The pack lists only what you carry, each with the key that uses it.
+  const held = [
+    p.potions.length ? h("p", { class: "t-good" }, h("kbd", null, "q"), ` ! TODO x${p.potions.length}`) : null,
+    p.scrolls.length ? h("p", { class: "t-loot" }, h("kbd", null, "r"), ` ? HACK x${p.scrolls.length}`) : null,
+    p.blade ? h("p", null, h("kbd", null, " "), ` / FIXME +${p.blade} attack`) : null,
+    p.curses ? h("p", { class: "t-bad" }, h("kbd", null, " "), ` % XXX x${p.curses}`) : null,
+    p.perks.length ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", ")) : null,
+  ];
+  const pack = held.some(Boolean) ? h("section", { class: "pane pack" }, h("h2", null, "pack"), ...held) : null;
 
   const canvas = h("canvas", { class: "minimap", "aria-label": "Map of what you have seen" }) as HTMLCanvasElement;
   drawMinimap(canvas, game);
-  const map = h("section", { class: "pane" }, h("h2", null, "map"), canvas);
+  const map = h("section", { class: "pane" }, canvas);
 
-  replace(el, here, sight, map, pack, keys);
+  const here = room
+    ? h(
+        "section",
+        { class: "pane here" },
+        h("p", { class: "path" }, room.spec.path),
+        h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, ${plural(room.spec.churn, "commit")}`),
+        room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
+        room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
+        room.spec.last_commit ? h("p", { class: "faint" }, "last commit ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
+      )
+    : null;
+
+  replace(el, sight, pack, map, here);
 }
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {

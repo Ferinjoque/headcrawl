@@ -53,7 +53,7 @@ export class Renderer {
   textScale = 1;
   /** True while the camera is still easing toward its target. */
   settling = false;
-  rockBase = 0.15;
+  rockBase = 0.2;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -90,6 +90,11 @@ export class Renderer {
     const ox = this.canvas.width / 2 - this.camX * this.cellW;
     const oy = this.canvas.height / 2 - this.camY * this.cellH;
     return [Math.floor((px - ox) / this.cellW), Math.floor((py - oy) / this.cellH)];
+  }
+
+  /** How many map columns fit on screen. */
+  get viewCols(): number {
+    return this.canvas.width / this.cellW;
   }
 
   snapCamera(): void {
@@ -136,9 +141,11 @@ export class Renderer {
     ctx.fillStyle = rgba(C.ink);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     lctx.clearRect(0, 0, canvas.width, canvas.height);
-    lctx.font = `${this.fontPx}px ${FONT}`;
-    lctx.textAlign = "center";
-    lctx.textBaseline = "middle";
+    for (const c of [ctx, lctx]) {
+      c.font = `${this.fontPx}px ${FONT}`;
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+    }
 
     this.drawCells(scene, ox, oy, now);
     this.drawThreat(scene, ox, oy, now);
@@ -153,11 +160,13 @@ export class Renderer {
     return Math.max(0.38, 1 - (d / scene.sight) ** 1.6 * 0.62);
   }
 
+  // Rock carries no information, so the torch only warms it a little. It
+  // used to glow brighter next to you than the map you had explored.
   private glowAt(scene: Scene, x: number, y: number): number {
-    if (!scene.player) return 0.12;
+    if (!scene.player) return 0.05;
     const d = Math.hypot(x - scene.player.x, (y - scene.player.y) * 1.15);
     const r = scene.sight * 1.25;
-    return d >= r ? 0 : 0.42 * (1 - d / r) ** 1.7;
+    return d >= r ? 0 : 0.07 * (1 - d / r) ** 1.7;
   }
 
   private rockChar(scene: Scene, x: number, y: number): string {
@@ -191,11 +200,15 @@ export class Renderer {
         const i = inside ? grid.idx(x, y) : -1;
         const known = inside && (scene.revealAll || seen[i] === 1);
         if (inside && known && grid.tiles[i] !== Tile.Rock) continue;
+        // A clear ring around the player so the @ never reads as part of a word.
+        const p = scene.player;
+        if (p && Math.abs(x - p.x) <= 1 && Math.abs(y - p.y) <= 1) continue;
         const ch = this.rockChar(scene, ((x % 997) + 997) % 997, ((y % grid.height) + grid.height) % grid.height);
         if (ch === " ") continue;
-        const a = this.rockBase + this.glowAt(scene, x, y) * (this.rockBase / 0.15);
-        lctx.fillStyle = rgba(C.ember, a);
-        lctx.fillText(ch, ox + x * cellW + cellW / 2, oy + y * cellH + cellH / 2);
+        const a = this.rockBase + this.glowAt(scene, x, y) * (this.rockBase / 0.2);
+        // Straight onto the base layer: no bloom for rock.
+        ctx.fillStyle = rgba(C.rock, a);
+        ctx.fillText(ch, ox + x * cellW + cellW / 2, oy + y * cellH + cellH / 2);
       }
     }
 
@@ -206,7 +219,7 @@ export class Renderer {
         if (tile === Tile.Rock) continue;
         const vis = scene.revealAll || visible[i] === 1;
         if (!vis && !seen[i]) continue;
-        const light = vis ? this.lightAt(scene, x, y) : 0.24;
+        const light = vis ? this.lightAt(scene, x, y) : 0.34;
         const px = ox + x * cellW;
         const py = oy + y * cellH;
         const ri = grid.room[i];
@@ -310,7 +323,7 @@ export class Renderer {
       const { x, y } = scene.player;
       const px = ox + x * cellW;
       const py = oy + y * cellH;
-      ctx.fillStyle = rgba(C.player, 0.1);
+      ctx.fillStyle = rgba(C.player, 0.22);
       ctx.fillRect(px, py, cellW, cellH);
       lctx.fillStyle = rgba(C.player);
       lctx.font = `bold ${this.fontPx}px ${FONT}`;

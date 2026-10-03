@@ -2,21 +2,19 @@
 // Remembered in this browser so a returning player isn't told twice.
 
 import type { Game } from "../game/game";
-import { Tile } from "../map/grid";
 
 const KEY = "headcrawl.hints.v1";
 
 const TIPS = {
-  monster: "Tip: walk into a monster to hit it. Hover or tap it to see what the code made it.",
-  item: "Tip: walk over an item to pick it up. TODOs heal, FIXMEs sharpen your attack.",
+  monster: "Tip: walk into a monster to hit it.",
+  item: "Tip: walk over an item to take it. TODOs heal, FIXMEs sharpen.",
   telegraph: "Tip: red cells get hit next turn. Step out of them, then hit back.",
   lowhp: "Tip: low on HP. z rests when nothing is chasing you, q drinks a TODO.",
-  shrine: "Tip: the * in a test file heals you to full, once per shrine.",
   stairs: "Tip: the boss left stairs (>) in its room. Stand on them and press >.",
-  explore: "Tip: x explores on its own and stops when something shows up.",
+  explore: "Tip: x explores for you and stops when something shows up.",
 } as const;
 
-type Tip = keyof typeof TIPS;
+export type Tip = keyof typeof TIPS;
 
 export class Hints {
   private seen: Set<string>;
@@ -49,21 +47,22 @@ export class Hints {
     }
   }
 
+  /** Marks a tip as learned without showing it, e.g. explore once you press x. */
+  learned(tip: Tip): void {
+    if (this.seen.has(tip)) return;
+    this.once(tip, []);
+  }
+
   /** Tips that apply to the state the game is in right now. */
   check(game: Game): string[] {
     const out: string[] = [];
     const p = game.player;
-    const { grid } = game.floor.map;
-    if (p.turns >= 3) this.once("explore", out);
+    if (p.turns >= 15) this.once("explore", out);
     if (game.floor.monsters.some((m) => game.isVisible(m.x, m.y))) this.once("monster", out);
     if (game.floor.items.some((i) => game.isVisible(i.x, i.y))) this.once("item", out);
     if (game.threatened().size) this.once("telegraph", out);
-    if (p.hp < p.maxHp * 0.4) this.once("lowhp", out);
+    if (p.hp <= p.maxHp * 0.3) this.once("lowhp", out);
     if (game.floor.bossDead) this.once("stairs", out);
-    const shrine = game.floor.map.rooms.some(
-      (r) => r.spec.kind === "shrine" && grid.get(r.cx, r.cy) === Tile.Shrine && game.isVisible(r.cx, r.cy),
-    );
-    if (shrine) this.once("shrine", out);
     return out;
   }
 }

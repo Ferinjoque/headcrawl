@@ -25,12 +25,15 @@ export function oklch(l: number, c: number, hDeg: number): RGB {
 const GLOW = {
   ink: oklch(0.14, 0.02, 20),
   ember: oklch(0.66, 0.17, 45),
+  // Rock letters: muted and off the bloom layer, so they read as texture, not map.
+  rock: oklch(0.52, 0.05, 35),
   brick: oklch(0.8, 0.15, 62),
   floor: oklch(0.62, 0.2, 345),
   current: oklch(0.64, 0.17, 255),
   currentDeep: oklch(0.3, 0.1, 260),
   passage: oklch(0.6, 0.04, 255),
-  loot: oklch(0.86, 0.22, 140),
+  // Loot sits on yellow so green only ever means health.
+  loot: oklch(0.86, 0.16, 100),
   hp: oklch(0.82, 0.19, 150),
   danger: oklch(0.68, 0.23, 25),
   boss: oklch(0.72, 0.26, 340),

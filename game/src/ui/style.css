@@ -9,7 +9,7 @@
   --brick: oklch(0.8 0.15 62);
   --floor: oklch(0.62 0.2 345);
   --current: oklch(0.7 0.15 255);
-  --loot: oklch(0.86 0.22 140);
+  --loot: oklch(0.86 0.16 100);
   --hp: oklch(0.82 0.19 150);
   --danger: oklch(0.7 0.22 25);
   --boss: oklch(0.74 0.24 340);
@@ -83,9 +83,9 @@ body {
   grid-area: hud;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 1.4ch;
-  padding: 6px 14px 4px;
+  align-items: center;
+  gap: 4px 2.4ch;
+  padding: 8px 16px 6px;
   background: var(--ink);
   border-bottom: 1px solid var(--ink-line);
   white-space: nowrap;
@@ -124,7 +124,7 @@ body {
   overflow: hidden;
   padding: 6px 14px 10px;
   border-top: 1px solid var(--ink-line);
-  min-height: calc(5 * 1.15em + 16px);
+  min-height: calc(4 * 1.15em + 16px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -155,8 +155,116 @@ body {
   letter-spacing: 0.08em;
   text-shadow: 0 0 8px var(--ember);
 }
-.hud-bar {
-  letter-spacing: -0.04em;
+#hud small {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+#hud kbd {
+  font-family: inherit;
+  color: var(--ember);
+}
+/* Health is the first thing on the line and the biggest. */
+.hud-hp {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-m);
+  color: var(--hp);
+}
+.hud-hp-num small {
+  color: oklch(0.82 0.19 150 / 0.6);
+}
+.hud-hp-bar {
+  position: relative;
+  display: inline-block;
+  width: clamp(90px, 14vw, 200px);
+  height: 12px;
+  background: oklch(0.82 0.19 150 / 0.12);
+  outline: 1px solid oklch(0.82 0.19 150 / 0.35);
+  outline-offset: 2px;
+}
+.hud-hp-bar i,
+.hud-xp i,
+.mini-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: currentColor;
+  transition: width 200ms var(--ease);
+}
+/* Segments, so it still reads as a terminal gauge. */
+.hud-hp-bar i {
+  background: repeating-linear-gradient(90deg, currentColor 0 8px, transparent 8px 10px);
+  box-shadow: 0 0 10px oklch(0.82 0.19 150 / 0.5);
+}
+.hud-hp.mid {
+  color: var(--gold);
+}
+.hud-hp.low {
+  color: var(--danger);
+  text-shadow: 0 0 8px currentColor;
+}
+.hud-hp.mid .hud-hp-bar,
+.hud-hp.low .hud-hp-bar {
+  background: color-mix(in oklch, currentColor 12%, transparent);
+  outline-color: color-mix(in oklch, currentColor 40%, transparent);
+}
+.hud-hp.mid .hud-hp-bar i,
+.hud-hp.low .hud-hp-bar i {
+  box-shadow: 0 0 10px currentColor;
+}
+.hud-hp.low .hud-hp-bar i {
+  animation: low-hp 900ms ease-in-out infinite alternate;
+}
+@keyframes low-hp {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+.hud-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--text);
+}
+.hud-xp {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 3px;
+  margin-left: 6px;
+  align-self: center;
+  color: var(--violet);
+  background: oklch(0.74 0.18 300 / 0.18);
+}
+.hud-spacer {
+  flex: 1 1 0;
+}
+.hud-floor {
+  color: var(--ember);
+}
+.hud-goal {
+  color: var(--text-dim);
+}
+.hud-goal b {
+  font-weight: normal;
+}
+.hud-goal.stairs {
+  color: var(--gold);
+  text-shadow: 0 0 8px oklch(0.88 0.16 90 / 0.6);
+}
+.hud-help {
+  font-size: var(--fs-xs);
+}
+.mini-bar {
+  position: relative;
+  display: inline-block;
+  width: 6ch;
+  height: 5px;
+  align-self: center;
+  color: var(--text-faint);
+  background: oklch(0.58 0.03 50 / 0.2);
+}
+.mini-bar.low {
+  color: var(--danger);
 }
 
 /* Side panel */
@@ -206,22 +314,30 @@ body {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 220px;
+  max-height: 180px;
   object-fit: contain;
   object-position: left top;
   image-rendering: pixelated;
+  opacity: 0.85;
 }
-.keys {
-  color: var(--text-faint);
+.pack kbd {
+  display: inline-block;
+  width: 2ch;
+  font-family: inherit;
+  color: var(--ember);
+}
+.pack .tools {
+  font-size: var(--fs-xs);
+  margin-top: 4px;
+}
+.here {
   font-size: var(--fs-xs);
   line-height: 1.3;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-line);
 }
-.keys p {
-  margin-bottom: 4px;
-}
-.keys b {
-  color: var(--text-dim);
-  font-weight: normal;
+.here .path {
+  font-size: var(--fs-s);
 }
 
 /* Full screen text pages: title, help, death, victory */
@@ -240,7 +356,7 @@ body {
   display: none;
 }
 #screen.clear {
-  background: linear-gradient(90deg, oklch(0.14 0.02 20 / 0.9) 0%, oklch(0.14 0.02 20 / 0.75) 55%, oklch(0.14 0.02 20 / 0.2) 100%);
+  background: linear-gradient(90deg, oklch(0.14 0.02 20 / 0.94) 0%, oklch(0.14 0.02 20 / 0.86) 42%, oklch(0.14 0.02 20 / 0.1) 72%, oklch(0.14 0.02 20 / 0) 100%);
 }
 
 /* On the title screen the map is only a backdrop. */
@@ -302,6 +418,74 @@ body.titling #touch {
   margin: 0 0 4px;
 }
 
+/* Title: a narrow column on the left, the demo plays on the right. */
+.page.title {
+  max-width: 64ch;
+}
+.title .tagline {
+  margin: 18px 0 26px;
+  color: var(--text-dim);
+}
+.continue {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  margin: 0 0 22px;
+  padding: 8px 12px;
+  color: var(--text);
+  border: 1px solid oklch(0.66 0.17 45 / 0.5);
+  transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
+}
+.continue kbd {
+  font-family: inherit;
+  color: var(--ember);
+}
+.continue .name {
+  color: var(--gold);
+}
+.continue:hover,
+.continue:focus-visible {
+  background: oklch(0.66 0.17 45 / 0.12);
+  border-color: var(--ember);
+}
+.title .repos {
+  max-height: calc(9 * 1.9em);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-line) transparent;
+  mask-image: linear-gradient(180deg, #000 85%, transparent);
+}
+.repos .diff {
+  text-align: right;
+  font-size: var(--fs-xs);
+}
+.detail {
+  margin: 10px 0 0 calc(2ch + 6px) !important;
+  color: var(--text-dim);
+  min-height: 1.2em;
+}
+.actions.main {
+  margin-top: 22px;
+}
+.more {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ink-line);
+  animation: fade-in 180ms var(--ease);
+}
+.more h2 {
+  margin-top: 18px;
+}
+.attract {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  margin: 0 !important;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 .repos {
   list-style: none;
   margin: 0;
@@ -311,7 +495,7 @@ body.titling #touch {
   all: unset;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 2ch minmax(14ch, 22ch) 11ch 1fr;
+  grid-template-columns: 2ch minmax(14ch, 1fr) 11ch 7ch;
   gap: 0 1.5ch;
   width: 100%;
   padding: 3px 6px;
@@ -335,11 +519,6 @@ body.titling #touch {
 }
 .repos .name {
   color: var(--text);
-}
-.repos .meta {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .btn {
@@ -437,14 +616,14 @@ body.dragging #screen::after {
 /* Title cards for a new floor or a boss */
 #banner {
   position: absolute;
-  inset: 9% 16px auto;
+  inset: 18px 16px auto;
   display: grid;
   justify-items: center;
   text-align: center;
   pointer-events: none;
 }
 #banner .card {
-  animation: card 3200ms var(--ease) forwards;
+  animation: card 2400ms var(--ease) forwards;
   max-width: 60ch;
 }
 .card-kicker {
@@ -602,20 +781,27 @@ body.dragging #screen::after {
     transform: none;
   }
   #log {
-    min-height: calc(3 * 1.15em + 16px);
+    min-height: calc(2 * 1.15em + 14px);
+  }
+  .hud-stat,
+  .hud-help,
+  .hud-floor small {
+    display: none;
   }
   .repos li button {
-    grid-template-columns: 2ch 1fr;
+    grid-template-columns: 2ch 1fr 7ch;
   }
-  .repos .lang,
-  .repos .meta {
-    grid-column: 2;
+  .repos .lang {
+    display: none;
+  }
+  #screen.clear {
+    background: oklch(0.14 0.02 20 / 0.8);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #banner .card {
-    animation: card-still 3200ms linear forwards !important;
+    animation: card-still 2400ms linear forwards !important;
   }
   @keyframes card-still {
     0%, 85% { opacity: 1; }

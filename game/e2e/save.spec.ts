@@ -1,13 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 async function turn(page: import("@playwright/test").Page): Promise<number> {
-  const text = (await page.locator("#hud").textContent()) ?? "";
-  return Number(text.match(/turn (\d+)/)?.[1] ?? -1);
+  return Number((await page.locator("#hud").getAttribute("data-turn")) ?? -1);
 }
 
 test("a run survives a reload and can be started over", async ({ page }) => {
   await page.goto("./#/play/requests?run=5");
-  await expect(page.locator("#hud")).toContainText("turn 0");
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
   await page.keyboard.press("x");
   await expect.poll(() => turn(page), { timeout: 10_000 }).toBeGreaterThan(5);
   await page.keyboard.press(".");
@@ -20,20 +19,19 @@ test("a run survives a reload and can be started over", async ({ page }) => {
   expect(await turn(page)).toBe(before);
 
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "continue" })).toBeVisible();
-  await expect(page.locator(".saves")).toContainText("psf/requests");
+  await expect(page.locator(".continue")).toContainText("psf/requests");
 
   await page.goto("./#/play/requests?run=5");
   await expect(page.locator("#log")).toContainText("Picked up where you left off");
   await page.keyboard.press("Escape");
   await page.keyboard.press("n");
   await expect(page).not.toHaveURL(/run=5$/);
-  await expect(page.locator("#hud")).toContainText("turn 0");
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
 });
 
 test("a replay link plays the run back", async ({ page }) => {
   await page.goto("./#/play/itsdangerous?run=2");
-  await expect(page.locator("#hud")).toContainText("turn 0");
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
   for (const key of ["l", "l", ".", "j", ".", "."]) await page.keyboard.press(key);
   await expect.poll(() => turn(page), { timeout: 10_000 }).toBeGreaterThan(3);
   await page.waitForTimeout(600);

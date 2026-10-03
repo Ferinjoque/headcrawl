@@ -4,7 +4,7 @@ import { ABILITY } from "./game/abilities";
 import { autoAction, type AutoMode } from "./game/auto";
 import { Game } from "./game/game";
 import type { GameEvent } from "./game/types";
-import { buildFloor, type FloorState } from "./game/world";
+import { Attract } from "./attract";
 import { PLAYER } from "./game/balance";
 import { walkable } from "./map/grid";
 import { Effects } from "./render/effects";
@@ -17,7 +17,7 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, type TokenView } from "./ui/screens";
+import { compareScreen, endScreen, helpScreen, pauseScreen, perkCard, settingsScreen, titleScreen, type TitleView, type TokenView } from "./ui/screens";
 import { TEXT_SCALE, cycle, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordRun } from "./ui/best";
@@ -61,7 +61,8 @@ export class App {
   game: Game | null = null;
   /** The dungeon being played, or the title. Comparisons live outside it. */
   private route: PlayRoute | { kind: "title" } = { kind: "title" };
-  private demo: FloorState | null = null;
+  private attract: Attract;
+  private titleView: TitleView = { more: false, code: false };
   private auto: AutoMode | null = null;
   private autoTimer = 0;
   private endTimer = 0;
@@ -81,9 +82,23 @@ export class App {
     this.renderer = new Renderer($("view") as HTMLCanvasElement);
     this.renderer.reduced = this.reduced;
     this.fx.reduced = this.reduced;
-    this.log = new Log($("log"));
+    this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 4);
     this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
     this.applySettings();
+    this.attract = new Attract({
+      entries: () => this.gallery,
+      events: (game, events) => {
+        this.handleEvents(events, game, true);
+        this.touch();
+      },
+      changed: (caption) => {
+        const el = document.getElementById("attract");
+        if (el) el.textContent = caption;
+        this.renderer.snapCamera();
+        this.fx.clear();
+      },
+      stepMs: () => (this.reduced ? 320 : 130),
+    });
   }
 
   private applySettings(): void {
@@ -95,7 +110,7 @@ export class App {
     this.renderer.reduced = this.reduced;
     this.fx.reduced = this.reduced;
     this.renderer.textScale = TEXT_SCALE[s.text];
-    this.renderer.rockBase = s.colors === "contrast" ? 0.07 : 0.15;
+    this.renderer.rockBase = s.colors === "contrast" ? 0.1 : 0.2;
     this.renderer.resize();
     this.touch();
     saveSettings(s);
@@ -176,7 +191,6 @@ export class App {
       touchPad(pad, (c) => this.command(c));
     }
     this.gallery = await loadGallery();
-    void this.makeDemo();
     requestAnimationFrame((t) => this.frame(t));
     await this.follow(parseRoute(location.hash));
   }
@@ -190,6 +204,7 @@ export class App {
       this.showTitle();
       return;
     }
+    this.attract.stop();
     if (route.kind === "compare") {
       this.game = null;
       return this.showCompare(route.owner, route.repo, route.a, route.b, seq);
@@ -333,6 +348,8 @@ export class App {
 
   private showTitle(): void {
     this.mode = "title";
+    this.titleView = { more: false, code: false };
+    this.attract.start();
     document.body.classList.add("titling");
     this.stopAuto();
     this.log.clear();
@@ -372,14 +389,31 @@ export class App {
         open: () => ($("file") as HTMLInputElement).click(),
         help: () => this.openHelp(),
         settings: () => this.openSettings(),
+        toggleMore: () => this.toggleMore(),
+        showCode: () => this.showCodeBox(),
       },
       recentBuilds(),
       listSaves(),
+      this.titleView,
       ),
       true,
     );
     const current = document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`);
     current?.scrollIntoView({ block: "nearest" });
+    const caption = document.getElementById("attract");
+    if (caption) caption.textContent = this.attract.caption();
+  }
+
+  private toggleMore(): void {
+    this.titleView = { ...this.titleView, more: !this.titleView.more };
+    this.renderTitle();
+    if (this.titleView.more) document.querySelector<HTMLInputElement>('input[name="repo"]')?.focus();
+  }
+
+  private showCodeBox(): void {
+    this.titleView = { ...this.titleView, code: true };
+    this.renderTitle();
+    document.querySelector<HTMLInputElement>('input[name="code"]')?.focus();
   }
 
   private dailyLabel(): string {
@@ -499,7 +533,7 @@ export class App {
         restart: () => this.restart(),
         settings: () => this.openSettings(),
         menu: () => this.navigate({ kind: "title" }),
-      }, this.code()),
+      }, this.code(), this.game ? `${this.game.spec.repo.name} @${this.game.spec.repo.head.slice(0, 7)}, turn ${this.game.player.turns}` : ""),
     );
   }
 
@@ -664,6 +698,7 @@ export class App {
         this.step({ type: "read" });
         break;
       case "explore":
+        this.hints.learned("explore");
         this.startAuto({ kind: "explore" });
         break;
       case "rest":
@@ -714,14 +749,19 @@ export class App {
     window.clearTimeout(this.autoTimer);
   }
 
-  private handleEvents(events: GameEvent[]): void {
+  /** Quiet is for the attract demo: effects only, no sound, log or cards. */
+  private handleEvents(events: GameEvent[], game: Game = this.game!, quiet = false): void {
     const now = performance.now();
     const fx = this.fx;
     for (const e of events) {
+      if (quiet && (e.t === "msg" || e.t === "taunt" || e.t === "intro" || e.t === "descend")) {
+        if (e.t === "descend") fx.clear();
+        continue;
+      }
       this.sound.play(e);
       switch (e.t) {
         case "msg":
-          this.log.push(e.text, e.tone);
+          if (!e.quiet) this.log.push(e.text, e.tone);
           break;
         case "hit":
           fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);
@@ -747,7 +787,7 @@ export class App {
           fx.flash(e.x, e.y, C.loot, now);
           break;
         case "levelup": {
-          const p = this.game!.player;
+          const p = game.player;
           fx.float(p.x, p.y, `LEVEL ${e.level}`, C.gold, now);
           break;
         }
@@ -855,9 +895,33 @@ export class App {
   }
 
   private titleKey(e: KeyboardEvent): void {
+    if (e.key === "Tab" && !e.shiftKey && !(e.target instanceof HTMLInputElement && e.target.value)) {
+      e.preventDefault();
+      this.toggleMore();
+      return;
+    }
     // Typing a repo name must not trigger the list shortcuts.
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement) {
+      if (e.key === "Escape") {
+        this.titleView = { more: false, code: false };
+        this.renderTitle();
+      }
+      return;
+    }
     const n = this.gallery.length;
+    if (e.key === "c" || e.key === "C") {
+      e.preventDefault();
+      this.showCodeBox();
+      return;
+    }
+    if (e.key === " ") {
+      const save = listSaves()[0];
+      if (save) {
+        e.preventDefault();
+        location.hash = save.hash;
+      }
+      return;
+    }
     if (e.key === "ArrowDown" || e.key === "j") this.selected = n ? (this.selected + 1) % n : 0;
     else if (e.key === "ArrowUp" || e.key === "k") this.selected = n ? (this.selected - 1 + n) % n : 0;
     else if (e.key === "Enter") {
@@ -1004,16 +1068,6 @@ export class App {
   }
 
 
-  private async makeDemo(): Promise<void> {
-    const entry = this.gallery[0];
-    if (!entry) return;
-    const text = await loadGalleryDungeon(entry.slug);
-    const res = text ? loadSpec(text) : null;
-    if (!res?.ok) return;
-    const floor = res.spec.floors[res.spec.floors.length - 1];
-    this.demo = buildFloor(floor, res.spec.seed, res.spec.floors.length);
-  }
-
   /** Ask for a fresh frame: something on screen changed. */
   private touch(): void {
     this.dirty = true;
@@ -1036,11 +1090,15 @@ export class App {
         this.fx,
         now,
       );
-    } else if (this.demo) {
-      const g = this.demo.map.grid;
-      const t = this.reduced ? 0 : now / 26000;
-      const focus: [number, number] = [g.width / 2 + Math.cos(t) * g.width * 0.3, g.height / 2 + Math.sin(t * 1.3) * g.height * 0.3];
-      this.renderer.render({ floor: this.demo, player: null, sight: PLAYER.sight, revealAll: true, dim: 0.35 }, this.fx, now, focus);
+    } else if (this.attract.game) {
+      const demo = this.attract.game;
+      this.renderer.render(
+        { floor: demo.floor, player: demo.player, sight: PLAYER.sight, dim: 0.2, threat: demo.threatened() },
+        this.fx,
+        now,
+        // Keep the demo off to the right of the menu column on wide screens.
+        [demo.player.x - (window.innerWidth > 900 ? this.renderer.viewCols * 0.22 : 0), demo.player.y],
+      );
     }
   }
 }

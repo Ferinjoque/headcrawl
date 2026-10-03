@@ -98,8 +98,9 @@ export class Game {
     this.events.push(e);
   }
 
-  private say(text: string, tone: Tone = "info"): void {
-    this.emit({ t: "msg", text, tone });
+  /** Quiet lines go to the run log only; the screen already shows them somewhere. */
+  private say(text: string, tone: Tone = "info", quiet = false): void {
+    this.emit(quiet ? { t: "msg", text, tone, quiet } : { t: "msg", text, tone });
     if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${text}`);
   }
 
@@ -225,8 +226,8 @@ export class Game {
     }
     if (!this.visited.has(room.id)) {
       this.visited.add(room.id);
-      this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info");
-      if (room.blurb) this.say(`"${room.blurb}"`, "lore");
+      this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info", true);
+      if (room.blurb) this.say(`"${room.blurb}"`, "lore", true);
     }
   }
 
@@ -566,7 +567,7 @@ export class Game {
   private enterFloorMessages(): void {
     const f = this.floorSpec;
     const total = this.spec.floors.length;
-    this.say(`Floor ${f.index + 1} of ${total}: ${f.name}. Somewhere here waits ${f.boss.name}.`, "boss");
+    this.say(`Floor ${f.index + 1} of ${total}: ${f.name}. Somewhere here waits ${f.boss.name}.`, "boss", true);
     const room = this.roomOfPlayer();
     if (room) this.enterRoom(room.index);
   }

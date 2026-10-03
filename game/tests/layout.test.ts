@@ -107,6 +107,6 @@ describe("layout", () => {
     expect(map.grid.get(map.entry.cx, map.entry.cy)).toBe(Tile.StairsUp);
     const shrine = map.byId.get(rooms[1].id)!;
     expect(map.grid.get(shrine.cx, shrine.cy)).toBe(Tile.Shrine);
-    expect(map.rockText).toContain("MAIN");
+    expect(map.rockText).toContain("main");
   });
 });

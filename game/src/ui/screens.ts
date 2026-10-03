@@ -34,7 +34,14 @@ function btn(key: string, label: string, onclick: () => void) {
   return h("button", { class: "btn", type: "button", onclick }, h("kbd", null, `[${key}]`), ` ${label}`);
 }
 
-const DIFF_CLASS: Record<number, string> = { 1: "t-good", 2: "t-good", 3: "t-loot", 4: "t-bad", 5: "t-boss" };
+// Difficulty as a word, not another row of # marks.
+const DIFF: Record<number, [string, string]> = {
+  1: ["gentle", "t-good"],
+  2: ["easy", "t-good"],
+  3: ["fair", "t-loot"],
+  4: ["hard", "t-bad"],
+  5: ["brutal", "t-boss"],
+};
 
 export interface TitleHandlers {
   play(slug: string): void;
@@ -47,12 +54,42 @@ export interface TitleHandlers {
   settings(): void;
   open(): void;
   help(): void;
+  toggleMore(): void;
+  showCode(): void;
 }
 
 export interface Daily {
   repo: string;
   label: string;
+  /** Today's ranked try is used up; later runs are practice. */
+  played?: boolean;
 }
+
+/** What is unfolded on the title screen right now. */
+export interface TitleView {
+  more: boolean;
+  code: boolean;
+}
+
+function form(onsubmit: (f: HTMLFormElement) => void, ...children: (HTMLElement | null)[]) {
+  return h(
+    "form",
+    {
+      class: "build",
+      onsubmit: (e: Event) => {
+        e.preventDefault();
+        onsubmit(e.target as HTMLFormElement);
+      },
+    },
+    ...children,
+  );
+}
+
+function field(name: string, placeholder: string, label: string) {
+  return h("input", { name, type: "text", placeholder, autocomplete: "off", spellcheck: "false", "aria-label": label });
+}
+
+const value = (f: HTMLFormElement, name: string) => (f.elements.namedItem(name) as HTMLInputElement).value;
 
 export function titleScreen(
   entries: GalleryEntry[],
@@ -62,6 +99,7 @@ export function titleScreen(
   on: TitleHandlers,
   recent: Recent[] = [],
   saves: SavedRun[] = [],
+  view: TitleView = { more: false, code: false },
 ) {
   const list = h(
     "ul",
@@ -83,130 +121,97 @@ export function titleScreen(
           h("span", { class: "mark" }, ">"),
           h("span", { class: "name" }, e.repo),
           h("span", { class: "lang" }, e.language),
-          h(
-            "span",
-            { class: "meta" },
-            e.difficulty ? h("span", { class: DIFF_CLASS[e.difficulty] ?? "dim", title: `difficulty ${e.difficulty} of 5` }, `${"#".repeat(e.difficulty)}${"-".repeat(5 - e.difficulty)}  `) : null,
-            `${plural(e.floors, "floor")}, ${e.enemies} monsters. boss: ${e.boss}`,
-            bestLabel(bestFor(e.head)) ? h("span", { class: "t-loot" }, `  ${bestLabel(bestFor(e.head))}`) : null,
-          ),
+          e.difficulty ? h("span", { class: `diff ${DIFF[e.difficulty]?.[1] ?? "dim"}` }, DIFF[e.difficulty]?.[0] ?? "") : h("span"),
         ),
       ),
     ),
   );
+  const pick = entries[selected];
+  const best = pick ? bestLabel(bestFor(pick.head)) : "";
+  const detail = pick
+    ? h(
+        "p",
+        { class: "detail" },
+        `${plural(pick.floors, "floor")}, ${pick.enemies} monsters. The last boss is `,
+        h("span", { class: "t-boss" }, pick.boss),
+        ".",
+        best ? h("span", { class: "t-loot" }, `  ${best}`) : null,
+      )
+    : null;
+  const save = saves[0];
+
+  const more = view.more
+    ? h(
+        "section",
+        { class: "more", "aria-label": "More ways to play" },
+        h("h2", null, "any public GitHub repo"),
+        form(
+          (f) => on.build(value(f, "repo")),
+          field("repo", "owner/repo or a github.com link", "GitHub repo"),
+          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " build"),
+        ),
+        recent.length
+          ? h(
+              "p",
+              { class: "recent" },
+              h("span", { class: "faint" }, "built before: "),
+              ...recent.map((r) => h("button", { class: "btn", type: "button", onclick: () => on.reopen(r) }, `${r.owner}/${r.repo}`)),
+            )
+          : null,
+        h("h2", null, "then vs now"),
+        form(
+          (f) => on.compare(value(f, "vsrepo"), value(f, "vsref")),
+          field("vsrepo", "owner/repo", "Repo to compare"),
+          field("vsref", "an older tag, like v1.0.0", "Older tag, branch or commit"),
+          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " compare"),
+        ),
+        h("p", { id: "build-status", class: "faint", role: "status" }, "Built in your browser. Nothing in the repo runs."),
+        h(
+          "div",
+          { class: "actions" },
+          btn("o", "open a dungeon.json", on.open),
+          btn(",", "settings", on.settings),
+          btn("?", "how it works", on.help),
+        ),
+      )
+    : null;
+
   return h(
     "div",
-    { class: "page" },
+    { class: "page title" },
     h("pre", { class: "wordmark", "aria-label": "HEADCRAWL" }, wordmark()),
-    h(
-      "p",
-      { class: "tagline" },
-      "A roguelike where the dungeon is a git repo. Files are rooms, functions are monsters, TODOs are loot, and the code everyone keeps rewriting is the boss.",
-    ),
-    saves.length ? h("h2", null, "continue") : null,
-    saves.length
+    h("p", { class: "tagline" }, "A git repo, played as a dungeon."),
+    save
       ? h(
-          "div",
-          { class: "saves" },
-          ...saves.map((s) =>
-            h(
-              "button",
-              { class: "btn", type: "button", onclick: () => on.resume(s) },
-              h("kbd", null, ">"),
-              ` ${s.repo}, floor ${s.floor} of ${s.floors}`,
-            ),
-          ),
+          "button",
+          { class: "continue", type: "button", onclick: () => on.resume(save) },
+          h("kbd", null, "[space]"),
+          " continue ",
+          h("span", { class: "name" }, save.repo),
+          h("span", { class: "dim" }, `, floor ${save.floor} of ${save.floors}`),
         )
       : null,
-    h("h2", null, "pick a repo"),
     entries.length ? list : h("p", { class: "dim" }, "No gallery here. Open a dungeon file instead."),
+    detail,
     error ? h("p", { class: "error", role: "alert" }, error) : null,
     h(
       "div",
-      { class: "actions" },
-      btn("enter", "descend", () => entries[selected] && on.play(entries[selected].slug)),
-      daily ? btn("d", `daily run: ${daily.repo}, ${daily.label}`, on.daily) : null,
-      btn("o", "open a dungeon.json", on.open),
-      btn("?", "how it works", on.help),
-      btn(",", "settings", on.settings),
+      { class: "actions main" },
+      btn("enter", "descend", () => pick && on.play(pick.slug)),
+      daily ? btn("d", daily.played ? "daily, practice" : `daily: ${daily.repo.split("/").pop()}`, on.daily) : null,
+      btn("c", "run code", on.showCode),
+      btn("tab", view.more ? "less" : "more", on.toggleMore),
     ),
-    h(
-      "form",
-      {
-        class: "build",
-        onsubmit: (e: Event) => {
-          e.preventDefault();
-          const input = (e.target as HTMLFormElement).elements.namedItem("code") as HTMLInputElement;
-          on.code(input.value);
-        },
-      },
-      h("input", {
-        name: "code",
-        type: "text",
-        placeholder: "run code or link, like flask-4821",
-        autocomplete: "off",
-        spellcheck: "false",
-        "aria-label": "Run code or link",
-      }),
-      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " play a code"),
-    ),
-    h("p", { id: "code-status", class: "dim", role: "status" }),
-    h("h2", null, "any public GitHub repo"),
-    h(
-      "form",
-      {
-        class: "build",
-        onsubmit: (e: Event) => {
-          e.preventDefault();
-          const input = (e.target as HTMLFormElement).elements.namedItem("repo") as HTMLInputElement;
-          on.build(input.value);
-        },
-      },
-      h("input", {
-        name: "repo",
-        type: "text",
-        placeholder: "owner/repo or a github.com link",
-        autocomplete: "off",
-        spellcheck: "false",
-        "aria-label": "GitHub repo",
-      }),
-      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " build it here"),
-    ),
-    recent.length
-      ? h(
-          "p",
-          { class: "recent" },
-          h("span", { class: "faint" }, "built here before: "),
-          ...recent.map((r) =>
-            h("button", { class: "btn", type: "button", onclick: () => on.reopen(r) }, `${r.owner}/${r.repo}`),
-          ),
+    view.code
+      ? form(
+          (f) => on.code(value(f, "code")),
+          field("code", "flask-4821, or a whole link", "Run code or link"),
+          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " play it"),
         )
       : null,
-    h(
-      "form",
-      {
-        class: "build",
-        onsubmit: (e: Event) => {
-          e.preventDefault();
-          const form = e.target as HTMLFormElement;
-          const repo = form.elements.namedItem("vsrepo") as HTMLInputElement;
-          const ref = form.elements.namedItem("vsref") as HTMLInputElement;
-          on.compare(repo.value, ref.value);
-        },
-      },
-      h("input", { name: "vsrepo", type: "text", placeholder: "owner/repo", autocomplete: "off", spellcheck: "false", "aria-label": "Repo to compare" }),
-      h("input", { name: "vsref", type: "text", placeholder: "then: a tag like v1.0.0", autocomplete: "off", spellcheck: "false", "aria-label": "Older tag, branch or commit" }),
-      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " then vs now"),
-    ),
-    h(
-      "p",
-      { id: "build-status", class: "dim", role: "status" },
-      "Runs the analyzer in your browser. Nothing in the repo is executed. The first run downloads about 4 MB.",
-    ),
-    h("h2", null, "or on your machine"),
-    h("p", { class: "dim" }, "The command line tool also reads git history, so bosses know which files keep changing."),
-    h("pre", { class: "code" }, "cd analyzer\nuv run headcrawl analyze path/to/your/repo -o mine.json"),
-    h("p", { class: "dim" }, "Then press o, or drop the file anywhere on this page."),
+    h("p", { id: "code-status", class: "dim", role: "status" }),
+    more,
+    h("p", { id: "attract", class: "attract faint", "aria-hidden": "true" }),
   );
 }
 
@@ -216,46 +221,48 @@ export function helpScreen(close: () => void) {
     "div",
     { class: "page" },
     h("h1", { class: "t-boss" }, "how it works"),
-    h("p", { class: "dim" }, "Every number in the game comes from the code."),
+    h("p", { class: "dim" }, "Every number in the game comes from the code. Same commit, same dungeon."),
+    h("h2", null, "keys"),
+    row("arrows, hjkl, yubn", "move, walk into things to attack"),
+    row("x", "explore until something shows up"),
+    row("z", "rest until healed"),
+    row(". or space", "wait a turn"),
+    row(">", "take the stairs once the boss is dead"),
+    row("q / r", "drink a TODO / read a HACK"),
+    row("click or tap", "walk there; hover a monster to inspect it"),
+    row("tab", "show or hide the side panel"),
+    row("m / ,", "sound, settings"),
     h("h2", null, "the map"),
     row("folder", "a floor. Deeper floors hold code the rest imports."),
     row("file", "a room, sized by lines of code"),
     row("~ import", "a corridor between files that import each other"),
     row("# passage", "a corridor between neighbours in the folder tree"),
+    row("loop", "an import cycle. The corridor walks you back where you came from, once."),
     row("test file", "a shrine (*). Step on it to heal, once."),
+    row("$ vendor", "sells the repo's dependencies. Each one helps, and each one costs."),
     h("h2", null, "monsters"),
     row("a function", "a monster named after it"),
-    row("complexity", "its hit points"),
+    row("complexity", "hit points"),
     row("nesting depth", "how hard it hits"),
     row("parameters", "how fast it moves"),
-    row("hotspot", "the boss: most churn times complexity on the floor"),
-    h("h2", null, "loot"),
-    row("! TODO", "heals when you finally do it (q)"),
-    row("/ FIXME", "a weapon, more attack"),
-    row("? HACK", "a random trick (r)"),
-    row("% XXX", "cursed: attack up, max HP down"),
-    row("c coffee", "dropped by monsters, heals a little"),
-    h("h2", null, "keys"),
-    row("arrows, hjkl, yubn", "move and attack"),
-    row("x", "explore until something shows up"),
-    row("z", "rest until healed"),
-    row(". or space", "wait a turn"),
-    row(">", "take the stairs once the boss is dead"),
-    row("click or tap", "walk to that spot"),
-    row("tab", "show or hide the side panel"),
-    row("m", "sound on or off"),
-    row(",", "settings: text size, colorblind colors, calm motion"),
-    h("h2", null, "leveling up"),
-    row("1, 2, 3", "each level you pick one of three tools: Linter, Type checker, Caffeine, Rubber duck and more"),
-    h("h2", null, "monster types"),
-    row("tangle (capitals)", "lots of branches. Regrows, finish it fast."),
+    row("tangle", "lots of branches. Regrows, finish it fast."),
     row("nest", "deep nesting. Winds up a big hit: step out of the red."),
     row("hydra", "too many parameters. Splits in two when hurt."),
-    row("wall (capitals)", "very long function. Armored and slow."),
+    row("wall", "very long function. Armored and slow."),
     row("imp", "tiny function. Fast."),
+    row("ghost", "nothing calls it. Drifts through walls, hits softly."),
     row("bug", "everything else. Dodges now and then."),
-    row("boss", "winds up area attacks. The red cells are where it lands."),
-    h("p", { class: "dim" }, "Same commit, same dungeon. The seed is the HEAD hash."),
+    row("boss", "the hotspot: most churn times complexity. The red cells are where it lands."),
+    h("h2", null, "loot"),
+    row("! TODO", "heals when you finally do it"),
+    row("/ FIXME", "a weapon, more attack"),
+    row("? HACK", "a random trick"),
+    row("% XXX", "cursed: attack up, max HP down"),
+    row("c coffee", "dropped by monsters, heals a little"),
+    h("h2", null, "your own repo"),
+    h("p", { class: "dim" }, "Press tab on the title screen to build any public GitHub repo here. The command line tool also reads full git history:"),
+    h("pre", { class: "code" }, "cd analyzer\nuv run headcrawl analyze path/to/your/repo -o mine.json"),
+    h("p", { class: "dim" }, "Then drop mine.json anywhere on the title screen."),
     h("div", { class: "actions" }, btn("esc", "back", close)),
   );
 }
@@ -467,11 +474,12 @@ export interface PauseHandlers {
   menu(): void;
 }
 
-export function pauseScreen(on: PauseHandlers, code: string | null = null) {
+export function pauseScreen(on: PauseHandlers, code: string | null = null, where = "") {
   return h(
     "div",
     { class: "page" },
     h("h1", null, "paused"),
+    where ? h("p", null, where) : null,
     h("p", { class: "dim" }, "Your run is saved in this browser. Close the tab and it will be here when you come back."),
     code
       ? h("p", null, "Run code ", h("span", { class: "t-loot" }, code), h("span", { class: "dim" }, ". Same dungeon, same rolls, for anyone you give it to."))
