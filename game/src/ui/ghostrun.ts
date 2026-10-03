@@ -4,7 +4,7 @@
 
 import { Game } from "../game/game";
 import type { ModId } from "../game/extras";
-import { decodeLog } from "../game/record";
+import { RULES, decodeLog } from "../game/record";
 import type { DungeonSpec } from "../spec";
 
 const KEY = "headcrawl.ghosts.v1";
@@ -17,6 +17,9 @@ export interface GhostRun {
   won: boolean;
   floor: number;
   turns: number;
+  /** Rules version and dungeon commit it was recorded on; anything else would replay off course. */
+  rules: number;
+  head: string;
 }
 
 function readAll(): Map<string, GhostRun> {
@@ -26,7 +29,12 @@ function readAll(): Map<string, GhostRun> {
     return new Map(
       raw.filter(
         (e): e is [string, GhostRun] =>
-          Array.isArray(e) && typeof e[0] === "string" && typeof e[1]?.log === "string" && typeof e[1]?.turns === "number",
+          Array.isArray(e) &&
+          typeof e[0] === "string" &&
+          typeof e[1]?.log === "string" &&
+          typeof e[1]?.turns === "number" &&
+          e[1]?.rules === RULES &&
+          typeof e[1]?.head === "string",
       ),
     );
   } catch {
@@ -57,8 +65,9 @@ export function keepGhost(route: string, run: GhostRun): boolean {
   return true;
 }
 
-export function ghostFor(route: string): GhostRun | null {
-  return readAll().get(route) ?? null;
+export function ghostFor(route: string, head: string): GhostRun | null {
+  const g = readAll().get(route);
+  return g && g.head === head ? g : null;
 }
 
 /** Where the ghost stands after each of its turns: floor, x, y. */

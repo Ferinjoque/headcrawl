@@ -195,3 +195,19 @@ describe("the keeper", () => {
     expect(new Game(spec([floor([room(), room(), room({ kind: "lair" })], [[0, 1], [1, 2]])])).floor.keeper).toBeNull();
   });
 });
+
+describe("rewind edge cases", () => {
+  it("does nothing on a cleared floor and keeps wounds and twists", () => {
+    const past = { year: 2021, enemies: [enemy({ name: "old_one", hp: 40 })] };
+    const rooms = [room(), room({ enemies: [enemy({ name: "now_a", hp: 40 })], past }), room({ kind: "lair" })];
+    const game = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]), { mods: ["legacy"] });
+    const now = game.floor.monsters.find((m) => m.name === "now_a")!;
+    now.hp = Math.round(now.maxHp / 2);
+    rewindFloor(game.floor, new Rng("t"), 1, { x: -1, y: -1 }, ["legacy"]);
+    const old = game.floor.monsters.find((m) => m.name === "old_one")!;
+    expect(old.hp / old.maxHp).toBeCloseTo(0.5, 1);
+    const cleared = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]));
+    cleared.floor.monsters = cleared.floor.monsters.filter((m) => m.boss);
+    expect(canRewind(cleared.floor)).toBe(false);
+  });
+});

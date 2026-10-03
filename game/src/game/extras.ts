@@ -213,14 +213,16 @@ export function modPlayer(p: Player, mods: readonly ModId[]): void {
 }
 
 export function modFloor(state: FloorState, mods: readonly ModId[]): void {
-  for (const m of state.monsters) {
-    if (mods.includes("legacy")) {
-      m.maxHp = Math.round(m.maxHp * 1.25);
-      m.hp = m.maxHp;
-      m.xp = Math.round(m.xp * 1.25);
-    }
-    if (mods.includes("friday") && m.boss) m.speed += 30;
+  for (const m of state.monsters) modMonster(m, mods);
+}
+
+export function modMonster(m: Monster, mods: readonly ModId[]): void {
+  if (mods.includes("legacy")) {
+    m.maxHp = Math.round(m.maxHp * 1.25);
+    m.hp = m.maxHp;
+    m.xp = Math.round(m.xp * 1.25);
   }
+  if (mods.includes("friday") && m.boss) m.speed += 30;
 }
 
 // ---- time travel ----------------------------------------------------------
@@ -228,7 +230,8 @@ export function modFloor(state: FloorState, mods: readonly ModId[]): void {
 /** Whether a git checkout HACK has anything to rewind on this floor. */
 export function canRewind(state: FloorState): boolean {
   if (state.rewound) return false;
-  return !!boss(state)?.boss?.past || state.map.rooms.some((r) => r.spec.past);
+  if (boss(state)?.boss?.past) return true;
+  return state.map.rooms.some((r) => r.spec.past && state.monsters.some((m) => m.room === r.index && m.enemy && m.archetype !== "spawn"));
 }
 
 /**
@@ -237,7 +240,13 @@ export function canRewind(state: FloorState): boolean {
  * refactored: a room never gets more monsters back than it had left.
  * Returns how many functions changed and the year, or null.
  */
-export function rewindFloor(state: FloorState, rng: Rng, floors: number, player: { x: number; y: number }): { swapped: number; year: number } | null {
+export function rewindFloor(
+  state: FloorState,
+  rng: Rng,
+  floors: number,
+  player: { x: number; y: number },
+  mods: readonly ModId[] = [],
+): { swapped: number; year: number } | null {
   let swapped = 0;
   let year = 0;
   for (const rect of state.map.rooms) {
@@ -253,7 +262,11 @@ export function rewindFloor(state: FloorState, rng: Rng, floors: number, player:
       const [x, y] = spots[i];
       if (x === player.x && y === player.y) return;
       const m = fromEnemy(e, x, y, rect.index, state.index, floors);
-      m.awake = alive[i].awake;
+      modMonster(m, mods);
+      // A rewind changes the code, not how beaten up it already is.
+      const was = alive[i];
+      m.hp = Math.max(1, Math.round(m.maxHp * (was.hp / was.maxHp)));
+      m.awake = was.awake;
       state.monsters.push(m);
     });
     swapped += Math.max(alive.length, roster.length);

@@ -5,6 +5,7 @@ import type { Game } from "../game/game";
 import { recordRun } from "./best";
 import { addRun, loadCodex, saveCodex } from "./codex";
 import { keepGhost } from "./ghostrun";
+import { RULES } from "../game/record";
 
 /**
  * `route` is the run's save key; empty for a dungeon with no route. Watched
@@ -20,7 +21,7 @@ export function recordFinished(game: Game, route: string, watched: boolean): voi
   if (watched) return;
   if (route) {
     saveCodex(addRun(loadCodex(), game));
-    keepGhost(route, { log: game.record(), won: result.won, floor: result.floor, turns: result.turns });
+    keepGhost(route, { ...result, log: game.record(), rules: RULES, head: game.spec.repo.head });
   }
   recordRun(game.spec.repo.head, result);
 }

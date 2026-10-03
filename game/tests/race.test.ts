@@ -3,6 +3,7 @@ import { botAction } from "../src/game/bot";
 import { Game } from "../src/game/game";
 import { ghostAt, ghostFor, keepGhost, trackOf } from "../src/ui/ghostrun";
 import { parseRoute, playRoute, routeHash } from "../src/ui/share";
+import { RULES } from "../src/game/record";
 import { enemy, floor, room, spec } from "./fixtures";
 
 const store = new Map<string, string>();
@@ -42,11 +43,13 @@ describe("ghost race", () => {
   });
 
   it("keeps only the better run per dungeon", () => {
-    expect(keepGhost("#/play/t?run=1", { log: "l10", won: false, floor: 1, turns: 10 })).toBe(true);
-    expect(keepGhost("#/play/t?run=1", { log: "l20", won: false, floor: 1, turns: 20 })).toBe(false);
-    expect(keepGhost("#/play/t?run=1", { log: "l30", won: true, floor: 1, turns: 30 })).toBe(true);
-    expect(ghostFor("#/play/t?run=1")?.log).toBe("l30");
-    expect(keepGhost("", { log: "l9", won: true, floor: 1, turns: 9 })).toBe(false);
+    expect(keepGhost("#/play/t?run=1", { log: "l10", won: false, floor: 1, turns: 10, rules: RULES, head: "h" })).toBe(true);
+    expect(keepGhost("#/play/t?run=1", { log: "l20", won: false, floor: 1, turns: 20, rules: RULES, head: "h" })).toBe(false);
+    expect(keepGhost("#/play/t?run=1", { log: "l30", won: true, floor: 1, turns: 30, rules: RULES, head: "h" })).toBe(true);
+    expect(ghostFor("#/play/t?run=1", "h")?.log).toBe("l30");
+    // Another commit of the same dungeon, or older rules: no ghost.
+    expect(ghostFor("#/play/t?run=1", "other")).toBeNull();
+    expect(keepGhost("", { log: "l9", won: true, floor: 1, turns: 9, rules: RULES, head: "h" })).toBe(false);
   });
 
   it("travels in links and drops off for the plain route", () => {

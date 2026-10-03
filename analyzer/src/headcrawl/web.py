@@ -145,19 +145,19 @@ def _blame(raw_json: str) -> tuple[dict[str, dict[int, int]], dict[str, dict[int
     return years_out, authors_out
 
 
-def _commit_authors(raw_json: str) -> dict[str, list[tuple[str, str]]]:
-    """{path: [[author, subject], ...]} from the commits API, checked."""
+def _commit_authors(raw_json: str) -> dict[str, list[tuple[str, str, str, str]]]:
+    """{path: [[author, subject, sha, date], ...]} from the commits API, checked."""
     raw = json.loads(raw_json)
-    out: dict[str, list[tuple[str, str]]] = {}
+    out: dict[str, list[tuple[str, str, str, str]]] = {}
     if not isinstance(raw, dict):
         return out
     for path, rows in raw.items():
         if not isinstance(rows, list):
             continue
         out[str(path)] = [
-            (r[0][:100], r[1][:300])
+            (r[0][:100], r[1][:300], r[2][:40], r[3][:25])
             for r in rows[:100]
-            if isinstance(r, list) and len(r) == 2 and isinstance(r[0], str) and isinstance(r[1], str)
+            if isinstance(r, list) and len(r) == 4 and all(isinstance(v, str) for v in r)
         ]
     return out
 

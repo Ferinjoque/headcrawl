@@ -165,6 +165,19 @@ def test_browser_builds_find_keepers_from_commit_lists(tmp_path: Path) -> None:
     from headcrawl.web import _commit_authors
 
     write_files(tmp_path, {"src/a.py": "def a(x):\n    if x:\n        return 1\n    return 2\n"})
-    rows = _commit_authors(json.dumps({"src/a.py": [["ada", "fix it"], ["bob", "x"], ["ada", "first"], [1, "bad"]]}))
+    write_files(tmp_path, {"src/b.py": "def b(x):\n    return x\n"})
+    rows = _commit_authors(
+        json.dumps(
+            {
+                "src/a.py": [
+                    ["ada", "fix it", "s1", "2024-02-01"],
+                    ["bob", "x", "s2", "2024-01-01"],
+                    [1, "bad", "s", "d"],
+                ],
+                # s1 touched both files: one commit, not two.
+                "src/b.py": [["ada", "fix it", "s1", "2024-02-01"], ["ada", "first", "s3", "2023-01-01"]],
+            }
+        )
+    )
     keeper = analyze(tmp_path, commit_authors=rows).floors[0].keeper
     assert keeper is not None and (keeper.name, keeper.commits, keeper.subject) == ("ada", 2, "fix it")

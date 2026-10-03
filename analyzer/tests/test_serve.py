@@ -20,7 +20,7 @@ def test_serves_the_game_with_the_new_dungeon_first(tmp_path: Path) -> None:
     site = tmp_path / "site"
     write_files(site, {"index.html": "<!doctype html>", "dungeons/index.json": json.dumps([{"slug": "flask"}])})
     slug = serve.slug_for(spec)
-    assert slug == "yours-my-repo"
+    assert slug == f"yours-my-repo-{spec.repo.head[:7]}"
     handler = type(
         "H",
         (serve._Handler,),

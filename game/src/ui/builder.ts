@@ -50,6 +50,11 @@ export class Builder {
     }
   }
 
+  private failed(message: string): void {
+    this.host.busy(false);
+    this.host.status(message, "error");
+  }
+
   private remember(owner: string, repo: string, sha: string, json: string): void {
     this.built.set(`${owner}/${repo}@${sha}`.toLowerCase(), json);
   }
@@ -60,7 +65,7 @@ export class Builder {
     const json = await this.github(repo.owner, repo.repo);
     if (!json) return;
     const res = loadSpec(json);
-    if (!res.ok) return this.host.status(res.error, "error");
+    if (!res.ok) return this.failed(res.error);
     const sha = res.spec.repo.head;
     this.remember(repo.owner, repo.repo, sha, json);
     rememberBuild({ owner: repo.owner, repo: repo.repo, sha });
@@ -79,7 +84,7 @@ export class Builder {
     if (!latest) return;
     const a = loadSpec(old);
     const b = loadSpec(latest);
-    if (!a.ok || !b.ok) return this.host.status("One of the two builds came out broken.", "error");
+    if (!a.ok || !b.ok) return this.failed("One of the two builds came out broken.");
     this.remember(repo.owner, repo.repo, a.spec.repo.head, old);
     this.remember(repo.owner, repo.repo, b.spec.repo.head, latest);
     this.host.navigate({ kind: "compare", owner: repo.owner, repo: repo.repo, a: a.spec.repo.head, b: b.spec.repo.head });

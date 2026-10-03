@@ -167,8 +167,8 @@ class _Context:
     mentions: Counter[str]
     # File -> id of the import cycle it sits on.
     cycles: dict[str, int]
-    # File -> [(author, subject)], newest first, from outside (the browser asks GitHub).
-    commit_authors: dict[str, list[tuple[str, str]]]
+    # File -> [(author, subject, sha, date)], from outside (the browser asks GitHub).
+    commit_authors: dict[str, list[tuple[str, str, str, str]]]
     # File -> (year, metrics) a year before HEAD; None when history doesn't reach.
     old: dict[str, tuple[int, FileMetric] | None]
 
@@ -228,7 +228,7 @@ def analyze(
     subjects: dict[str, str] | None = None,
     authors: dict[str, dict[int, str]] | None = None,
     complete: bool = True,
-    commit_authors: dict[str, list[tuple[str, str]]] | None = None,
+    commit_authors: dict[str, list[tuple[str, str, str, str]]] | None = None,
 ) -> DungeonSpec:
     """`complete` is False when the caller could only fetch part of the repo:
     then a function that looks unused may be called from a file we never
@@ -516,18 +516,19 @@ def _old(ctx: _Context, rep: FileReport) -> tuple[int, FileMetric] | None:
     return found
 
 
-def _top_from(rows: dict[str, list[tuple[str, str]]], paths: list[str]) -> tuple[str, int, str] | None:
-    """Same as gitio.top_author, from commit lists someone else fetched."""
-    counts: Counter[str] = Counter()
-    latest: dict[str, str] = {}
+def _top_from(rows: dict[str, list[tuple[str, str, str, str]]], paths: list[str]) -> tuple[str, int, str] | None:
+    """Same as gitio.top_author, from per-file commit lists someone else
+    fetched. A commit that touched several files counts once."""
+    seen: dict[str, tuple[str, str, str]] = {}
     for p in paths:
-        for name, subject in rows.get(p, []):
-            counts[name] += 1
-            latest.setdefault(name, subject)
-    if not counts:
+        for name, subject, sha, date in rows.get(p, []):
+            seen[sha] = (name, subject, date)
+    if not seen:
         return None
+    counts = Counter(name for name, _, _ in seen.values())
     name, n = max(counts.items(), key=lambda kv: (kv[1], kv[0]))
-    return name, n, latest[name]
+    latest = max((date, subject) for who, subject, date in seen.values() if who == name)
+    return name, n, latest[1]
 
 
 def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> RoomPast | None:
@@ -535,6 +536,10 @@ def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> R
     if old is None or not 1970 <= old[0] <= 2200:
         return None
     year, metric = old
+    shape = lambda fs: sorted((f.name, f.ccn, f.nloc) for f in fs)  # noqa: E731
+    # Unchanged in a year: nothing to rewind, and nothing to ship.
+    if shape(metric.functions) == shape(rep.metric.functions):
+        return None
     funcs = [f for f in metric.functions if not skip or f.name != skip.name]
     funcs.sort(key=lambda f: (-stats.threat(f), f.start_line))
     then = [_enemy(ctx, f, rep, ghost=False) for f in funcs[: ctx.limits.max_enemies_per_room]]

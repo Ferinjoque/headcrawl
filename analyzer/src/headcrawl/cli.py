@@ -106,7 +106,11 @@ def _cmd_play(args: argparse.Namespace) -> int:
     spec = _build(args)
     if spec is None:
         return 1
-    serve(spec, port=args.port, open_browser=not args.no_browser)
+    try:
+        serve(spec, port=args.port, open_browser=not args.no_browser)
+    except OSError as exc:
+        print(f"headcrawl: can't listen on port {args.port}: {exc.strerror or exc}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -156,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
 
     play = sub.add_parser("play", help="build a dungeon and open it in the game")
     build_options(play)
-    play.add_argument("--port", type=int, default=0, help="default: any free port")
+    play.add_argument("--port", type=int, default=None, help="default 8573, or any free port if that one is taken")
     play.add_argument("--no-browser", action="store_true", help="print the link instead of opening it")
     play.set_defaults(fn=_cmd_play)
 

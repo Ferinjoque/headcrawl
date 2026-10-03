@@ -606,7 +606,7 @@ export class Game {
     const roll = this.rng.int(0, canRewind(this.floor) ? 3 : 2);
     if (roll === 3) {
       const t = target ? timeTravel(target) : null;
-      const floor = rewindFloor(this.floor, this.rng, this.spec.floors.length, this.player);
+      const floor = rewindFloor(this.floor, this.rng, this.spec.floors.length, this.player, this.mods);
       const year = t?.year ?? floor?.year ?? 0;
       this.say(`git checkout ${year}. The floor goes back a year${floor?.swapped ? `: ${floor.swapped} functions are the way they were` : ""}.`, "loot");
       if (t && target) this.say(`${target.name} goes back to ${t.after} branches from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`, "loot");

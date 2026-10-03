@@ -3,10 +3,12 @@ import { MODS, dailyMod, type ModId } from "../game/extras";
 
 /** Same repo and same rolls for everyone on a given UTC day. */
 export function dailyPick<T extends { slug: string }>(entries: T[], date: Date): { entry: T; run: number; label: string } | null {
-  if (!entries.length) return null;
+  // Repos added by `headcrawl play` are yours, not the gallery's.
+  const pool = entries.filter((e) => !e.slug.startsWith("yours-"));
+  if (!pool.length) return null;
   const label = date.toISOString().slice(0, 10);
   const run = Number(label.replace(/-/g, ""));
-  const entry = entries[hashString(`daily/${label}`) % entries.length];
+  const entry = pool[hashString(`daily/${label}`) % pool.length];
   return { entry, run, label };
 }
 

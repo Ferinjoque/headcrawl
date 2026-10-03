@@ -512,7 +512,7 @@ export class App {
   private findRace(spec: DungeonSpec, run: number, mods: ModId[]): { track: Track; whose: string } | null {
     if (this.route.kind === "title") return null;
     const shared = this.route.race ? decodeSpec(this.route.race) : null;
-    const log = shared ?? ghostFor(this.saveKey())?.log ?? null;
+    const log = shared ?? ghostFor(this.saveKey(), spec.repo.head)?.log ?? null;
     const track = log ? trackOf(spec, run, mods, log) : null;
     return track ? { track, whose: shared ? "a friend's run" : "your best run" } : null;
   }
@@ -646,6 +646,8 @@ export class App {
   private handleEvents(events: GameEvent[], game: Game = this.game!, quiet = false): void {
     const now = performance.now();
     for (const e of events) {
+      if (e.t === "descend" || e.t === "loop") this.renderer.snapCamera();
+      if (quiet && e.t === "intro") continue;
       eventFx(e, this.fx, game, now);
       if (quiet) continue;
       this.sound.play(e);
@@ -656,7 +658,6 @@ export class App {
         this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
         replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text));
       }
-      if (e.t === "descend" || e.t === "loop") this.renderer.snapCamera();
       if (e.t === "descend") this.floorCard();
     }
   }

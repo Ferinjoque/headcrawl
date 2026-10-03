@@ -11,7 +11,7 @@
     "coverage": "vitest run --coverage",
     "spec": "node scripts/gen-spec.mjs",
     "gallery": "node scripts/build-index.mjs",
-    "py": "cd ../analyzer && uv build --wheel && cd ../game && node scripts/fetch-py.mjs",
+    "py": "node -e \"require('fs').rmSync('../analyzer/src/headcrawl/game_dist',{recursive:true,force:true})\" && cd ../analyzer && uv build --wheel && cd ../game && node scripts/fetch-py.mjs",
     "shots": "node scripts/shots.mjs"
   },
   "devDependencies": {

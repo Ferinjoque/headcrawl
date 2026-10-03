@@ -95,8 +95,8 @@ const KEEP_FOR_NEXT = 6;
 interface History {
   counts: Record<string, number>;
   subjects: Record<string, string>;
-  /** Per file, newest first: who made each commit and its subject line. */
-  authors: Record<string, [string, string][]>;
+  /** Per file, newest first: who made each commit, its subject, sha and date. */
+  authors: Record<string, [string, string, string, string][]>;
 }
 
 /**
@@ -114,15 +114,15 @@ async function history(api: string, sha: string, paths: string[]): Promise<Histo
   const out: History = { counts: {}, subjects: {}, authors: {} };
   for (const path of paths) {
     const res = await gh(`${api}/commits?sha=${sha}&per_page=100&path=${encodeURIComponent(path)}`);
-    const commits = (await res.json()) as { commit?: { message?: string; author?: { name?: string } } }[];
+    const commits = (await res.json()) as { sha?: string; commit?: { message?: string; author?: { name?: string; date?: string } } }[];
     out.counts[path] = commits.length;
     const message = commits[0]?.commit?.message;
     if (typeof message === "string") out.subjects[path] = message;
     // The same answer names who wrote each commit: enough to find a floor's keeper.
     out.authors[path] = commits
-      .map((c) => [c.commit?.author?.name, c.commit?.message?.split("\n")[0]] as const)
-      .filter((a): a is readonly [string, string] => typeof a[0] === "string" && typeof a[1] === "string")
-      .map(([n, s]) => [n.slice(0, 100), s.slice(0, 300)]);
+      .map((c) => [c.commit?.author?.name, c.commit?.message?.split("\n")[0], c.sha, c.commit?.author?.date] as const)
+      .filter((a): a is readonly [string, string, string, string] => a.every((v) => typeof v === "string"))
+      .map(([n, s, sha, date]) => [n.slice(0, 100), s.slice(0, 300), sha.slice(0, 40), date.slice(0, 25)]);
   }
   return out;
 }

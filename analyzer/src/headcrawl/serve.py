@@ -32,9 +32,25 @@ def game_dir() -> Path | None:
     return None
 
 
+# One port by default, so the browser keeps saves, settings and the bestiary
+# between runs (they belong to the page's origin). Any free port if it's taken.
+DEFAULT_PORT = 8573
+
+
 def slug_for(spec: DungeonSpec) -> str:
+    """Per repo and commit, so a save never resumes on a different commit."""
     base = re.sub(r"[^a-z0-9._-]+", "-", spec.repo.name.lower()).strip("-.") or "repo"
-    return f"yours-{base}"[:60]
+    return f"yours-{base[:44]}-{spec.repo.head[:7]}"
+
+
+def _bind(handler: Any, root: Path, port: int | None) -> http.server.ThreadingHTTPServer:
+    make = functools.partial(handler, directory=str(root))
+    if port is not None:
+        return http.server.ThreadingHTTPServer(("127.0.0.1", port), make)
+    try:
+        return http.server.ThreadingHTTPServer(("127.0.0.1", DEFAULT_PORT), make)
+    except OSError:
+        return http.server.ThreadingHTTPServer(("127.0.0.1", 0), make)
 
 
 def entry_for(spec: DungeonSpec, slug: str) -> dict[str, Any]:
@@ -91,7 +107,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def serve(spec: DungeonSpec, port: int = 0, open_browser: bool = True) -> None:
+def serve(spec: DungeonSpec, port: int | None = None, open_browser: bool = True) -> None:
     root = game_dir()
     if root is None:
         raise FileNotFoundError("no game files found: run scripts/bundle-game.sh, or npm run build in game/")
@@ -101,7 +117,7 @@ def serve(spec: DungeonSpec, port: int = 0, open_browser: bool = True) -> None:
         (_Handler,),
         {"slug": slug, "body": spec.model_dump_json(exclude_none=True).encode(), "entry": entry_for(spec, slug)},
     )
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), functools.partial(handler, directory=str(root)))
+    server = _bind(handler, root, port)
     bound = server.server_address[1]
     handler.hosts = frozenset({f"127.0.0.1:{bound}", f"localhost:{bound}"})
     url = f"http://127.0.0.1:{bound}/#/play/{slug}"
