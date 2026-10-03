@@ -6,7 +6,7 @@ import { Rng, hashString } from "../core/rng";
 import type { Dependency, DungeonSpec } from "../spec";
 import { roomCells } from "../map/layout";
 import type { Grid } from "../map/grid";
-import type { FloorState } from "./world";
+import { fromEnemy, type FloorState } from "./world";
 import type { Monster, Player } from "./types";
 
 // ---- vendor ---------------------------------------------------------------
@@ -121,9 +121,39 @@ export function placeVendor(state: FloorState, spec: DungeonSpec): Vendor | null
   return spot ? { x: spot[0], y: spot[1], offers, sold: false } : null;
 }
 
-/** The vendor stands still and takes up its cell. Paths go around it. */
-export function vendorAt(state: FloorState, x: number, y: number): boolean {
-  return !!state.vendor && state.vendor.x === x && state.vendor.y === y;
+/** The vendor and the keeper stand still and take up their cells. Paths go around them. */
+export function npcAt(state: FloorState, x: number, y: number): boolean {
+  const at = (n: { x: number; y: number } | null) => !!n && n.x === x && n.y === y;
+  return at(state.vendor) || at(state.keeper);
+}
+
+// ---- the keeper ----------------------------------------------------------
+
+/** Whoever committed most to this floor, standing in one of its rooms. */
+export interface KeeperNpc {
+  x: number;
+  y: number;
+  name: string;
+  commits: number;
+  subject: string | null;
+  met: boolean;
+}
+
+/** Heals this share of max HP, once per floor. */
+export const KEEPER_HEAL = 0.3;
+
+export function placeKeeper(state: FloorState, spec: DungeonSpec): KeeperNpc | null {
+  const k = spec.floors[state.index].keeper;
+  if (!k) return null;
+  const { map } = state;
+  const rooms = map.rooms.filter((r) => r !== map.entry && r !== map.lair && r.spec.kind === "hall");
+  if (!rooms.length) return null;
+  const rng = new Rng(`${spec.seed}/keeper/${state.index}`);
+  const room = rooms[rng.int(0, rooms.length - 1)];
+  const free = rng
+    .shuffle(roomCells(map, room))
+    .find(([x, y]) => !state.monsters.some((m) => m.x === x && m.y === y) && !state.items.some((i) => i.x === x && i.y === y) && !npcAt(state, x, y));
+  return free ? { x: free[0], y: free[1], name: k.name, commits: k.commits, subject: k.subject ?? null, met: false } : null;
 }
 
 // ---- ghosts ---------------------------------------------------------------
@@ -194,6 +224,43 @@ export function modFloor(state: FloorState, mods: readonly ModId[]): void {
 }
 
 // ---- time travel ----------------------------------------------------------
+
+/** Whether a git checkout HACK has anything to rewind on this floor. */
+export function canRewind(state: FloorState): boolean {
+  if (state.rewound) return false;
+  return !!boss(state)?.boss?.past || state.map.rooms.some((r) => r.spec.past);
+}
+
+/**
+ * git checkout, floor-wide: every room's living functions are swapped for
+ * the ones the file had a year before. What you already refactored stays
+ * refactored: a room never gets more monsters back than it had left.
+ * Returns how many functions changed and the year, or null.
+ */
+export function rewindFloor(state: FloorState, rng: Rng, floors: number, player: { x: number; y: number }): { swapped: number; year: number } | null {
+  let swapped = 0;
+  let year = 0;
+  for (const rect of state.map.rooms) {
+    const past = rect.spec.past;
+    if (!past) continue;
+    const alive = state.monsters.filter((m) => m.room === rect.index && m.enemy && m.archetype !== "spawn");
+    if (!alive.length) continue;
+    year = past.year;
+    const spots = alive.map((m) => [m.x, m.y] as const);
+    state.monsters = state.monsters.filter((m) => !alive.includes(m));
+    const roster = rng.shuffle([...past.enemies]).slice(0, alive.length);
+    roster.forEach((e, i) => {
+      const [x, y] = spots[i];
+      if (x === player.x && y === player.y) return;
+      const m = fromEnemy(e, x, y, rect.index, state.index, floors);
+      m.awake = alive[i].awake;
+      state.monsters.push(m);
+    });
+    swapped += Math.max(alive.length, roster.length);
+  }
+  state.rewound = true;
+  return swapped || year ? { swapped, year } : null;
+}
 
 /** git checkout: the boss as it was a year before. Null if there is no past. */
 export function boss(state: FloorState): Monster | undefined {

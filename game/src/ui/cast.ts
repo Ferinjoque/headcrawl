@@ -34,6 +34,7 @@ function cell(game: Game, x: number, y: number): [string, number] {
     const it = game.itemAt(x, y);
     if (it) return [ITEM[it.kind] ?? "?", 228];
     if (f.vendor && f.vendor.x === x && f.vendor.y === y) return ["$", 220];
+    if (f.keeper && f.keeper.x === x && f.keeper.y === y) return ["&", 153];
   }
   const dim = vis ? 0 : 1;
   switch (g.tiles[i]) {

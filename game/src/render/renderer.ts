@@ -329,6 +329,11 @@ export class Renderer {
       lctx.fillStyle = rgba(col, this.lightAt(scene, item.x, item.y) + 0.15);
       lctx.fillText(ch, ox + item.x * cellW + cellW / 2, oy + item.y * cellH + cellH / 2);
     }
+    const k = floor.keeper;
+    if (k && show(k.x, k.y)) {
+      lctx.fillStyle = rgba(C.steel, k.met ? 0.55 : this.lightAt(scene, k.x, k.y) + 0.2);
+      lctx.fillText("&", ox + k.x * cellW + cellW / 2, oy + k.y * cellH + cellH / 2);
+    }
     const v = floor.vendor;
     if (v && show(v.x, v.y)) {
       const px = ox + v.x * cellW;

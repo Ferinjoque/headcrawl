@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEALS, dailyMod, dealFor, ghostStep, installLine, timeTravel, vendorOffers } from "../src/game/extras";
+import { DEALS, canRewind, dailyMod, dealFor, ghostStep, installLine, rewindFloor, timeTravel, vendorOffers } from "../src/game/extras";
+import { Rng } from "../src/core/rng";
 import { Game } from "../src/game/game";
 import { decodeLog, encodeLog } from "../src/game/record";
 import { Grid, Tile } from "../src/map/grid";
@@ -148,5 +149,49 @@ describe("time travel", () => {
     expect(boss.maxHp).toBe(Math.round(before / 2));
     const plain = new Game(spec([floor([room(), room({ kind: "lair" })], [[0, 1]])]));
     expect(timeTravel(plain.floor.monsters.find((m) => m.boss)!)).toBeNull();
+  });
+});
+
+describe("floor rewind", () => {
+  it("swaps living functions for last year's, never adds any back", () => {
+    const past = { year: 2021, enemies: [enemy({ name: "old_one" }), enemy({ name: "old_two" }), enemy({ name: "old_three" })] };
+    const rooms = [room(), room({ enemies: [enemy({ name: "now_a" }), enemy({ name: "now_b" })], past }), room({ kind: "lair" })];
+    const game = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]));
+    const before = game.floor.monsters.filter((m) => !m.boss).length;
+    expect(canRewind(game.floor)).toBe(true);
+    const r = rewindFloor(game.floor, new Rng("t"), 1, { x: -1, y: -1 })!;
+    expect(r.year).toBe(2021);
+    const names = game.floor.monsters.filter((m) => !m.boss).map((m) => m.name);
+    expect(names.length).toBe(before);
+    expect(names.every((n) => n.startsWith("old_"))).toBe(true);
+    expect(canRewind(game.floor)).toBe(false);
+  });
+});
+
+describe("the keeper", () => {
+  it("stands in a hall, talks once, and heals once", () => {
+    const f = floor([room(), room(), room(), room({ kind: "lair" })], [[0, 1], [1, 2], [2, 3]]);
+    f.keeper = { name: "ada", commits: 41, subject: "make it faster" };
+    const game = new Game(spec([f]));
+    const k = game.floor.keeper!;
+    expect(k).toBeTruthy();
+    const rect = game.floor.map.rooms[game.floor.map.grid.roomAt(k.x, k.y)];
+    expect(rect).not.toBe(game.floor.map.entry);
+    expect(rect).not.toBe(game.floor.map.lair);
+    game.player.hp = 5;
+    game.player.x = k.x - 1;
+    game.player.y = k.y;
+    game.act({ type: "move", dx: 1, dy: 0 });
+    expect(k.met).toBe(true);
+    expect(game.player.hp).toBeGreaterThan(5);
+    expect(game.journal.some((l) => l.includes("make it faster"))).toBe(true);
+    const hp = game.player.hp;
+    game.act({ type: "move", dx: 1, dy: 0 });
+    expect(game.player.x).toBe(k.x - 1);
+    expect(game.player.hp).toBeLessThanOrEqual(hp + 2);
+  });
+
+  it("is missing when the dungeon has no history", () => {
+    expect(new Game(spec([floor([room(), room(), room({ kind: "lair" })], [[0, 1], [1, 2]])])).floor.keeper).toBeNull();
   });
 });

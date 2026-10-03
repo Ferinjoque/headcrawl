@@ -109,6 +109,13 @@ class Boss(_Model):
     past: BossPast | None = None
 
 
+class RoomPast(_Model):
+    """The file's functions as they were about a year before HEAD."""
+
+    year: int = Field(ge=1970, le=2200)
+    enemies: list[Enemy] = Field(max_length=MAX_ENEMIES)
+
+
 class Wing(_Model):
     id: Id
     path: Line
@@ -131,6 +138,7 @@ class Room(_Model):
     last_commit: Line | None = None
     enemies: list[Enemy] = Field(max_length=MAX_ENEMIES)
     loot: list[Loot] = Field(max_length=MAX_LOOT)
+    past: RoomPast | None = None
 
 
 class Edge(_Model):
@@ -140,6 +148,14 @@ class Edge(_Model):
     weight: int = Field(ge=1, le=1_000_000)
     # Both files sit on one import cycle.
     loop: bool = False
+
+
+class Keeper(_Model):
+    """Whoever committed most to this floor's files. Shows up as an NPC."""
+
+    name: Name
+    commits: int = Field(ge=1, le=1_000_000)
+    subject: Line | None = None
 
 
 class Floor(_Model):
@@ -153,6 +169,7 @@ class Floor(_Model):
     entry: Id
     lair: Id
     boss: Boss
+    keeper: Keeper | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Self:
@@ -226,6 +243,8 @@ class DungeonSpec(_Model):
             things = [f.id, f.boss.id, *(w.id for w in f.wings)]
             for r in f.rooms:
                 things += [r.id, *(e.id for e in r.enemies), *(x.id for x in r.loot)]
+                if r.past:
+                    things += [e.id for e in r.past.enemies]
             for t in things:
                 if t in seen:
                     raise ValueError(f"duplicate id {t}")

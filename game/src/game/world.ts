@@ -6,7 +6,7 @@ import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
 import { TUNING } from "./abilities";
 import { capsFor, depthScale, softCap } from "./balance";
 import type { Item, Monster } from "./types";
-import type { Vendor } from "./extras";
+import type { KeeperNpc, Vendor } from "./extras";
 
 export interface FloorState {
   index: number;
@@ -19,8 +19,11 @@ export interface FloorState {
   bossMet: boolean;
   shrinesUsed: Set<number>;
   vendor: Vendor | null;
+  keeper: KeeperNpc | null;
   /** Loop traps already sprung on this floor. */
   loopsDone: Set<number>;
+  /** A git checkout HACK already sent this floor back a year. */
+  rewound: boolean;
 }
 
 // Skip prefixes that half the functions share, or every monster on a test
@@ -33,7 +36,7 @@ export function glyphFor(name: string): string {
   return m ? m[0] : "?";
 }
 
-function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number, floors: number): Monster {
+export function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: number, floors: number): Monster {
   const k = depthScale(depth);
   const cap = capsFor(depth, floors);
   const hp = Math.max(1, Math.round(softCap(e.hp, cap.hp) * k));
@@ -141,6 +144,8 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     bossMet: false,
     shrinesUsed: new Set(),
     vendor: null,
+    keeper: null,
     loopsDone: new Set(),
+    rewound: false,
   };
 }

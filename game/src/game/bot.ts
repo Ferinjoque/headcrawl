@@ -3,7 +3,7 @@
 // then the boss, then the stairs.
 
 import { findPath } from "../map/astar";
-import { vendorAt } from "./extras";
+import { npcAt } from "./extras";
 import { Tile, walkable } from "../map/grid";
 import type { Game } from "./game";
 import type { Action } from "./types";
@@ -20,7 +20,7 @@ export function botAction(game: Game): Action {
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
       const nx = p.x + dx;
       const ny = p.y + dy;
-      if (walkable(grid.get(nx, ny)) && !game.monsterAt(nx, ny) && !vendorAt(game.floor, nx, ny) && !danger.has(grid.idx(nx, ny))) {
+      if (walkable(grid.get(nx, ny)) && !game.monsterAt(nx, ny) && !npcAt(game.floor, nx, ny) && !danger.has(grid.idx(nx, ny))) {
         return { type: "move", dx, dy };
       }
     }
@@ -43,7 +43,7 @@ export function botAction(game: Game): Action {
   const target: [number, number] | null = shopping ? [v.x, v.y] : pickTarget(game);
   if (!target) return { type: "wait" };
   const path = findPath(grid.width, grid.height, [p.x, p.y], target, (x, y) =>
-    walkable(grid.get(x, y)) && (!vendorAt(game.floor, x, y) || (x === target[0] && y === target[1])) ? 1 : Infinity,
+    walkable(grid.get(x, y)) && (!npcAt(game.floor, x, y) || (x === target[0] && y === target[1])) ? 1 : Infinity,
   );
   if (!path || path.length < 2) return { type: "wait" };
   const [nx, ny] = path[1];

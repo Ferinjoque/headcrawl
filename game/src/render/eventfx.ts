@@ -53,6 +53,10 @@ export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number): voi
     case "loop":
       fx.flash(game.player.x, game.player.y, C.violet, now);
       break;
+    case "rewind":
+      for (const m of game.floor.monsters) if (game.isVisible(m.x, m.y)) fx.flash(m.x, m.y, C.violet, now);
+      fx.shake(4, now);
+      break;
     case "descend":
       fx.clear();
       break;

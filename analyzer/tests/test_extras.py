@@ -136,3 +136,26 @@ def test_decorated_and_partial_builds_have_no_false_ghosts(tmp_path: Path) -> No
     assert "serve_index" not in ghosts
     partial = analyze(tmp_path, complete=False)
     assert not [e for f in partial.floors for r in f.rooms for e in r.enemies if e.archetype is Archetype.GHOST]
+
+
+def test_rooms_remember_their_functions_a_year_back(make_repo: MakeRepo) -> None:
+    old = "def boss(a):\n    if a:\n        return 1\n    return 2\n\ndef helper_then(x):\n    return x\n"
+    new = (
+        "def boss(a, b):\n    if a:\n        return 1\n    elif b:\n        return 2\n    for x in a:\n"
+        "        if x:\n            return 3\n    return 4\n\ndef helper_now(x):\n    return x\n"
+    )
+    root = make_repo({"src/boss.py": old}, {"src/boss.py": new}, {"src/boss.py": new + "\n"}, years=[2019, 2024, 2024])
+    lair = next(r for f in analyze(root).floors for r in f.rooms if r.kind == "lair")
+    assert lair.past is not None and lair.past.year == 2019
+    names = [e.name for e in lair.past.enemies]
+    assert "boss" not in names  # the boss rewinds on its own
+    assert "helper_then" in names
+
+
+def test_each_floor_has_a_keeper(make_repo: MakeRepo) -> None:
+    first = {"src/a.py": "def a(x):\n    if x:\n        return 1\n    return 2\n"}
+    root = make_repo(first, {"src/a.py": "def a(x):\n    return 3\n"})
+    keeper = analyze(root).floors[0].keeper
+    assert keeper is not None and keeper.name == "t" and keeper.commits == 2
+    assert keeper.subject == "c1: touch things"
+    assert analyze(make_repo({"src/b.py": "def b():\n    return 1\n"}, git=False)).floors[0].keeper is None

@@ -83,6 +83,7 @@ export type GameEvent =
   | { t: "split"; x: number; y: number }
   | { t: "reveal" }
   | { t: "loop" }
+  | { t: "rewind" }
   | { t: "death"; killer: string }
   | { t: "victory" };
 

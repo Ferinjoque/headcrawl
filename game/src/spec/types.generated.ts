@@ -41,8 +41,11 @@ export type Edges = Edge[];
 export type Entry = string;
 export type Id1 = string;
 export type Index = number;
-export type Lair = string;
+export type Commits = number;
 export type Name1 = string;
+export type Subject = string | null;
+export type Lair = string;
+export type Name2 = string;
 export type Path = string;
 /**
  * @minItems 1
@@ -61,7 +64,7 @@ export type Damage1 = number;
 export type Hp1 = number;
 export type Id2 = string;
 export type Line1 = number;
-export type Name2 = string;
+export type Name3 = string;
 export type Nesting = number;
 export type Nloc1 = number;
 export type Params = number;
@@ -100,7 +103,12 @@ export type YearOrOlder = boolean;
  * @maxItems 8
  */
 export type Loot = Loot1[];
-export type Name3 = string;
+export type Name4 = string;
+/**
+ * @maxItems 12
+ */
+export type Enemies1 = Enemy[];
+export type Year2 = number;
 export type Path1 = string;
 export type Size = number;
 export type Wing = string;
@@ -110,7 +118,7 @@ export type Wing = string;
  */
 export type Wings = [Wing1, ...Wing1[]];
 export type Id5 = string;
-export type Name4 = string;
+export type Name5 = string;
 export type Path2 = string;
 export type Generator = string;
 export type Branch = string | null;
@@ -121,23 +129,23 @@ export type CommittedAt = number;
  * via the `definition` "Ecosystem".
  */
 export type Ecosystem = "npm" | "pypi" | "go" | "cargo" | "gem" | "composer";
-export type Name5 = string;
+export type Name6 = string;
 /**
  * @maxItems 40
  */
 export type Dependencies = Dependency[];
 export type Head = string;
 export type Loc1 = number;
-export type Name6 = string;
+export type Name7 = string;
 /**
  * @maxItems 32
  */
 export type Languages = LanguageShare[];
-export type Name7 = string;
+export type Name8 = string;
 export type Url = string | null;
 export type SchemaVersion = number;
 export type Seed = string;
-export type Enemies1 = number;
+export type Enemies2 = number;
 export type Files = number;
 export type Functions1 = number;
 export type Loc2 = number;
@@ -163,8 +171,9 @@ export interface Floor {
   entry: Entry;
   id: Id1;
   index: Index;
+  keeper?: Keeper | null;
   lair: Lair;
-  name: Name1;
+  name: Name2;
   path: Path;
   rooms: Rooms;
   wings: Wings;
@@ -212,6 +221,17 @@ export interface Edge {
   weight: Weight;
 }
 /**
+ * Whoever committed most to this floor's files. Shows up as an NPC.
+ *
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "Keeper".
+ */
+export interface Keeper {
+  commits: Commits;
+  name: Name1;
+  subject?: Subject;
+}
+/**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
  * via the `definition` "Room".
  */
@@ -227,7 +247,8 @@ export interface Room {
   last_commit?: LastCommit;
   loc: Loc;
   loot: Loot;
-  name: Name3;
+  name: Name4;
+  past?: RoomPast | null;
   path: Path1;
   size: Size;
   wing: Wing;
@@ -243,7 +264,7 @@ export interface Enemy {
   hp: Hp1;
   id: Id2;
   line: Line1;
-  name: Name2;
+  name: Name3;
   nesting: Nesting;
   nloc: Nloc1;
   params: Params;
@@ -267,12 +288,22 @@ export interface Loot1 {
   year_or_older?: YearOrOlder;
 }
 /**
+ * The file's functions as they were about a year before HEAD.
+ *
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "RoomPast".
+ */
+export interface RoomPast {
+  enemies: Enemies1;
+  year: Year2;
+}
+/**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
  * via the `definition` "Wing".
  */
 export interface Wing1 {
   id: Id5;
-  name: Name4;
+  name: Name5;
   path: Path2;
 }
 /**
@@ -286,7 +317,7 @@ export interface RepoInfo {
   dependencies?: Dependencies;
   head: Head;
   languages: Languages;
-  name: Name7;
+  name: Name8;
   url?: Url;
 }
 /**
@@ -295,7 +326,7 @@ export interface RepoInfo {
  */
 export interface Dependency {
   ecosystem: Ecosystem;
-  name: Name5;
+  name: Name6;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -303,14 +334,14 @@ export interface Dependency {
  */
 export interface LanguageShare {
   loc: Loc1;
-  name: Name6;
+  name: Name7;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
  * via the `definition` "Totals".
  */
 export interface Totals {
-  enemies: Enemies1;
+  enemies: Enemies2;
   files: Files;
   functions: Functions1;
   loc: Loc2;

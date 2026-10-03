@@ -23,11 +23,13 @@ from .models import (
     EdgeKind,
     Enemy,
     Floor,
+    Keeper,
     LanguageShare,
     Loot,
     RepoInfo,
     Room,
     RoomKind,
+    RoomPast,
     Totals,
     Wing,
 )
@@ -165,6 +167,8 @@ class _Context:
     mentions: Counter[str]
     # File -> id of the import cycle it sits on.
     cycles: dict[str, int]
+    # File -> (year, metrics) a year before HEAD; None when history doesn't reach.
+    old: dict[str, tuple[int, FileMetric] | None]
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -284,6 +288,7 @@ def analyze(
         authors or {},
         mentions,
         cycle_members(edges),
+        {},
     )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
@@ -400,8 +405,22 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
         entry=room_ids[entry.path],
         lair=room_ids[lair.path],
         boss=_boss(ctx, lair, boss_fn, index, final),
+        keeper=_keeper(ctx, [r.path for r in reps]),
     )
     return floor, local
+
+
+def _keeper(ctx: _Context, paths: list[str]) -> Keeper | None:
+    if not ctx.in_git:
+        return None
+    found = gitio.top_author(ctx.root, paths, ctx.limits)
+    if found is None:
+        return None
+    name, commits, subject = found
+    label = clean(name, 60)
+    if not label:
+        return None
+    return Keeper(name=label, commits=max(1, commits), subject=clean(subject, 120) or None)
 
 
 def _label(value: str, fallback: str) -> str:
@@ -457,7 +476,8 @@ def _room(
 ) -> Room:
     is_lair = rep.path == lair.path
     kind = RoomKind.LAIR if is_lair else RoomKind.SHRINE if shrine else RoomKind.HALL
-    enemies = [] if kind is RoomKind.SHRINE else _enemies(ctx, rep, boss_fn if is_lair else None)
+    skip = boss_fn if is_lair else None
+    enemies = [] if kind is RoomKind.SHRINE else _enemies(ctx, rep, skip)
     return Room(
         id=rid,
         path=clean(rep.path, 200),
@@ -474,7 +494,35 @@ def _room(
         last_commit=_last_commit(ctx, rep) if is_lair else None,
         enemies=enemies,
         loot=_loot(ctx, rep),
+        past=None if kind is RoomKind.SHRINE else _room_past(ctx, rep, skip),
     )
+
+
+def _old(ctx: _Context, rep: FileReport) -> tuple[int, FileMetric] | None:
+    """The file a year before HEAD, measured once and kept for the boss too."""
+    if rep.path in ctx.old:
+        return ctx.old[rep.path]
+    found = None
+    if ctx.in_git and ctx.head_time:
+        text = gitio.past_text(ctx.root, rep.path, ctx.head_time - YEAR_SECONDS)
+        if text is not None:
+            try:
+                found = (text[0], measure(rep.path, text[1]))
+            except Exception:  # noqa: BLE001 - an old version that lizard can't read is just no history
+                found = None
+    ctx.old[rep.path] = found
+    return found
+
+
+def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> RoomPast | None:
+    old = _old(ctx, rep)
+    if old is None or not 1970 <= old[0] <= 2200:
+        return None
+    year, metric = old
+    funcs = [f for f in metric.functions if not skip or f.name != skip.name]
+    funcs.sort(key=lambda f: (-stats.threat(f), f.start_line))
+    then = [_enemy(ctx, f, rep, ghost=False) for f in funcs[: ctx.limits.max_enemies_per_room]]
+    return RoomPast(year=year, enemies=then)
 
 
 def _last_commit(ctx: _Context, rep: FileReport) -> str | None:
@@ -485,26 +533,25 @@ def _last_commit(ctx: _Context, rep: FileReport) -> str | None:
 def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> list[Enemy]:
     funcs = [f for f in rep.metric.functions if f is not skip]
     funcs.sort(key=lambda f: (-stats.threat(f), f.start_line))
-    out = []
-    for f in funcs[: ctx.limits.max_enemies_per_room]:
-        out.append(
-            Enemy(
-                id=ctx.ids("e"),
-                name=_display_name(f, rep.path),
-                signature=clean(f.long_name, 200),
-                archetype=Archetype.GHOST if _is_dead(ctx, f, rep) else stats.archetype(f),
-                hp=stats.enemy_hp(f),
-                damage=stats.enemy_damage(f),
-                speed=stats.enemy_speed(f),
-                xp=stats.enemy_xp(f),
-                line=max(1, f.start_line),
-                ccn=f.ccn,
-                nesting=f.nesting,
-                params=f.params,
-                nloc=f.nloc,
-            )
-        )
-    return out
+    return [_enemy(ctx, f, rep) for f in funcs[: ctx.limits.max_enemies_per_room]]
+
+
+def _enemy(ctx: _Context, f: FunctionMetric, rep: FileReport, ghost: bool = True) -> Enemy:
+    return Enemy(
+        id=ctx.ids("e"),
+        name=_display_name(f, rep.path),
+        signature=clean(f.long_name, 200),
+        archetype=Archetype.GHOST if ghost and _is_dead(ctx, f, rep) else stats.archetype(f),
+        hp=stats.enemy_hp(f),
+        damage=stats.enemy_damage(f),
+        speed=stats.enemy_speed(f),
+        xp=stats.enemy_xp(f),
+        line=max(1, f.start_line),
+        ccn=f.ccn,
+        nesting=f.nesting,
+        params=f.params,
+        nloc=f.nloc,
+    )
 
 
 def _is_dead(ctx: _Context, f: FunctionMetric, rep: FileReport) -> bool:
@@ -600,16 +647,12 @@ def _boss(ctx: _Context, rep: FileReport, f: FunctionMetric, depth: int, final: 
 def _past(ctx: _Context, rep: FileReport, f: FunctionMetric) -> BossPast | None:
     """The boss function a year before HEAD, if git history reaches that far
     and the function existed then."""
-    if not ctx.in_git or not ctx.head_time or _is_anonymous(f):
+    if _is_anonymous(f):
         return None
-    old = gitio.past_text(ctx.root, rep.path, ctx.head_time - YEAR_SECONDS)
+    old = _old(ctx, rep)
     if old is None:
         return None
-    year, text = old
-    try:
-        then = measure(rep.path, text)
-    except Exception:  # noqa: BLE001 - an old version that lizard can't read is just no history
-        return None
+    year, then = old
     match = next((g for g in then.functions if g.name == f.name), None)
     if match is None or not 1970 <= year <= 2200:
         return None

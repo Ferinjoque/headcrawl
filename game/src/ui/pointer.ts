@@ -51,6 +51,16 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     );
     return true;
   }
+  const k = game.floor.keeper;
+  if (k && k.x === x && k.y === y) {
+    replace(
+      tip,
+      h("div", { class: "tip-name t-lore" }, k.name),
+      h("div", null, `${k.commits} commits on this floor, more than anyone.`),
+      h("div", { class: "faint" }, k.met ? "You've talked." : "Walk into them to say hi."),
+    );
+    return true;
+  }
   if (v && v.x === x && v.y === y) {
     replace(
       tip,

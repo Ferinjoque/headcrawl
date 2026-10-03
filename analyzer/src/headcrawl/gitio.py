@@ -359,6 +359,41 @@ def past_text(path: Path, rel: str, before: int) -> tuple[int, str] | None:
     return time.gmtime(int(when)).tm_year, text
 
 
+def top_author(path: Path, rels: list[str], limits: Limits = DEFAULT) -> tuple[str, int, str] | None:
+    """Who made the most of the recent commits touching `rels`: name, how
+    many, and the subject of their latest one."""
+    if not rels:
+        return None
+    try:
+        out = run(
+            [
+                "--literal-pathspecs",
+                "log",
+                f"--max-count={limits.churn_commits}",
+                "--no-show-signature",
+                "--format=%an%x00%s",
+                "HEAD",
+                "--",
+                *rels,
+            ],
+            cwd=path,
+        )
+    except GitError:
+        return None
+    counts: Counter[str] = Counter()
+    latest: dict[str, str] = {}
+    for row in out.splitlines():
+        name, _, subject = row.partition("\x00")
+        if not name:
+            continue
+        counts[name] += 1
+        latest.setdefault(name, subject)
+    if not counts:
+        return None
+    name, n = max(counts.items(), key=lambda kv: (kv[1], kv[0]))
+    return name, n, latest[name]
+
+
 def last_subject(path: Path, rel: str) -> str | None:
     """Subject line of the last commit that touched a file."""
     try:

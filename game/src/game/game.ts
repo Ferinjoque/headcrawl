@@ -9,7 +9,7 @@ import { TUNING } from "./abilities";
 import { PERKS, available, type PerkId } from "./perks";
 import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
-import { GHOST_DAMAGE, boss, ghostStep, installLine, vendorAt, modFloor, modPlayer, placeVendor, timeTravel, type ModId, type Offer } from "./extras";
+import { GHOST_DAMAGE, KEEPER_HEAL, boss, canRewind, placeKeeper, ghostStep, rewindFloor, installLine, npcAt, modFloor, modPlayer, placeVendor, timeTravel, type ModId, type Offer } from "./extras";
 import type { LoopTrap } from "../map/layout";
 import { chaseMap, stepToward } from "./chase";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
@@ -80,6 +80,7 @@ export class Game {
     const floor = buildFloor(this.spec.floors[index], this.spec.seed, this.spec.floors.length);
     modFloor(floor, this.mods);
     floor.vendor = placeVendor(floor, this.spec);
+    floor.keeper = placeKeeper(floor, this.spec);
     return floor;
   }
 
@@ -206,6 +207,11 @@ export class Game {
       this.playerAttack(target);
       return true;
     }
+    const keeper = this.floor.keeper;
+    if (keeper && keeper.x === nx && keeper.y === ny) {
+      this.meetKeeper(keeper);
+      return true;
+    }
     const vendor = this.floor.vendor;
     if (vendor && vendor.x === nx && vendor.y === ny) {
       if (vendor.sold) this.say("The vendor has nothing left for you on this floor.");
@@ -251,6 +257,14 @@ export class Game {
     [this.player.x, this.player.y] = spot;
     this.emit({ t: "loop" });
     this.say(`Circular import: ${trap.a} needs ${trap.b}, which needs ${trap.a}. You end up back where you started.`, "lore");
+  }
+
+  private meetKeeper(k: NonNullable<FloorState["keeper"]>): void {
+    if (k.met) return this.say(`${k.name} is busy. Something about a release.`);
+    k.met = true;
+    const quote = k.subject ? ` Their last commit here: "${k.subject}".` : "";
+    this.say(`${k.name}, ${k.commits} commits on this floor.${quote} They hand you a coffee.`, "lore");
+    this.heal(Math.max(1, Math.round(this.player.maxHp * KEEPER_HEAL)));
   }
 
   private buy(index: number): void {
@@ -373,7 +387,7 @@ export class Game {
       [x - 1, y - 1],
     ];
     for (const [sx, sy] of spots) {
-      if (grid.get(sx, sy) === Tile.Floor && !this.itemAt(sx, sy) && !vendorAt(this.floor, sx, sy) && !(sx === this.player.x && sy === this.player.y)) {
+      if (grid.get(sx, sy) === Tile.Floor && !this.itemAt(sx, sy) && !npcAt(this.floor, sx, sy) && !(sx === this.player.x && sy === this.player.y)) {
         this.floor.items.push({ id: `c${this.spawnCount++}`, kind, x: sx, y: sy, loot: null, source: "" });
         return;
       }
@@ -472,7 +486,7 @@ export class Game {
     for (const [dx, dy] of STEPS) {
       const nx = x + dx;
       const ny = y + dy;
-      if (grid.get(nx, ny) !== Tile.Floor || this.monsterAt(nx, ny) || vendorAt(this.floor, nx, ny)) continue;
+      if (grid.get(nx, ny) !== Tile.Floor || this.monsterAt(nx, ny) || npcAt(this.floor, nx, ny)) continue;
       if (nx === this.player.x && ny === this.player.y) continue;
       return [nx, ny];
     }
@@ -589,11 +603,14 @@ export class Game {
     }
     const power = item.loot?.power ?? 3;
     const target = boss(this.floor);
-    const roll = this.rng.int(0, target?.boss?.past ? 3 : 2);
-    if (roll === 3 && target) {
-      const t = timeTravel(target)!;
-      const way = t.after < t.before ? "simpler" : "worse";
-      this.say(`git checkout ${t.year}. ${target.name} goes back to ${t.after} branches from ${t.before}. It was ${way} back then.`, "loot");
+    const roll = this.rng.int(0, canRewind(this.floor) ? 3 : 2);
+    if (roll === 3) {
+      const t = target ? timeTravel(target) : null;
+      const floor = rewindFloor(this.floor, this.rng, this.spec.floors.length, this.player);
+      const year = t?.year ?? floor?.year ?? 0;
+      this.say(`git checkout ${year}. The floor goes back a year${floor?.swapped ? `: ${floor.swapped} functions are the way they were` : ""}.`, "loot");
+      if (t && target) this.say(`${target.name} goes back to ${t.after} branches from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`, "loot");
+      this.emit({ t: "rewind" });
     } else if (roll === 0) {
       const targets = this.floor.monsters.filter((m) => this.isVisible(m.x, m.y));
       this.say(`force push. ${targets.length ? "Everything in sight takes a hit." : "Nothing in sight. What a waste."}`, "loot");
@@ -646,7 +663,7 @@ export class Game {
     const chase = chaseMap(this.floor.map.grid, this.player);
     const taken = new Uint8Array(grid.width * grid.height);
     for (const m of this.floor.monsters) taken[grid.idx(m.x, m.y)] = 1;
-    if (this.floor.vendor) taken[grid.idx(this.floor.vendor.x, this.floor.vendor.y)] = 1;
+    for (const n of [this.floor.vendor, this.floor.keeper]) if (n) taken[grid.idx(n.x, n.y)] = 1;
     for (const m of [...this.floor.monsters]) {
       if (!this.floor.monsters.includes(m)) continue;
       if (!m.awake && this.isVisible(m.x, m.y) && dist(m, this.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;

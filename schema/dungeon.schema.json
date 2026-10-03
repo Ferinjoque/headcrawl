@@ -363,6 +363,17 @@
           "title": "Index",
           "type": "integer"
         },
+        "keeper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Keeper"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "lair": {
           "maxLength": 12,
           "pattern": "^[a-z][0-9]+$",
@@ -412,6 +423,43 @@
         "boss"
       ],
       "title": "Floor",
+      "type": "object"
+    },
+    "Keeper": {
+      "additionalProperties": false,
+      "description": "Whoever committed most to this floor's files. Shows up as an NPC.",
+      "properties": {
+        "commits": {
+          "maximum": 1000000,
+          "minimum": 1,
+          "title": "Commits",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        }
+      },
+      "required": [
+        "name",
+        "commits"
+      ],
+      "title": "Keeper",
       "type": "object"
     },
     "LanguageShare": {
@@ -692,6 +740,17 @@
           "title": "Name",
           "type": "string"
         },
+        "past": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoomPast"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "path": {
           "maxLength": 200,
           "title": "Path",
@@ -736,6 +795,32 @@
       ],
       "title": "RoomKind",
       "type": "string"
+    },
+    "RoomPast": {
+      "additionalProperties": false,
+      "description": "The file's functions as they were about a year before HEAD.",
+      "properties": {
+        "enemies": {
+          "items": {
+            "$ref": "#/$defs/Enemy"
+          },
+          "maxItems": 12,
+          "title": "Enemies",
+          "type": "array"
+        },
+        "year": {
+          "maximum": 2200,
+          "minimum": 1970,
+          "title": "Year",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "year",
+        "enemies"
+      ],
+      "title": "RoomPast",
+      "type": "object"
     },
     "Totals": {
       "additionalProperties": false,
