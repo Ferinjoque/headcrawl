@@ -57,7 +57,8 @@ npm run py           # builds the analyzer and fetches Python for the browser (a
 | `HACK` | `?` scroll with a random effect |
 | `XXX` | `%` cursed: more attack, less max HP |
 | churn x complexity | the boss of the floor |
-| the boss function a year ago | what a `git checkout` HACK turns it back into |
+| the floor a year ago | what a `git checkout` HACK turns it back into, boss included |
+| whoever committed most to a folder | the `&` keeper on that floor: say hi once for a coffee |
 | dependencies in the root manifest | the `$` vendor in each entry room |
 | who last touched a TODO line | written on the loot ("a FIXME from 2012 by alice") |
 
@@ -97,7 +98,9 @@ counts; later ones say "practice" in the share text.
 
 The music is made live in WebAudio and seeded by the repo's HEAD, so every
 repo has its own theme. It gets darker the deeper you go, drums come in when
-something wants you dead, and bosses get a motif made from their name. `m`
+something wants you dead, and bosses get a motif made from their name.
+Each language has its own instruments, the vendor plays lounge music, a
+ghost in sight hums, and daily runs ring a bell. `m`
 mutes everything; `,` opens settings (music on its own, text size,
 colorblind friendly or high contrast colors, calm motion). On a phone, tap
 a monster to see what it is. `b` on the title opens the bestiary: what

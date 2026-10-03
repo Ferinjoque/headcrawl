@@ -130,14 +130,27 @@ redraws the whole view at 20 fps when idle.
   - Share text no longer carries a localhost link; release workflow ships
     a zip on tags; TypeScript 7 and current action pins.
 
+- Round 6 (owner: music is great, keep going; do everything pending):
+  - `headcrawl play` builds a dungeon and serves the bundled game;
+    scripts/bundle-game.sh puts the game in the wheel; a hand-run pypi
+    workflow with trusted publishing; docs/PUBLISHING.md. Nothing published.
+  - app.ts split to 797 lines (director, eventfx, pointer, builder,
+    exports, titlemenu, settingsmenu, records, watch).
+  - Music: menu, shop, build moods; ghost hum and daily bell layers;
+    instruments per language.
+  - The bot shops; floor-wide git checkout from per-room history; floor
+    keepers (top committer) as & NPCs; four more gallery repos.
+  - Not done on purpose: confirming ghosts with GitHub code search in
+    browser builds. It needs a token, so a link would build different
+    ghosts for people with and without one.
+
 ## Next ideas
 
-- PyPI release so `uvx headcrawl` works (needs the owner's account).
-- Tag v0.2.0 to get the first release zip (the workflow is ready).
-- Make the repo public when the owner wants people to try it.
-- Balance: the bot ignores the vendor; with the new mechanics it wins 23
-  of 34 gallery runs. Check against human play before retuning.
-- app.ts is past 1200 lines; title and end-screen wiring could move out.
+- Balance: with the vendor the bot wins about 3 in 4 gallery runs. Check
+  against human play before retuning.
+- Browser builds have no room history (no git there), so their git
+  checkout HACK only rewinds nothing. Keepers come from the commit lists
+  the build already fetches.
 - Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
   stays the default.
 

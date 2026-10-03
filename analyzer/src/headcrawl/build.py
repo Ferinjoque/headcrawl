@@ -167,6 +167,8 @@ class _Context:
     mentions: Counter[str]
     # File -> id of the import cycle it sits on.
     cycles: dict[str, int]
+    # File -> [(author, subject)], newest first, from outside (the browser asks GitHub).
+    commit_authors: dict[str, list[tuple[str, str]]]
     # File -> (year, metrics) a year before HEAD; None when history doesn't reach.
     old: dict[str, tuple[int, FileMetric] | None]
 
@@ -226,6 +228,7 @@ def analyze(
     subjects: dict[str, str] | None = None,
     authors: dict[str, dict[int, str]] | None = None,
     complete: bool = True,
+    commit_authors: dict[str, list[tuple[str, str]]] | None = None,
 ) -> DungeonSpec:
     """`complete` is False when the caller could only fetch part of the repo:
     then a function that looks unused may be called from a file we never
@@ -288,6 +291,7 @@ def analyze(
         authors or {},
         mentions,
         cycle_members(edges),
+        commit_authors or {},
         {},
     )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
@@ -411,9 +415,7 @@ def _floor(ctx: _Context, index: int, group: Group, placed: set[str], final: boo
 
 
 def _keeper(ctx: _Context, paths: list[str]) -> Keeper | None:
-    if not ctx.in_git:
-        return None
-    found = gitio.top_author(ctx.root, paths, ctx.limits)
+    found = gitio.top_author(ctx.root, paths, ctx.limits) if ctx.in_git else _top_from(ctx.commit_authors, paths)
     if found is None:
         return None
     name, commits, subject = found
@@ -512,6 +514,20 @@ def _old(ctx: _Context, rep: FileReport) -> tuple[int, FileMetric] | None:
                 found = None
     ctx.old[rep.path] = found
     return found
+
+
+def _top_from(rows: dict[str, list[tuple[str, str]]], paths: list[str]) -> tuple[str, int, str] | None:
+    """Same as gitio.top_author, from commit lists someone else fetched."""
+    counts: Counter[str] = Counter()
+    latest: dict[str, str] = {}
+    for p in paths:
+        for name, subject in rows.get(p, []):
+            counts[name] += 1
+            latest.setdefault(name, subject)
+    if not counts:
+        return None
+    name, n = max(counts.items(), key=lambda kv: (kv[1], kv[0]))
+    return name, n, latest[name]
 
 
 def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> RoomPast | None:

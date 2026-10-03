@@ -159,3 +159,12 @@ def test_each_floor_has_a_keeper(make_repo: MakeRepo) -> None:
     assert keeper is not None and keeper.name == "t" and keeper.commits == 2
     assert keeper.subject == "c1: touch things"
     assert analyze(make_repo({"src/b.py": "def b():\n    return 1\n"}, git=False)).floors[0].keeper is None
+
+
+def test_browser_builds_find_keepers_from_commit_lists(tmp_path: Path) -> None:
+    from headcrawl.web import _commit_authors
+
+    write_files(tmp_path, {"src/a.py": "def a(x):\n    if x:\n        return 1\n    return 2\n"})
+    rows = _commit_authors(json.dumps({"src/a.py": [["ada", "fix it"], ["bob", "x"], ["ada", "first"], [1, "bad"]]}))
+    keeper = analyze(tmp_path, commit_authors=rows).floors[0].keeper
+    assert keeper is not None and (keeper.name, keeper.commits, keeper.subject) == ("ada", 2, "fix it")

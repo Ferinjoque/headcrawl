@@ -61,6 +61,7 @@ def dungeon(
     blame_json: str = "{}",
     subjects_json: str = "{}",
     complete: bool = True,
+    commits_json: str = "{}",
 ) -> str:
     """committed: ISO 8601 time of the HEAD commit, as GitHub reports it.
     history_json: {"path": commits touching it among the last HISTORY_WINDOW}."""
@@ -81,6 +82,7 @@ def dungeon(
         subjects=_subjects(subjects_json),
         authors=authors,
         complete=complete,
+        commit_authors=_commit_authors(commits_json),
     )
     return spec.model_dump_json(exclude_none=True)
 
@@ -141,6 +143,23 @@ def _blame(raw_json: str) -> tuple[dict[str, dict[int, int]], dict[str, dict[int
         years_out[str(path)] = years
         authors_out[str(path)] = authors
     return years_out, authors_out
+
+
+def _commit_authors(raw_json: str) -> dict[str, list[tuple[str, str]]]:
+    """{path: [[author, subject], ...]} from the commits API, checked."""
+    raw = json.loads(raw_json)
+    out: dict[str, list[tuple[str, str]]] = {}
+    if not isinstance(raw, dict):
+        return out
+    for path, rows in raw.items():
+        if not isinstance(rows, list):
+            continue
+        out[str(path)] = [
+            (r[0][:100], r[1][:300])
+            for r in rows[:100]
+            if isinstance(r, list) and len(r) == 2 and isinstance(r[0], str) and isinstance(r[1], str)
+        ]
+    return out
 
 
 def _subjects(raw_json: str) -> dict[str, str]:

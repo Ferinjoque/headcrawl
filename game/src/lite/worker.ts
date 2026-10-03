@@ -95,6 +95,8 @@ const KEEP_FOR_NEXT = 6;
 interface History {
   counts: Record<string, number>;
   subjects: Record<string, string>;
+  /** Per file, newest first: who made each commit and its subject line. */
+  authors: Record<string, [string, string][]>;
 }
 
 /**
@@ -109,13 +111,18 @@ async function history(api: string, sha: string, paths: string[]): Promise<Histo
         "Try again later, or add a token in settings.",
     );
   }
-  const out: History = { counts: {}, subjects: {} };
+  const out: History = { counts: {}, subjects: {}, authors: {} };
   for (const path of paths) {
     const res = await gh(`${api}/commits?sha=${sha}&per_page=100&path=${encodeURIComponent(path)}`);
-    const commits = (await res.json()) as { commit?: { message?: string } }[];
+    const commits = (await res.json()) as { commit?: { message?: string; author?: { name?: string } } }[];
     out.counts[path] = commits.length;
     const message = commits[0]?.commit?.message;
     if (typeof message === "string") out.subjects[path] = message;
+    // The same answer names who wrote each commit: enough to find a floor's keeper.
+    out.authors[path] = commits
+      .map((c) => [c.commit?.author?.name, c.commit?.message?.split("\n")[0]] as const)
+      .filter((a): a is readonly [string, string] => typeof a[0] === "string" && typeof a[1] === "string")
+      .map(([n, s]) => [n.slice(0, 100), s.slice(0, 300)]);
   }
   return out;
 }
@@ -232,7 +239,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   });
 
   say({ type: "progress", text: "Turning the code into a dungeon" });
-  const build = (hist: History = { counts: {}, subjects: {} }, years = {}) =>
+  const build = (hist: History = { counts: {}, subjects: {}, authors: {} }, years = {}) =>
     String(
       web.dungeon(
         root,
@@ -244,6 +251,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
         JSON.stringify(years),
         JSON.stringify(hist.subjects),
         complete,
+        JSON.stringify(hist.authors),
       ),
     );
   try {
