@@ -62,7 +62,11 @@ def dungeon(
     subjects_json: str = "{}",
     complete: bool = True,
     commits_json: str = "{}",
+    past_root: str = "",
+    past_when: str = "",
 ) -> str:
+    """past_root holds the room files as of the last commit before a year
+    ago, past_when is that commit's ISO date."""
     """committed: ISO 8601 time of the HEAD commit, as GitHub reports it.
     history_json: {"path": commits touching it among the last HISTORY_WINDOW}."""
     when = int(time.mktime(time.strptime(committed[:19], "%Y-%m-%dT%H:%M:%S"))) if committed else 0
@@ -83,6 +87,8 @@ def dungeon(
         authors=authors,
         complete=complete,
         commit_authors=_commit_authors(commits_json),
+        past_root=Path(past_root) if past_root else None,
+        past_year=int(past_when[:4]) if past_when[:4].isdigit() else 0,
     )
     return spec.model_dump_json(exclude_none=True)
 
@@ -91,6 +97,13 @@ def local_dungeon(root: str, name: str, complete: bool = True) -> str:
     """A folder from the player's own machine, handed over by the page. No git
     history, so the seed comes from the file contents."""
     return analyze(Path(root), name=name, limits=BROWSER, complete=complete).model_dump_json(exclude_none=True)
+
+
+def room_paths(spec_json: str, limit: int = 200) -> str:
+    """Every room's file, for fetching their versions from a year back."""
+    spec = json.loads(spec_json)
+    paths = [r["path"] for f in spec["floors"] for r in f["rooms"] if r["kind"] != "shrine"]
+    return json.dumps(sorted(set(paths))[:limit])
 
 
 def candidates(spec_json: str, per_floor: int = 2) -> str:

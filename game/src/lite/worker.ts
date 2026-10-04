@@ -128,6 +128,36 @@ async function history(api: string, sha: string, paths: string[]): Promise<Histo
 }
 
 /**
+ * The room files as they were a year before HEAD: one API call finds the
+ * commit, the files come from raw.githubusercontent.com, which costs no
+ * API calls. A failed lookup fails the build, like history() does, so a
+ * link never quietly builds a different dungeon.
+ */
+async function yearAgo(py: Pyodide, api: string, owner: string, repo: string, headDate: string, paths: string[]): Promise<{ root: string; when: string }> {
+  const until = new Date(Date.parse(headDate) - 365 * 24 * 3600 * 1000);
+  if (Number.isNaN(until.getTime()) || !paths.length) return { root: "", when: "" };
+  if (remaining - KEEP_FOR_NEXT < 1) {
+    throw new GitHubError("GitHub's hourly allowance is nearly used up. Try again later, or add a token in settings.");
+  }
+  const res = await gh(`${api}/commits?until=${until.toISOString()}&per_page=1`);
+  const [old] = (await res.json()) as { sha?: string; commit?: { committer?: { date?: string } } }[];
+  const sha = old?.sha;
+  const when = old?.commit?.committer?.date;
+  if (!sha || !/^[0-9a-f]{40}$/.test(sha) || typeof when !== "string") return { root: "", when: "" };
+  say({ type: "progress", text: "Fetching the floors as they were a year ago" });
+  const root = `/past${runs}`;
+  await pool(paths.filter(safePath), 8, async (path) => {
+    const url = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    const file = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    if (!file.ok) return; // not there a year ago
+    const full = `${root}/${path}`;
+    py.FS.mkdirTree(full.slice(0, full.lastIndexOf("/")));
+    py.FS.writeFile(full, new Uint8Array(await file.arrayBuffer()));
+  });
+  return { root, when };
+}
+
+/**
  * Year each loot line was last changed, from GitHub's blame. Needs a token:
  * GitHub's GraphQL API has no anonymous access.
  */
@@ -239,6 +269,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   });
 
   say({ type: "progress", text: "Turning the code into a dungeon" });
+  let past = { root: "", when: "" };
   const build = (hist: History = { counts: {}, subjects: {}, authors: {} }, years = {}) =>
     String(
       web.dungeon(
@@ -252,6 +283,8 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
         JSON.stringify(hist.subjects),
         complete,
         JSON.stringify(hist.authors),
+        past.root,
+        past.when,
       ),
     );
   try {
@@ -262,6 +295,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
     if (!picks.length) return first;
     say({ type: "progress", text: "Checking which files keep changing" });
     const hist = await history(api, commit.sha, picks);
+    past = await yearAgo(py, api, owner, repo, commit.commit.committer.date, JSON.parse(String(web.room_paths(first))) as string[]);
     let years = {};
     if (token) {
       say({ type: "progress", text: "Dating every TODO with git blame" });
@@ -273,6 +307,7 @@ async function analyze(base: string, owner: string, repo: string, sha?: string):
   } finally {
     // Each build is a few MB in memory; don't keep old ones around.
     py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(root)}, ignore_errors=True)`);
+    if (past.root) py.runPython(`import shutil; shutil.rmtree(${JSON.stringify(past.root)}, ignore_errors=True)`);
   }
 }
 

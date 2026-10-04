@@ -148,9 +148,6 @@ redraws the whole view at 20 fps when idle.
 
 - Balance: with the vendor the bot wins about 3 in 4 gallery runs. Check
   against human play before retuning.
-- Browser builds have no room history (no git there), so the git
-  checkout HACK has nothing to rewind there. Keepers come from the commit lists
-  the build already fetches.
 - Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
   stays the default.
 

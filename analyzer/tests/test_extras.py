@@ -181,3 +181,33 @@ def test_browser_builds_find_keepers_from_commit_lists(tmp_path: Path) -> None:
     )
     keeper = analyze(tmp_path, commit_authors=rows).floors[0].keeper
     assert keeper is not None and (keeper.name, keeper.commits, keeper.subject) == ("ada", 2, "fix it")
+
+
+def test_browser_builds_get_history_from_a_past_folder(tmp_path: Path) -> None:
+    from headcrawl.web import dungeon, room_paths
+
+    now = (
+        "def boss(a, b):\n    if a:\n        return 1\n    elif b:\n        return 2\n    for x in a:\n        if x:\n"
+        "            return 3\n    return 4\n\ndef helper_now(x):\n    return x\n"
+    )
+    then = "def boss(a):\n    if a:\n        return 1\n    return 2\n\ndef helper_then(x):\n    return x\n"
+    write_files(tmp_path / "now", {"src/boss.py": now})
+    write_files(tmp_path / "then", {"src/boss.py": then})
+    sha = "a" * 40
+    plain = json.loads(dungeon(str(tmp_path / "now"), "o/r", "https://github.com/o/r", sha, "2024-06-01T00:00:00Z"))
+    assert json.loads(room_paths(json.dumps(plain))) == ["src/boss.py"]
+    spec = json.loads(
+        dungeon(
+            str(tmp_path / "now"),
+            "o/r",
+            "https://github.com/o/r",
+            sha,
+            "2024-06-01T00:00:00Z",
+            past_root=str(tmp_path / "then"),
+            past_when="2023-05-30T10:00:00Z",
+        )
+    )
+    floor = spec["floors"][-1]
+    assert floor["boss"]["past"]["year"] == 2023
+    lair = next(r for r in floor["rooms"] if r["kind"] == "lair")
+    assert [e["name"] for e in lair["past"]["enemies"]] == ["helper_then"]

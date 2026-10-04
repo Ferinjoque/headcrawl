@@ -172,6 +172,9 @@ class _Context:
     commit_authors: dict[str, list[tuple[str, str, str, str]]]
     # File -> (year, metrics) a year before HEAD; None when history doesn't reach.
     old: dict[str, tuple[int, FileMetric] | None]
+    # Without git: the repo's files a year back, fetched by the caller, and that commit's year.
+    past_root: Path | None
+    past_year: int
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -230,6 +233,8 @@ def analyze(
     authors: dict[str, dict[int, str]] | None = None,
     complete: bool = True,
     commit_authors: dict[str, list[tuple[str, str, str, str]]] | None = None,
+    past_root: Path | None = None,
+    past_year: int = 0,
 ) -> DungeonSpec:
     """`complete` is False when the caller could only fetch part of the repo:
     then a function that looks unused may be called from a file we never
@@ -294,6 +299,8 @@ def analyze(
         cycle_members(edges),
         commit_authors or {},
         {},
+        past_root.resolve() if past_root else None,
+        past_year,
     )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
@@ -506,13 +513,16 @@ def _old(ctx: _Context, rep: FileReport) -> tuple[int, FileMetric] | None:
     if rep.path in ctx.old:
         return ctx.old[rep.path]
     found = None
+    text = None
     if ctx.in_git and ctx.head_time:
         text = gitio.past_text(ctx.root, rep.path, ctx.head_time - YEAR_SECONDS)
-        if text is not None:
-            try:
-                found = (text[0], measure(rep.path, text[1]))
-            except Exception:  # noqa: BLE001 - an old version that lizard can't read is just no history
-                found = None
+    elif ctx.past_root and ctx.past_year:
+        text = _past_file(ctx.past_root, rep.path, ctx.past_year, ctx.limits)
+    if text is not None:
+        try:
+            found = (text[0], measure(rep.path, text[1]))
+        except Exception:  # noqa: BLE001 - an old version that lizard can't read is just no history
+            found = None
     ctx.old[rep.path] = found
     return found
 
@@ -534,6 +544,14 @@ def _top_from(rows: dict[str, list[tuple[str, str, str, str]]], paths: list[str]
 
 def _shape(funcs: Sequence[FunctionMetric]) -> list[tuple[str, int, int]]:
     return sorted((f.name, f.ccn, f.nloc) for f in funcs)
+
+
+def _past_file(root: Path, rel: str, year: int, limits: Limits) -> tuple[int, str] | None:
+    """A file from the caller's copy of the repo a year back, if it was there."""
+    p = (root / rel).resolve()
+    if root not in p.parents or not p.is_file() or p.is_symlink() or p.stat().st_size > limits.max_file_bytes:
+        return None
+    return year, p.read_text("utf-8", "replace")
 
 
 def _room_past(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> RoomPast | None:
