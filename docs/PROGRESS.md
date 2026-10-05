@@ -144,6 +144,13 @@ redraws the whole view at 20 fps when idle.
     browser builds. It needs a token, so a link would build different
     ghosts for people with and without one.
 
+- Round 7: browser builds fetch the floors a year back (1 API call plus
+  raw files), difficulty setting (story/normal/hard, part of the run and
+  its code: flask-4821-hard; dailies stay normal), second design pass
+  (27/40 from 25: phone pad gets menu/panel/help, one key per action,
+  one difficulty vocabulary, quieter title demo, cropped minimap),
+  e2e for hard codes and phone pause, gemma4 vs qwen2.5 flavor check.
+
 ## Next ideas
 
 - Balance: with the vendor the bot wins about 3 in 4 gallery runs. Check
