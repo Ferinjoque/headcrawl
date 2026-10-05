@@ -41,6 +41,7 @@ import { Builder, bindFiles } from "./ui/builder";
 import { bindPointer } from "./ui/pointer";
 import { copyText, runLink, saveCast, saveGif, saveLog } from "./ui/exports";
 import { Hints } from "./ui/hints";
+import { Pads } from "./ui/gamepad";
 import { loadCodex } from "./ui/codex";
 import { ghostAt, ghostFor, trackOf, type Track } from "./ui/ghostrun";
 import { Sound } from "./ui/sound";
@@ -79,6 +80,12 @@ export class App {
   /** The finished run went into the bestiary, ghosts and bests already. */
   private recorded = false;
   private hints = new Hints();
+  private pads = new Pads((text) => {
+    if (this.mode !== "play") return false;
+    this.log.push(text, "info");
+    this.log.render();
+    return true;
+  });
   private log: Log;
   private mode: Mode = "loading";
   private returnMode: Mode = "title";
@@ -730,6 +737,7 @@ export class App {
   private frame(now: number): void {
     requestAnimationFrame((t) => this.frame(t));
     if (document.hidden) return;
+    this.pads.poll(now);
     const moving = this.fx.busy(now) || this.renderer.settling || this.dirty;
     // Idle frames only keep the ambient glow alive. With motion turned down
     // there is nothing ambient to draw, so idle frames stop altogether.

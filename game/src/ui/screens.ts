@@ -65,6 +65,7 @@ export function helpScreen(close: () => void) {
           row("tab", "show or hide the side panel"),
           row("m / ,", "sound, settings"),
           row("`", "lab tools, in the lab and practice runs"),
+          row("gamepad", "d-pad or stick moves, A confirms, B backs out, X explores, Y rests, LB potion, RB scroll, LT shoots, RT next target, Start menu, Back this"),
         ],
       },
       { label: "the map", body: PLACES.map((p) => term(p.glyph ? `${p.glyph} ${p.name}` : p.name, p)) },

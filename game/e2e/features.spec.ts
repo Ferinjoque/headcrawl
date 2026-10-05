@@ -38,3 +38,26 @@ test.describe("first visit", () => {
     await expect(page.locator("#screen")).toBeHidden();
   });
 });
+
+test("a gamepad explores with X and opens help with Back", async ({ page }) => {
+  // A fake pad: whatever button window.__pad names is held down.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __pad: number };
+    w.__pad = -1;
+    navigator.getGamepads = () =>
+      [{ connected: true, axes: [0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: i === w.__pad, touched: false, value: 0 })) }] as unknown as (Gamepad | null)[];
+  });
+  const hold = async (button: number) => {
+    await page.evaluate((b) => ((window as unknown as { __pad: number }).__pad = b), button);
+    await page.waitForTimeout(80);
+    await page.evaluate(() => ((window as unknown as { __pad: number }).__pad = -1));
+  };
+  await page.goto("./#/play/requests?run=3");
+  await expect(page.locator("#log")).toContainText("Gamepad found");
+  await hold(2);
+  await expect(page.locator("#hud")).not.toHaveAttribute("data-turn", "0", { timeout: 5000 });
+  await hold(8);
+  await expect(page.getByRole("heading", { name: "how it works" })).toBeVisible();
+  await hold(1);
+  await expect(page.getByRole("heading", { name: "how it works" })).toBeHidden();
+});
