@@ -17,6 +17,8 @@ export interface PointerHost {
   cellAt(clientX: number, clientY: number): [number, number];
   command(c: Command): void;
   travel(to: [number, number]): void;
+  /** While aiming a review comment: aim at and fire on (x, y). True if it did. */
+  aimAt(x: number, y: number): boolean;
 }
 
 const ITEM_NAMES = { potion: "TODO", weapon: "weapon", armor: "armor", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
@@ -117,6 +119,7 @@ export function bindPointer(canvas: HTMLElement, tip: HTMLElement, stage: HTMLEl
     const game = host.playing();
     if (!game) return;
     const [x, y] = host.cellAt(e.clientX, e.clientY);
+    if (host.aimAt(x, y)) return;
     const p = game.player;
     const dx = x - p.x;
     const dy = y - p.y;

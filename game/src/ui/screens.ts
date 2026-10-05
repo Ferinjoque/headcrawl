@@ -242,6 +242,7 @@ export function helpScreen(close: () => void) {
     row(">", "take the stairs once the boss is dead"),
     row("q / r", "drink a TODO / read a HACK"),
     row("c", "you: every number behind a fight, your gear and tools"),
+    row("f", "review comment: half a hit on a monster up to 5 cells away, tab picks, f sends"),
     row("click or tap", "walk there; hover a monster to inspect it"),
     row("tab", "show or hide the side panel"),
     row("m / ,", "sound, settings"),

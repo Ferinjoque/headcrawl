@@ -18,11 +18,14 @@ const MOVES: Record<string, [number, number]> = {
  * Bumped whenever the same log would play out differently (new mechanics,
  * new rolls). Saves and links carry it so old ones can be spotted.
  */
-export const RULES = 4;
+export const RULES = 5;
 
 const PERKS = "ABC";
 // Vendor: first offer, second offer, walk away.
 const BUYS = "VWX";
+// A review comment: f, then the target's offset as two letters, a = -5 .. k = 5.
+const OFFSET = "abcdefghijk";
+const REACH = 5;
 // Gear on the floor with that slot full: take it or leave it.
 const TAKE = "T";
 const LEAVE = "D";
@@ -48,10 +51,17 @@ export function actionCode(a: Action): string {
       return a.index < 0 ? "X" : (BUYS[a.index] ?? "X");
     case "gear":
       return a.take ? TAKE : LEAVE;
+    case "fire":
+      return `f${OFFSET[a.dx + REACH] ?? "f"}${OFFSET[a.dy + REACH] ?? "f"}`;
   }
 }
 
 export function codeAction(c: string): Action | null {
+  if (c.length === 3 && c[0] === "f") {
+    const dx = OFFSET.indexOf(c[1]) - REACH;
+    const dy = OFFSET.indexOf(c[2]) - REACH;
+    return dx >= -REACH && dy >= -REACH ? { type: "fire", dx, dy } : null;
+  }
   const move = MOVES[c];
   if (move) return { type: "move", dx: move[0], dy: move[1] };
   if (c === ".") return { type: "wait" };
@@ -81,11 +91,12 @@ const MAX_ACTIONS = 200_000;
 /** Null if the text isn't a valid log. */
 export function decodeLog(text: string): Action[] | null {
   const out: Action[] = [];
-  const re = /([hjklyubn.>qrABCVWXTD])(\d{0,6})/gy;
+  const re = /(f[a-k][a-k]|[hjklyubn.>qrABCVWXTD])(\d{0,6})/gy;
   let m: RegExpExecArray | null;
   let at = 0;
   while (at < text.length && (m = re.exec(text))) {
-    const action = codeAction(m[1])!;
+    const action = codeAction(m[1]);
+    if (!action) return null;
     const count = m[2] ? Number(m[2]) : 1;
     if (count < 1 || out.length + count > MAX_ACTIONS) return null;
     for (let k = 0; k < count; k++) out.push(action);

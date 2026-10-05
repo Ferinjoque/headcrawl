@@ -3,6 +3,7 @@
 
 import type { Game } from "../game/game";
 import { PERKS } from "../game/perks";
+import { REVIEW } from "../game/ranged";
 import { pct, stats } from "../game/stats";
 import { h, plural } from "./dom";
 import { btn } from "./screens";
@@ -24,6 +25,7 @@ export function sheetScreen(game: Game, close: () => void) {
     row("damage", `${s.attack[0]} to ${s.attack[1]} a hit`),
     row("lands", pct(s.hit)),
     row("crits", `${pct(s.crit)} of hits, for ${s.critMult}x`),
+    row("review (f)", `half damage up to ${REVIEW.range} cells away, every ${REVIEW.cooldown} turns. ${p.review ? `${plural(p.review, "turn")} to go` : "ready"}`),
     h("h2", null, "getting hit"),
     row("monsters land", `${pct(s.struck)} of plain swings. Red cells always land.`),
     row("armor", s.defense ? `${s.defense} off every hit, never below 1` : "none. Every hit lands in full."),

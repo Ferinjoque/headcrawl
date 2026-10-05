@@ -58,6 +58,8 @@ export interface Player {
   atk: number;
   weapon: Gear | null;
   armor: Gear | null;
+  /** Turns until you can leave another review comment (f). */
+  review: number;
   level: number;
   xp: number;
   nextXp: number;
@@ -84,6 +86,8 @@ export type GameEvent =
   | { t: "levelup"; level: number }
   | { t: "perk"; id: PerkId }
   | { t: "equip"; x: number; y: number; gear: Gear }
+  /** A review comment flying from you to a monster. */
+  | { t: "shot"; x: number; y: number; tx: number; ty: number }
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
   | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean; style: string }
@@ -107,6 +111,8 @@ export type Action =
   /** At the vendor: which offer, or -1 to walk away. */
   | { type: "buy"; index: number }
   /** Standing on gear with that slot full: take it (yours drops here) or leave it. */
-  | { type: "gear"; take: boolean };
+  | { type: "gear"; take: boolean }
+  /** A review comment at the monster this far from you. */
+  | { type: "fire"; dx: number; dy: number };
 
 export type Outcome = "playing" | "dead" | "won";

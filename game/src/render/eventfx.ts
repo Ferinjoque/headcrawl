@@ -39,6 +39,14 @@ export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number, quie
     case "pickup":
       fx.flash(e.x, e.y, C.loot, now);
       break;
+    case "shot": {
+      const steps = Math.max(Math.abs(e.tx - e.x), Math.abs(e.ty - e.y));
+      for (let i = 1; i < steps; i++) {
+        fx.flash(Math.round(e.x + ((e.tx - e.x) * i) / steps), Math.round(e.y + ((e.ty - e.y) * i) / steps), C.gold, now);
+      }
+      if (!quiet) fx.float(e.tx, e.ty - 0.6, "nit:", C.gold, now);
+      break;
+    }
     case "equip":
       fx.flash(e.x, e.y, C.loot, now);
       fx.float(e.x, e.y, e.gear.name.length > 18 ? `${e.gear.name.slice(0, 17)}…` : e.gear.name, C.loot, now);

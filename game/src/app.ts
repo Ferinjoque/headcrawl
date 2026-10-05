@@ -29,6 +29,7 @@ import { setColors } from "./render/palette";
 import { recordFinished } from "./ui/records";
 import { labSpec } from "./game/lab";
 import { LabPanel } from "./ui/labpanel";
+import { Aim } from "./ui/aim";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -68,6 +69,12 @@ export class App {
   private endMore = false;
   private endOn: EndHandlers | null = null;
   private labPanel!: LabPanel;
+  private aim = new Aim({
+    game: () => (this.mode === "play" ? this.game : null),
+    step: (a) => void this.step(a),
+    say: (text) => (this.log.push(text, "info"), this.log.render()),
+    redraw: () => this.touch(),
+  });
   /** The finished run went into the bestiary, ghosts and bests already. */
   private recorded = false;
   private hints = new Hints();
@@ -218,6 +225,7 @@ export class App {
     });
     window.addEventListener("hashchange", () => void this.follow(parseRoute(location.hash)));
     bindPointer($("view"), $("tip"), $("stage"), {
+      aimAt: (x, y) => this.aim.aimAt(x, y),
       playing: () => (this.mode === "play" ? this.game : null),
       cellAt: (x, y) => this.renderer.cellAt(x, y),
       command: (c) => this.command(c),
@@ -583,6 +591,7 @@ export class App {
     if (pick === null && !this.game?.perkChoice) return;
     if (c.kind === "help") return this.openHelp();
     if (c.kind === "sheet") return this.openSheet();
+    if (c.kind === "fire") return this.aim.command();
     if (c.kind === "menu") return this.mode === "play" ? this.openPause() : this.closeOverlay();
     if (c.kind === "panel") {
       $("panel").classList.toggle("open");
@@ -698,6 +707,7 @@ export class App {
     if (this.mode === "settings") return this.settingsMenu.key(e);
     const typing = e.target instanceof HTMLInputElement;
     if (e.key === "`" && this.mode === "play") return this.labPanel.toggle();
+    if (this.mode === "play" && this.aim.onKey(e)) return;
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
       e.preventDefault();
       return this.openSettings();
@@ -765,6 +775,7 @@ export class App {
           sight: this.game.sight,
           dim,
           threat: this.game.threatened(),
+          aim: this.mode === "play" ? this.aim.view(this.game) : null,
           ghost: this.race ? ghostAt(this.race.track, this.game.player.turns, this.game.floor.index) : null,
         },
         this.fx,

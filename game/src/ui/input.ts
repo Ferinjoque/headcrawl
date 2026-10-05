@@ -8,6 +8,7 @@ export type Command =
   | { kind: "rest" }
   | { kind: "help" }
   | { kind: "sheet" }
+  | { kind: "fire" }
   | { kind: "menu" }
   | { kind: "panel" }
   | { kind: "sound" }
@@ -73,6 +74,8 @@ export function keyToCommand(e: KeyboardEvent): Command | null {
     case "c":
     case "@":
       return { kind: "sheet" };
+    case "f":
+      return { kind: "fire" };
     case "Escape":
       return { kind: "menu" };
     case "Tab":
@@ -103,6 +106,7 @@ export function touchPad(el: HTMLElement, send: (c: Command) => void): void {
     ["x", { kind: "explore" }],
     [">", { kind: "descend" }],
     ["q", { kind: "quaff" }],
+    ["f", { kind: "fire" }],
     ["menu", { kind: "menu" }],
     ["panel", { kind: "panel" }],
     ["?", { kind: "help" }],

@@ -134,6 +134,10 @@ export class Sound {
           this.tone(880, 0.05, "square", 0.4, undefined, 0.09);
         }
         break;
+      case "shot":
+        this.tone(1500, 0.05, "square", 0.3, 900);
+        this.tone(1100, 0.04, "triangle", 0.3, undefined, 0.06);
+        break;
       case "equip":
         if (e.gear.slot === "weapon") {
           this.noise(0.09, 0.35, 4000);

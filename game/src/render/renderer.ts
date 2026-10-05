@@ -23,6 +23,8 @@ export interface Scene {
   dim?: number;
   /** Cell indexes a monster will hit next turn. */
   threat?: Set<number>;
+  /** A review comment being aimed: the target and the cells it flies through. */
+  aim?: { at: [number, number]; path: [number, number][] } | null;
   /** Where the run you are racing stands right now. */
   ghost?: [number, number] | null;
 }
@@ -352,6 +354,7 @@ export class Renderer {
       if (!show(m.x, m.y)) continue;
       this.drawMonster(scene, m, ox, oy, now);
     }
+    if (scene.aim) this.drawAim(scene.aim, ox, oy);
     if (scene.ghost) {
       const [gx, gy] = scene.ghost;
       lctx.fillStyle = rgba(C.violet, 0.5);
@@ -379,6 +382,29 @@ export class Renderer {
         lctx.fillStyle = rgba(C.steel, 0.85);
         lctx.fillRect(px + 3, py, cellW - 6, Math.max(1, bar - 1));
       }
+    }
+  }
+
+  /** The line a review comment will fly, and corner brackets on its target. */
+  private drawAim(aim: NonNullable<Scene["aim"]>, ox: number, oy: number): void {
+    const { ctx, lctx, cellW, cellH } = this;
+    for (const [x, y] of aim.path.slice(0, -1)) {
+      ctx.fillStyle = rgba(C.gold, 0.14);
+      ctx.fillRect(ox + x * cellW, oy + y * cellH, cellW, cellH);
+    }
+    const px = ox + aim.at[0] * cellW;
+    const py = oy + aim.at[1] * cellH;
+    const t = Math.max(2, Math.round(this.dpr * 1.5));
+    const arm = Math.round(cellW * 0.35);
+    lctx.fillStyle = rgba(C.gold, 0.95);
+    for (const [cx, cy, sx, sy] of [
+      [px, py, 1, 1],
+      [px + cellW, py, -1, 1],
+      [px, py + cellH, 1, -1],
+      [px + cellW, py + cellH, -1, -1],
+    ]) {
+      lctx.fillRect(sx > 0 ? cx : cx - arm, sy > 0 ? cy : cy - t, arm, t);
+      lctx.fillRect(sx > 0 ? cx : cx - t, sy > 0 ? cy : cy - arm, t, arm);
     }
   }
 

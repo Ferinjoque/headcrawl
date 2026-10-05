@@ -37,6 +37,12 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onS
       h("span", { class: "hud-stat" }, h("small", null, "atk "), `${p.atk + (p.weapon?.bonus ?? 0)}`),
       p.armor ? h("span", { class: "hud-stat" }, h("small", null, "def "), `${p.armor.bonus}`) : null,
     ),
+    h(
+      "span",
+      { class: `hud-stat hud-review${p.review ? "" : " ready"}`, title: "f leaves a review comment on a monster up to 5 cells away" },
+      h("small", null, "f "),
+      p.review ? `${p.review}` : "ready",
+    ),
     h("span", { class: "hud-spacer" }),
     h("span", { class: "hud-floor" }, h("small", null, `floor ${f.index + 1}/${total} `), f.name),
     goal,

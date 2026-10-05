@@ -237,6 +237,12 @@ body {
 .hud-stats:focus-visible {
   border-bottom-color: var(--ember);
 }
+.hud-review {
+  color: var(--text-faint);
+}
+.hud-review.ready {
+  color: var(--gold);
+}
 .hud-xp {
   position: relative;
   display: inline-block;

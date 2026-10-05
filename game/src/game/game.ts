@@ -17,6 +17,7 @@ import { styleLine } from "./bossmoves";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
+import { review } from "./ranged";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
 export interface GameOptions {
@@ -81,6 +82,7 @@ export class Game {
       atk: PLAYER.atk,
       weapon: null,
       armor: null,
+      review: 0,
       level: 1,
       xp: 0,
       nextXp: xpForLevel(1),
@@ -214,6 +216,9 @@ export class Game {
       case "read":
         took = readScroll(this);
         break;
+      case "fire":
+        took = review(this, action.dx, action.dy);
+        break;
       case "perk":
       case "buy":
       case "gear":
@@ -223,6 +228,7 @@ export class Game {
     if (!took || this.outcome !== "playing") return took;
     this.player.turns++;
     const p = this.player;
+    if (p.review > 0) p.review--;
     const regenEvery = this.has("caffeine") ? PLAYER.regenEvery - 1 : PLAYER.regenEvery;
     if (p.turns % regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
     // Sight first, so monsters wake on what the player can see right now.

@@ -7,6 +7,7 @@ import { npcAt } from "./extras";
 import { Tile, walkable } from "../map/grid";
 import type { Game } from "./game";
 import { score } from "./gear";
+import { targets } from "./ranged";
 import type { PerkId } from "./perks";
 import type { Action } from "./types";
 
@@ -50,6 +51,10 @@ export function botAction(game: Game, style: BotStyle = {}): Action {
 
   for (const m of game.floor.monsters) {
     if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) return { type: "move", dx: m.x - p.x, dy: m.y - p.y };
+  }
+  if (careful && p.review === 0) {
+    const t = targets(game).find((m) => m.awake);
+    if (t) return { type: "fire", dx: t.x - p.x, dy: t.y - p.y };
   }
   if (grid.get(p.x, p.y) === Tile.StairsDown) return { type: "descend" };
   const threat = game.floor.monsters.some((m) => m.awake && Math.max(Math.abs(m.x - p.x), Math.abs(m.y - p.y)) < 10);
