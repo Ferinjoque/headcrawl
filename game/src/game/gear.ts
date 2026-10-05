@@ -84,11 +84,12 @@ export function guardName(fn: string, language: string): string {
 
 /** Grows a little every other floor so a floor 1 find doesn't carry the run. */
 export function weaponBonus(power: number, depth: number): number {
-  return 1 + Math.ceil(power / 3) + Math.floor(depth / 2);
+  return 1 + Math.floor(power / 4) + Math.floor(depth / 3);
 }
 
+/** Armor stays small: every point comes off every hit, so 3 is a lot. */
 export function armorBonus(power: number, depth: number): number {
-  return 1 + Math.floor(power / 4) + Math.floor(depth / 3);
+  return 1 + Math.floor(power / 6) + Math.floor(depth / 4);
 }
 
 export function weapon(name: string, language: string, bonus: number): Gear {

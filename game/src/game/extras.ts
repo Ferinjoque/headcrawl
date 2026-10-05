@@ -94,9 +94,9 @@ export const DEALS: Deal[] = [
   },
   {
     id: "types",
-    text: "type definitions: armor with defense 2 more than yours, attack -1.",
+    text: "type definitions: armor with 1 more defense than yours, attack -1.",
     apply: (p, { dep, depth }) => {
-      p.armor = armor(`@types/${dep.name}`, ECOSYSTEM_LANGUAGE[dep.ecosystem], Math.max(armorBonus(2, depth), (p.armor?.bonus ?? 0) + 2));
+      p.armor = armor(`@types/${dep.name}`, ECOSYSTEM_LANGUAGE[dep.ecosystem], Math.max(armorBonus(2, depth), (p.armor?.bonus ?? 0) + 1));
       p.atk = Math.max(1, p.atk - 1);
     },
   },
@@ -111,9 +111,9 @@ export const DEALS: Deal[] = [
   },
   {
     id: "fork",
-    text: "a fork that patches your weapon: +2 on it, max HP -4. Bare hands get attack +1.",
+    text: "a fork that patches your weapon: +1 on it, max HP -4. Bare hands get attack +1.",
     apply: (p) => {
-      if (p.weapon) p.weapon = { ...p.weapon, bonus: p.weapon.bonus + 2 };
+      if (p.weapon) p.weapon = { ...p.weapon, bonus: p.weapon.bonus + 1 };
       else p.atk += 1;
       lowerMax(p, 4);
     },
@@ -324,6 +324,7 @@ export function rewindFloor(
       const [x, y] = spots[i];
       if (x === player.x && y === player.y) return;
       const m = fromEnemy(e, x, y, rect.index, state.index, floors);
+      m.xp = Math.round(m.xp * state.xpScale);
       modMonster(m, mods);
       // A rewind changes the code, not how beaten up it already is.
       const was = alive[i];

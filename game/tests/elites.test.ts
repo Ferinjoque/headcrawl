@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ELITE, affixFor, eliteOf, isRemote, lineCells } from "../src/game/elites";
 import { Game } from "../src/game/game";
+import { rosterFor } from "../src/game/world";
 import { weapon } from "../src/game/gear";
 import { Tile } from "../src/map/grid";
 import { enemy, floor, room, spec } from "./fixtures";
@@ -98,5 +99,16 @@ describe("remote calls", () => {
     const hp = game.player.hp;
     game.act({ type: "move", dx: 0, dy: -1 });
     expect(game.player.hp).toBe(hp);
+  });
+});
+
+describe("floor cap", () => {
+  it("keeps the most complex functions and passes some XP on", () => {
+    const many = Array.from({ length: 12 }, (_, i) => enemy({ ccn: i + 1, xp: 10 }));
+    const f = floor([room(), room({ enemies: many }), room({ kind: "lair" })], [[0, 1], [1, 2]]);
+    const { keep, xpScale } = rosterFor(f, f.entry, 4);
+    expect([...keep].map((e) => e.ccn).sort((a, b) => a - b)).toEqual([9, 10, 11, 12]);
+    expect(xpScale).toBeCloseTo(1 + (0.6 * 80) / 40);
+    expect(rosterFor(f, f.entry, 50).xpScale).toBe(1);
   });
 });

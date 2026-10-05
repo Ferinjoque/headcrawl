@@ -52,6 +52,9 @@ export function botAction(game: Game): Action {
   return { type: "move", dx: nx - p.x, dy: ny - p.y };
 }
 
+/** The room each bot is walking to. */
+const heading = new WeakMap<Game, { floor: number; room: number }>();
+
 function pickTarget(game: Game): [number, number] | null {
   const p = game.player;
   const { map } = game.floor;
@@ -64,10 +67,16 @@ function pickTarget(game: Game): [number, number] | null {
       .map((i) => [i.x, i.y] as [number, number]);
     if (items.length) return items.sort((a, b) => near(a) - near(b))[0];
   }
-  // Fixed order, not nearest: "nearest unseen room" flips back and forth as
-  // you walk and the bot ends up pacing between two cells.
-  const unseen = map.rooms.find((r) => r !== map.lair && !game.floor.seen[map.grid.idx(r.cx, r.cy)]);
-  if (unseen) return [unseen.cx, unseen.cy];
+  // Nearest unseen room, and it sticks with it until it has seen it: picking
+  // the nearest again every step flips between two rooms and paces.
+  const isUnseen = (r: (typeof map.rooms)[number]) => r !== map.lair && !game.floor.seen[map.grid.idx(r.cx, r.cy)];
+  let goal = heading.get(game);
+  if (!goal || goal.floor !== game.floor.index || !isUnseen(map.rooms[goal.room])) {
+    const next = map.rooms.filter(isUnseen).sort((a, b) => near([a.cx, a.cy]) - near([b.cx, b.cy]) || a.index - b.index)[0];
+    goal = next ? { floor: game.floor.index, room: next.index } : undefined;
+    if (goal) heading.set(game, goal);
+  }
+  if (goal) return [map.rooms[goal.room].cx, map.rooms[goal.room].cy];
   const rest = game.floor.monsters.find((m) => !m.boss);
   if (rest) return [rest.x, rest.y];
   const boss = game.floor.monsters.find((m) => m.boss);

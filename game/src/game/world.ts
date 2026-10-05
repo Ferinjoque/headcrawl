@@ -4,7 +4,7 @@ import { Rng } from "../core/rng";
 import type { Boss, Enemy, Floor } from "../spec";
 import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
 import { TUNING } from "./abilities";
-import { capsFor, depthScale, softCap } from "./balance";
+import { FLOOR_CAP, XP_PASSED_ON, bossScale, capsFor, depthScale, softCap } from "./balance";
 import { affixFor, eliteOf, isRemote, makeElite } from "./elites";
 import { fromFixme, fromTests } from "./gear";
 import type { Item, Monster } from "./types";
@@ -26,6 +26,27 @@ export interface FloorState {
   loopsDone: Set<number>;
   /** A git checkout HACK already sent this floor back a year. */
   rewound: boolean;
+  /** XP multiplier for this floor's monsters, above 1 when the cap left some out. */
+  xpScale: number;
+}
+
+/**
+ * Big repos have hundreds of functions a floor. Fighting every one makes a
+ * run drag, so a floor keeps its most complex ones (elites always) and the
+ * ones it leaves out pass part of their XP on, so you still level.
+ */
+export function rosterFor(floor: Floor, entry: string, cap = FLOOR_CAP): { keep: Set<Enemy>; xpScale: number } {
+  const all = floor.rooms.filter((r) => r.id !== entry || floor.rooms.length === 1).flatMap((r) => r.enemies);
+  if (all.length <= cap) return { keep: new Set(all), xpScale: 1 };
+  const elites = new Set(floor.rooms.map(eliteOf).filter((e): e is Enemy => !!e));
+  const ranked = [...all].sort(
+    (a, b) => Number(elites.has(b)) - Number(elites.has(a)) || b.ccn - a.ccn || b.nloc - a.nloc || a.id.localeCompare(b.id),
+  );
+  const keep = new Set(ranked.slice(0, cap));
+  const xp = (list: Enemy[]) => list.reduce((s, e) => s + e.xp, 0);
+  const kept = xp(ranked.slice(0, cap));
+  const lost = xp(ranked.slice(cap));
+  return { keep, xpScale: kept > 0 ? 1 + (XP_PASSED_ON * lost) / kept : 1 };
 }
 
 // Skip prefixes that half the functions share, or every monster on a test
@@ -78,7 +99,8 @@ export function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: n
 
 function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, floors: number): Monster {
   const cap = capsFor(depth, floors);
-  const hp = Math.max(1, Math.round(softCap(b.hp, cap.bossHp)));
+  const k = bossScale(depth);
+  const hp = Math.max(1, Math.round(softCap(b.hp * k, cap.bossHp)));
   return {
     id: b.id,
     name: b.name,
@@ -89,7 +111,7 @@ function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, fl
     y,
     hp,
     maxHp: hp,
-    damage: Math.max(1, Math.round(softCap(b.damage, cap.bossDamage))),
+    damage: Math.max(1, Math.round(softCap(b.damage * k, cap.bossDamage))),
     speed: b.speed,
     energy: 0,
     xp: b.xp,
@@ -111,6 +133,7 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
   const rng = new Rng(`${seed}/spawn/${floor.index}`);
   const monsters: Monster[] = [];
   const items: Item[] = [];
+  const roster = rosterFor(floor, map.entry.spec.id);
   // The biggest test file on the floor leaves its suite lying around as armor.
   const shrines = map.rooms.filter((r) => r.spec.kind === "shrine");
   const suite = shrines.sort((a, b) => b.spec.functions - a.spec.functions || a.index - b.index)[0] ?? null;
@@ -132,9 +155,11 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     const enemies = rect === map.entry && map.rooms.length > 1 ? [] : room.enemies;
     const elite = eliteOf(room);
     for (const e of enemies) {
+      if (!roster.keep.has(e)) continue;
       const c = cells.pop();
       if (!c) continue;
       const m = fromEnemy(e, c[0], c[1], rect.index, floor.index, floors);
+      m.xp = Math.round(m.xp * roster.xpScale);
       if (e === elite) makeElite(m, affixFor(e, room)!);
       monsters.push(m);
     }
@@ -165,5 +190,6 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     keeper: null,
     loopsDone: new Set(),
     rewound: false,
+    xpScale: roster.xpScale,
   };
 }

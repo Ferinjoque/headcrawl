@@ -162,6 +162,6 @@ export function dropGear(g: Game, m: Monster): void {
 export function dropBossWeapon(g: Game, m: Monster): void {
   const room = g.floor.map.rooms[m.room]?.spec;
   if (!m.boss || !room) return;
-  const gear = weapon(m.name, room.language, weaponBonus(6, g.floor.index + 1));
+  const gear = weapon(m.name, room.language, weaponBonus(5, g.floor.index));
   drop(g, m.x, m.y, "weapon", gear, `${room.path}:${m.boss.line}`);
 }
