@@ -12,6 +12,7 @@ import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
 import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, placeVendor, type ModId, type Offer } from "./extras";
 import type { LoopTrap } from "../map/layout";
+import type { Gear } from "./gear";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
@@ -44,6 +45,12 @@ export class Game {
   gearChoice: Item | null = null;
   /** Gear you looked at and left lying. Auto-explore stops walking you back to it. */
   readonly declined = new Set<string>();
+  /** For the bestiary: the most branches of each kind you finished this run. */
+  readonly trophies: Record<string, { name: string; ccn: number }> = {};
+  /** Elites finished this run, by affix. */
+  readonly eliteKills: Record<string, number> = {};
+  /** Every weapon and armor you put on this run, in order. */
+  readonly wielded: Gear[] = [];
   /** The floor where a Feature flag saved you, -1 before that. */
   flagUsedOn = -1;
   /** Set by an async weapon: the monsters skip this turn. */
@@ -302,7 +309,9 @@ export class Game {
     // Code owners can sign off on both offers; anyone else gets one.
     vendor.offers = vendor.offers.filter((o) => o !== offer);
     vendor.sold = !this.has("owners") || !vendor.offers.length;
+    const { weapon, armor } = this.player;
     offer.deal.apply(this.player, { dep: offer.dep, depth: this.floor.index });
+    for (const g of [this.player.weapon, this.player.armor]) if (g && g !== weapon && g !== armor) this.wielded.push(g);
     this.emit({ t: "pickup", x: vendor.x, y: vendor.y, kind: "scroll" });
     this.say(`${installLine(offer.dep)}. ${offer.deal.text}`, "loot");
   }

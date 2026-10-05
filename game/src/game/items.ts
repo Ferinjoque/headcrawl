@@ -128,6 +128,7 @@ export function equip(g: Game, item: Item, gear: Gear): void {
   const old = p[gear.slot];
   g.floor.items = g.floor.items.filter((i) => i !== item);
   p[gear.slot] = gear;
+  g.wielded.push(gear);
   if (old) {
     const id = `g${g.spawnCount++}`;
     g.floor.items.push({ id, kind: old.slot, x: item.x, y: item.y, loot: null, source: "you left it here", gear: old });

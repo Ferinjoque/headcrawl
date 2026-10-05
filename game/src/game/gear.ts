@@ -50,6 +50,11 @@ const TRAIT_OF: Record<string, Trait> = {
   php: "loose",
 };
 
+/** Languages whose weapons have this trait, for hints like "find a Rust weapon". */
+export function languagesWith(trait: Trait): string[] {
+  return Object.keys(TRAIT_OF).filter((l) => TRAIT_OF[l] === trait);
+}
+
 export function traitFor(language: string): Trait {
   return TRAIT_OF[language] ?? "plain";
 }

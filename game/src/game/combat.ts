@@ -109,6 +109,9 @@ export function killMonster(g: Game, m: Monster): void {
   g.floor.monsters = g.floor.monsters.filter((x) => x !== m);
   p.kills++;
   p.killsBy[m.archetype] = (p.killsBy[m.archetype] ?? 0) + 1;
+  const best = g.trophies[m.archetype];
+  if (m.enemy && (!best || m.enemy.ccn > best.ccn)) g.trophies[m.archetype] = { name: m.name, ccn: m.enemy.ccn };
+  if (m.affix) g.eliteKills[m.affix] = (g.eliteKills[m.affix] ?? 0) + 1;
   if (g.mods.includes("review")) g.heal(1);
   g.emit({ t: "kill", x: m.x, y: m.y, name: m.name, boss: !!m.boss });
   if (m.boss) {

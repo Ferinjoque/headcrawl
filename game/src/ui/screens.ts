@@ -1,6 +1,4 @@
 import type { Game } from "../game/game";
-import { ABILITY } from "../game/abilities";
-import { topDeaths, type Codex } from "./codex";
 import { h, plural } from "./dom";
 import { bestFor, bestLabel } from "./best";
 import type { GalleryEntry } from "./gallery";
@@ -278,28 +276,6 @@ export function helpScreen(close: () => void) {
     h("p", { class: "dim" }, "Press tab on the title screen to build any public GitHub repo here. The command line tool also reads full git history:"),
     h("pre", { class: "code" }, "cd analyzer\nuv run headcrawl analyze path/to/your/repo -o mine.json"),
     h("p", { class: "dim" }, "Then drop mine.json anywhere on the title screen."),
-    h("div", { class: "actions" }, btn("esc", "back", close)),
-  );
-}
-
-const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "remote", "spawn"] as const;
-
-export function bestiaryScreen(c: Codex, close: () => void) {
-  const row = (a: string, b: string, cls = "t-loot") => h("p", { class: "row" }, h("span", { class: cls }, a), h("span", null, b));
-  const deaths = topDeaths(c);
-  return h(
-    "div",
-    { class: "page" },
-    h("h1", null, "bestiary"),
-    c.runs
-      ? h("p", { class: "dim" }, `${plural(c.runs, "run")} in ${plural(c.repos.length, "repo")}, ${c.wins} cleared. Kept in this browser.`)
-      : h("p", { class: "dim" }, "Nothing yet. Finish a run and it shows up here."),
-    h("h2", null, "refactored"),
-    ...KINDS.map((k) => row(`${k} x${c.kills[k] ?? 0}`, ABILITY[k], c.kills[k] ? `kind-${k}` : "faint")),
-    c.bosses.length ? h("h2", null, "bosses beaten, gnarliest first") : null,
-    ...c.bosses.map((b) => row(b.name, `${b.repo}, ${plural(b.ccn, "branch")}`, "t-boss")),
-    deaths.length ? h("h2", null, "what keeps getting you") : null,
-    ...deaths.map(([name, n]) => row(name, `x${n}`, "t-bad")),
     h("div", { class: "actions" }, btn("esc", "back", close)),
   );
 }
