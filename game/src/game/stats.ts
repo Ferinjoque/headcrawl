@@ -2,7 +2,8 @@
 // use them, so the character sheet never says something the rules don't do.
 
 import { HIT } from "./balance";
-import { critChance } from "./combat";
+import { critChance, critMultiplier } from "./combat";
+import { struckChance } from "./foes";
 import type { Game } from "./game";
 import { describe, TRAITS } from "./gear";
 import { PERKS } from "./perks";
@@ -38,7 +39,8 @@ export function attackRange(g: Game): [number, number] {
 }
 
 export function hitChance(g: Game): number {
-  return g.player.weapon?.trait === "steady" ? 1 : HIT.player;
+  if (g.player.weapon?.trait === "steady") return 1;
+  return g.has("retry") ? 1 - (1 - HIT.player) ** 2 : HIT.player;
 }
 
 export function stats(g: Game): Stats {
@@ -53,9 +55,9 @@ export function stats(g: Game): Stats {
     attack: attackRange(g),
     hit: hitChance(g),
     crit: critChance(g),
-    critMult: p.weapon?.trait === "unsafe" ? 3 : 2,
+    critMult: critMultiplier(g),
     defense: p.armor?.bonus ?? 0,
-    struck: HIT.monster,
+    struck: struckChance(g),
     weapon: p.weapon ? describe(p.weapon) : "bare hands",
     trait: t ? `${t.name}: ${t.text}` : null,
     armor: p.armor ? describe(p.armor) : "none",

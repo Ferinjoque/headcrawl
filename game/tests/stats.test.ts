@@ -3,6 +3,7 @@ import { Game } from "../src/game/game";
 import { armor, weapon } from "../src/game/gear";
 import { attackRange, hitChance, pct, stats } from "../src/game/stats";
 import { choiceAction } from "../src/ui/choices";
+import { Tile } from "../src/map/grid";
 import { floor, room, spec } from "./fixtures";
 
 const fresh = () => new Game(spec([floor([room(), room({ kind: "lair" })], [[0, 1]])]));
@@ -40,6 +41,31 @@ describe("stats", () => {
     g.player.armor = armor("a", "go", 2);
     expect(stats(g).defense).toBe(2);
     expect(pct(0.125)).toBe("13%");
+  });
+});
+
+describe("perks on the sheet", () => {
+  it("circuit breaker and retry change the odds the sheet shows", () => {
+    const g = fresh();
+    const { struck, hit } = stats(g);
+    g.player.perks.push("breaker", "retry", "fuzzing");
+    expect(stats(g).struck).toBeLessThan(struck);
+    expect(stats(g).hit).toBeGreaterThan(hit);
+    expect(stats(g).critMult).toBe(3);
+  });
+
+  it("git stash puts a TODO in your pack on the next floor", () => {
+    const f0 = floor([room(), room({ kind: "lair" })], [[0, 1]], 0, false);
+    const f1 = floor([room(), room({ kind: "lair" })], [[0, 1]], 1, true);
+    const g = new Game(spec([f0, f1]));
+    g.player.perks.push("stash");
+    g.floor.bossDead = true;
+    const [sx, sy] = g.floor.map.stairsDown;
+    g.floor.map.grid.set(sx, sy, Tile.StairsDown);
+    g.player.x = sx;
+    g.player.y = sy;
+    expect(g.act({ type: "descend" })).toBe(true);
+    expect(g.player.potions).toHaveLength(1);
   });
 });
 

@@ -7,7 +7,7 @@ import { Rng } from "../core/rng";
 import type { DungeonSpec } from "../spec";
 import { seeThrough, Tile, walkable } from "../map/grid";
 import { PLAYER, xpForLevel } from "./balance";
-import { PERKS, available, type PerkId } from "./perks";
+import { PERKS, offer, type PerkId } from "./perks";
 import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
 import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, placeVendor, type ModId, type Offer } from "./extras";
@@ -44,6 +44,8 @@ export class Game {
   gearChoice: Item | null = null;
   /** Gear you looked at and left lying. Auto-explore stops walking you back to it. */
   readonly declined = new Set<string>();
+  /** The floor where a Feature flag saved you, -1 before that. */
+  flagUsedOn = -1;
   /** Set by an async weapon: the monsters skip this turn. */
   freeTurn = false;
   readonly mods: ModId[];
@@ -297,8 +299,10 @@ export class Game {
     this.vendorChoice = null;
     const vendor = this.floor.vendor;
     if (!offer || !vendor) return this.say("You walk away. Fewer dependencies, fewer problems.");
-    vendor.sold = true;
-    offer.deal.apply(this.player);
+    // Code owners can sign off on both offers; anyone else gets one.
+    vendor.offers = vendor.offers.filter((o) => o !== offer);
+    vendor.sold = !this.has("owners") || !vendor.offers.length;
+    offer.deal.apply(this.player, { dep: offer.dep, depth: this.floor.index });
     this.emit({ t: "pickup", x: vendor.x, y: vendor.y, kind: "scroll" });
     this.say(`${installLine(offer.dep)}. ${offer.deal.text}`, "loot");
   }
@@ -363,7 +367,7 @@ export class Game {
   private offerPerks(): void {
     if (this.perkChoice || this.perksOwed <= 0) return;
     this.perksOwed--;
-    this.perkChoice = this.rng.shuffle(available(this.player.perks)).slice(0, 3);
+    this.perkChoice = offer(this.player.perks, () => this.rng.next());
     this.say("Pick a tool: 1, 2 or 3.", "good");
   }
 
@@ -418,6 +422,10 @@ export class Game {
     this.lastRoom = -1;
     [p.x, p.y] = this.floor.map.start;
     this.emit({ t: "descend", floor: next });
+    if (this.has("stash")) {
+      p.potions.push({ id: `stash${next}`, kind: "potion", x: p.x, y: p.y, loot: null, source: "git stash" });
+      this.say("git stash pop. A TODO you set aside is back in your pack.", "good", true);
+    }
     this.enterFloorMessages();
     return true;
   }

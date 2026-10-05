@@ -11,7 +11,13 @@ import type { Monster } from "./types";
 export function playerAttack(g: Game, m: Monster): void {
   const p = g.player;
   const trait = p.weapon?.trait ?? "plain";
-  if (trait !== "steady" && !g.rng.chance(HIT.player)) {
+  const asleep = !m.awake;
+  let missed = trait !== "steady" && !g.rng.chance(HIT.player);
+  if (missed && g.has("retry") && g.rng.chance(HIT.player)) {
+    missed = false;
+    g.say("Retry with backoff. The second try lands.", "good", true);
+  }
+  if (missed) {
     g.emit({ t: "miss", x: m.x, y: m.y });
     g.say(`You miss ${m.name}.`);
     if (trait === "unsafe" && p.hp > 1) {
@@ -27,11 +33,12 @@ export function playerAttack(g: Game, m: Monster): void {
     g.say(`${m.name} dodges. Can't reproduce.`);
     return;
   }
-  const crit = g.rng.chance(critChance(g));
+  const crit = g.rng.chance(critChance(g)) || (asleep && g.has("lazy"));
   let dmg = p.atk + (p.weapon?.bonus ?? 0) + g.rng.int(0, 1 + Math.floor(p.level / 2));
   if (trait === "loose") dmg = Math.max(1, Math.round((dmg * g.rng.int(50, 200)) / 100));
-  if (crit) dmg *= trait === "unsafe" ? 3 : 2;
+  if (crit) dmg *= critMultiplier(g);
   dmg += perkBonus(g, m) + (trait === "heavy" ? 1 : 0);
+  if (g.has("gc") && (m.archetype === "ghost" || m.archetype === "spawn")) dmg *= 2;
   if (m.archetype === "wall" && !g.has("typechecker") && trait !== "pierce") dmg = Math.max(1, dmg - TUNING.wallArmor);
   if (g.has("pairing") && g.rng.chance(0.2) && strike(g, m, dmg, crit)) return;
   if (strike(g, m, dmg, crit)) return;
@@ -43,6 +50,10 @@ export function playerAttack(g: Game, m: Monster): void {
 export function critChance(g: Game): number {
   const base = g.has("debugger") ? HIT.crit * 2 : HIT.crit;
   return base + (g.player.weapon?.trait === "unsafe" ? TRAIT.unsafeCrit : 0);
+}
+
+export function critMultiplier(g: Game): number {
+  return 2 + (g.player.weapon?.trait === "unsafe" ? 1 : 0) + (g.has("fuzzing") ? 1 : 0);
 }
 
 /** One hit landing. True if it killed. */
@@ -87,6 +98,7 @@ function perkBonus(g: Game, m: Monster): number {
   if (k === "wall" && g.has("typechecker")) return 2;
   if (k === "tangle" && g.has("ci")) return 2;
   if (k === "hydra" && g.has("di")) return 2;
+  if (m.threat.length && g.has("static")) return 3;
   return 0;
 }
 
@@ -118,7 +130,7 @@ export function killMonster(g: Game, m: Monster): void {
     dropGear(g, m);
   }
   if (g.player.weapon?.trait === "arc") g.heal(TRAIT.arcHeal);
-  g.gainXp(m.xp);
+  g.gainXp(g.has("logging") ? Math.round((m.xp * 4) / 3) : m.xp);
 }
 
 /** Hit hard enough, a boss gets faster and calls helpers. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Game } from "../src/game/game";
-import { ALL_PERKS, PERKS, available } from "../src/game/perks";
+import { ALL_PERKS, PERKS, available, offer } from "../src/game/perks";
 import { enemy, floor, room, spec } from "./fixtures";
 
 function game(): Game {
@@ -63,5 +63,55 @@ describe("perks", () => {
     levelUp(a);
     levelUp(b);
     expect(a.perkChoice).toEqual(b.perkChoice);
+  });
+});
+
+describe("round 8 perks", () => {
+  it("offers three different perks and rare ones less often", () => {
+    let seed = 1;
+    const roll = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    let rare = 0;
+    let common = 0;
+    for (let i = 0; i < 3000; i++) {
+      const picks = offer([], roll);
+      expect(new Set(picks).size).toBe(3);
+      for (const id of picks) (PERKS[id].rare ? rare++ : common++);
+    }
+    const rareShare = rare / (rare + common);
+    const rareCount = ALL_PERKS.filter((id) => PERKS[id].rare).length;
+    expect(rareShare).toBeLessThan(rareCount / ALL_PERKS.length);
+    expect(rare).toBeGreaterThan(0);
+  });
+
+  it("never offers more than what's left", () => {
+    const taken = ALL_PERKS.filter((id) => !PERKS[id].stacks);
+    expect(offer(taken, () => 0.5)).toHaveLength(ALL_PERKS.length - taken.length);
+  });
+
+  it("a feature flag saves you once per floor", () => {
+    const g = game();
+    const m = g.floor.monsters.find((x) => !x.boss)!;
+    g.floor.monsters = [m];
+    m.x = g.player.x + 1;
+    m.y = g.player.y;
+    if (!g.floor.map.grid.get(m.x, m.y)) m.x = g.player.x - 1;
+    m.awake = true;
+    m.damage = 99;
+    m.hp = 9999;
+    g.player.perks.push("flag");
+    g.player.hp = 1;
+    for (let i = 0; i < 40 && g.outcome === "playing"; i++) g.act({ type: "wait" });
+    expect(g.flagUsedOn).toBe(0);
+    expect(g.outcome).toBe("dead");
+  });
+
+  it("structured logging gives a third more XP", () => {
+    const a = game();
+    const b = game();
+    b.player.perks.push("logging");
+    levelUp(a);
+    levelUp(b);
+    const total = (g: Game) => g.player.xp + Array.from({ length: g.player.level - 1 }, (_, i) => Math.round(14 * (i + 1) ** 1.45)).reduce((x, y) => x + y, 0);
+    expect(total(b)).toBeGreaterThan(total(a));
   });
 });

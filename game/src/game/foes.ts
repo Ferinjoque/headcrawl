@@ -90,7 +90,7 @@ function releaseWindup(g: Game, m: Monster): void {
 
 function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   const p = g.player;
-  if (!sure && !g.rng.chance(HIT.monster)) {
+  if (!sure && !g.rng.chance(struckChance(g))) {
     g.emit({ t: "miss", x: p.x, y: p.y });
     return;
   }
@@ -100,6 +100,11 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   if (p.armor) dmg = Math.max(1, dmg - p.armor.bonus);
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
+  if (p.hp <= 0 && g.has("flag") && g.flagUsedOn !== g.floor.index) {
+    g.flagUsedOn = g.floor.index;
+    p.hp = 1;
+    g.say("Feature flag flipped. You stay up at 1 HP. Not again on this floor.", "good");
+  }
   if (p.hp <= 0) {
     p.hp = 0;
     g.outcome = "dead";
@@ -109,6 +114,13 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
     g.emit({ t: "death", killer: m.name });
   }
 }
+
+/** How often a plain monster swing lands on you. */
+export function struckChance(g: Game): number {
+  return HIT.monster - (g.has("breaker") ? BREAKER : 0);
+}
+
+const BREAKER = 0.15;
 
 export function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));

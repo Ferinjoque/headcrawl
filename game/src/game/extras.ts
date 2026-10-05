@@ -7,6 +7,7 @@ import type { Dependency, DungeonSpec } from "../spec";
 import { roomCells } from "../map/layout";
 import type { Grid } from "../map/grid";
 import { fromEnemy, type FloorState } from "./world";
+import { armor, armorBonus, weapon, weaponBonus } from "./gear";
 import type { Monster, Player } from "./types";
 
 // ---- vendor ---------------------------------------------------------------
@@ -14,8 +15,24 @@ import type { Monster, Player } from "./types";
 export interface Deal {
   id: string;
   text: string;
-  apply(p: Player): void;
+  apply(p: Player, ctx: DealContext): void;
 }
+
+/** What a deal may need besides the player: the package and how deep you are. */
+export interface DealContext {
+  dep: Dependency;
+  depth: number;
+}
+
+/** The language a package is written in, near enough, for the weapon it makes. */
+const ECOSYSTEM_LANGUAGE: Record<Dependency["ecosystem"], string> = {
+  npm: "javascript",
+  pypi: "python",
+  go: "go",
+  cargo: "rust",
+  gem: "ruby",
+  composer: "php",
+};
 
 const lowerMax = (p: Player, by: number) => {
   p.maxHp = Math.max(10, p.maxHp - by);
@@ -65,6 +82,40 @@ export const DEALS: Deal[] = [
       p.maxHp += 4;
       p.hp += 4;
       p.curses++;
+    },
+  },
+  {
+    id: "sdk",
+    text: "the package itself as your weapon, in place of yours. Max HP -4.",
+    apply: (p, { dep, depth }) => {
+      p.weapon = weapon(dep.name, ECOSYSTEM_LANGUAGE[dep.ecosystem], weaponBonus(5, depth));
+      lowerMax(p, 4);
+    },
+  },
+  {
+    id: "types",
+    text: "type definitions: armor with defense 2 more than yours, attack -1.",
+    apply: (p, { dep, depth }) => {
+      p.armor = armor(`@types/${dep.name}`, ECOSYSTEM_LANGUAGE[dep.ecosystem], Math.max(armorBonus(2, depth), (p.armor?.bonus ?? 0) + 2));
+      p.atk = Math.max(1, p.atk - 1);
+    },
+  },
+  {
+    id: "abandoned",
+    text: "max HP +16. Last release in 2014, and it shows: one more XXX curse.",
+    apply: (p) => {
+      p.maxHp += 16;
+      p.hp += 16;
+      p.curses++;
+    },
+  },
+  {
+    id: "fork",
+    text: "a fork that patches your weapon: +2 on it, max HP -4. Bare hands get attack +1.",
+    apply: (p) => {
+      if (p.weapon) p.weapon = { ...p.weapon, bonus: p.weapon.bonus + 2 };
+      else p.atk += 1;
+      lowerMax(p, 4);
     },
   },
 ];

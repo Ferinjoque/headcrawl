@@ -50,6 +50,21 @@ describe("vendor", () => {
     expect(decodeLog(encodeLog(game.log))?.some((a) => a.type === "buy")).toBe(true);
   });
 
+  it("sells both offers to code owners", () => {
+    const game = new Game(withDeps(), { run: 3 });
+    game.player.perks.push("owners");
+    const v = game.floor.vendor!;
+    game.player.x = v.x - 1;
+    game.player.y = v.y;
+    game.act({ type: "move", dx: 1, dy: 0 });
+    game.act({ type: "buy", index: 0 });
+    expect(v.sold).toBe(false);
+    game.act({ type: "move", dx: 1, dy: 0 });
+    expect(game.vendorChoice).toHaveLength(1);
+    game.act({ type: "buy", index: 0 });
+    expect(v.sold).toBe(true);
+  });
+
   it("lets you walk away", () => {
     const game = new Game(withDeps(), { run: 3 });
     const v = game.floor.vendor!;
@@ -66,9 +81,10 @@ describe("vendor", () => {
       const g = new Game(withDeps());
       g.player.hp = 5;
       const before = { ...g.player };
-      d.apply(g.player);
+      d.apply(g.player, { dep: DEPS[0], depth: 0 });
       const p = g.player;
-      const gained = p.atk > before.atk || p.maxHp > before.maxHp || p.hp > before.hp;
+      const gear = (p.weapon?.bonus ?? 0) > (before.weapon?.bonus ?? 0) || (p.armor?.bonus ?? 0) > (before.armor?.bonus ?? 0);
+      const gained = gear || p.atk > before.atk || p.maxHp > before.maxHp || p.hp > before.hp;
       const paid = p.atk < before.atk || p.maxHp < before.maxHp || p.curses > before.curses || p.potions.length < before.potions.length || d.id === "tiny";
       expect(gained, d.id).toBe(true);
       expect(paid, d.id).toBe(true);
