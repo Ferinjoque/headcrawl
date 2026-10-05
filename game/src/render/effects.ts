@@ -71,6 +71,15 @@ export class Effects {
     });
   }
 
+  /** The weapon in your hand, cutting from your cell into the target's for a moment. */
+  swing(fromX: number, fromY: number, toX: number, toY: number, color: RGB, now: number): void {
+    if (this.reduced) return;
+    const dx = Math.sign(toX - fromX);
+    const dy = Math.sign(toY - fromY);
+    const ch = !dy ? "-" : !dx ? "|" : dx === dy ? "\\" : "/";
+    this.particles.push({ x: fromX + 0.5 + dx * 0.55, y: fromY + 0.5 + dy * 0.55, vx: dx * 0.0012, vy: dy * 0.0012, ch, color, born: now, life: 190 });
+  }
+
   shake(power: number, now: number): void {
     if (this.reduced) return;
     this.shakePower = Math.max(this.shakePower, power);

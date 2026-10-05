@@ -4,7 +4,7 @@ import { h, replace } from "./dom";
 // One line, fixed order, health first. Repo, commit and turn count live on
 // the pause and end screens; the HUD is only what you check mid-fight.
 
-export function renderHud(el: HTMLElement, game: Game | null, repo?: string): void {
+export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onSheet?: () => void): void {
   if (!game) {
     replace(el, h("span", { class: "hud-title" }, "HEADCRAWL"), repo ? h("span", { class: "dim" }, repo) : null);
     return;
@@ -30,13 +30,25 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string): vo
       h("span", { class: "hud-hp-bar", "aria-hidden": "true" }, fill),
     ),
     h("span", { class: "hud-stat" }, h("small", null, "lv "), `${p.level}`, h("span", { class: "hud-xp", "aria-hidden": "true" }, xpFill(p.xp, p.nextXp))),
-    h("span", { class: "hud-stat" }, h("small", null, "atk "), `${p.atk + (p.weapon?.bonus ?? 0)}`),
-    p.armor ? h("span", { class: "hud-stat" }, h("small", null, "def "), `${p.armor.bonus}`) : null,
+    // Attack and defense open the character sheet, and the tooltip says where they come from.
+    h(
+      "button",
+      { class: "hud-stats", type: "button", title: statsTitle(game), "aria-label": `${statsTitle(game)}. Opens your stats.`, onclick: onSheet },
+      h("span", { class: "hud-stat" }, h("small", null, "atk "), `${p.atk + (p.weapon?.bonus ?? 0)}`),
+      p.armor ? h("span", { class: "hud-stat" }, h("small", null, "def "), `${p.armor.bonus}`) : null,
+    ),
     h("span", { class: "hud-spacer" }),
     h("span", { class: "hud-floor" }, h("small", null, `floor ${f.index + 1}/${total} `), f.name),
     goal,
     h("span", { class: "hud-help faint" }, h("kbd", null, "?"), " keys"),
   );
+}
+
+function statsTitle(game: Game): string {
+  const p = game.player;
+  const atk = p.weapon ? `attack ${p.atk} + ${p.weapon.bonus} from ${p.weapon.name}` : `attack ${p.atk}, bare hands`;
+  const def = p.armor ? `, defense ${p.armor.bonus} from ${p.armor.name}` : "";
+  return `${atk}${def}. c for everything`;
 }
 
 function xpFill(xp: number, next: number): HTMLElement {

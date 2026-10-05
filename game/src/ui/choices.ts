@@ -39,19 +39,24 @@ export function vendorCard(offers: Offer[], pick: (index: number) => void) {
   );
 }
 
-function gearText(g: Gear): string {
-  if (g.slot === "armor") return `defense ${g.bonus}. ${g.language}`;
-  const t = g.trait === "plain" ? "" : `. ${TRAITS[g.trait].name}: ${TRAITS[g.trait].text}`;
-  return `attack +${g.bonus}, ${g.language}${t}`;
+/** "attack +5 (2 more), rust. borrow checked: ignores armor" */
+function gearText(g: Gear, other?: Gear): string {
+  const stat = g.slot === "armor" ? "defense" : "attack +";
+  const diff = other ? g.bonus - other.bonus : 0;
+  const delta = !other || !diff ? "" : diff > 0 ? ` (${diff} more)` : ` (${-diff} less)`;
+  const head = g.slot === "armor" ? `${stat} ${g.bonus}${delta}` : `${stat}${g.bonus}${delta}, ${g.language}`;
+  return g.trait === "plain" ? head : `${head}. ${TRAITS[g.trait].name}: ${TRAITS[g.trait].text}`;
 }
+
+const short = (s: string, n = 18) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 export function gearCard(found: Gear, mine: Gear, pick: (take: boolean) => void) {
   return h(
     "div",
     { class: "card choice", role: "dialog", "aria-label": `Swap your ${found.slot}?` },
-    h("div", { class: "card-kicker" }, `a ${found.slot}. you can carry one`),
-    option("1", `take ${found.name}`, gearText(found), () => pick(true)),
-    option("2", `keep ${mine.name}`, gearText(mine), () => pick(false), "dim"),
+    h("div", { class: "card-kicker" }, `a ${found.slot}. you carry one: take it, or keep yours`),
+    option("1", short(found.name), gearText(found, mine), () => pick(true)),
+    option("2", short(mine.name), `yours. ${gearText(mine)}`, () => pick(false), "keep"),
   );
 }
 

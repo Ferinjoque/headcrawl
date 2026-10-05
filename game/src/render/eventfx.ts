@@ -8,12 +8,15 @@ import { C } from "./palette";
 
 export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number, quiet = false): void {
   // Behind the title only light shows: flashes and sparks, never words or numbers.
-  if (quiet && (e.t === "hit" || e.t === "miss" || e.t === "heal" || e.t === "levelup" || e.t === "dodge" || e.t === "split")) {
+  if (quiet && (e.t === "hit" || e.t === "miss" || e.t === "heal" || e.t === "levelup" || e.t === "dodge" || e.t === "split" || e.t === "equip")) {
     if (e.t === "hit" || e.t === "split") fx.flash(e.x, e.y, e.t === "hit" && e.onPlayer ? C.danger : C.player, now);
     return;
   }
   switch (e.t) {
     case "hit":
+      if (!e.onPlayer && game.player.weapon && Math.max(Math.abs(e.x - game.player.x), Math.abs(e.y - game.player.y)) === 1) {
+        fx.swing(game.player.x, game.player.y, e.x, e.y, e.crit ? C.gold : C.steel, now);
+      }
       fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);
       fx.flash(e.x, e.y, e.onPlayer ? C.danger : C.player, now);
       if (e.onPlayer && e.amount >= 5) fx.shake(4, now);
@@ -35,6 +38,10 @@ export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number, quie
       break;
     case "pickup":
       fx.flash(e.x, e.y, C.loot, now);
+      break;
+    case "equip":
+      fx.flash(e.x, e.y, C.loot, now);
+      fx.float(e.x, e.y, e.gear.name.length > 18 ? `${e.gear.name.slice(0, 17)}…` : e.gear.name, C.loot, now);
       break;
     case "levelup":
       fx.float(game.player.x, game.player.y, `LEVEL ${e.level}`, C.gold, now);

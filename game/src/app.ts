@@ -543,7 +543,7 @@ export class App {
     if (!this.game) return;
     if (this.mode === "play") syncChoice($("banner"), this.game, (a) => this.step(a));
     if (this.mode !== "watch") for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
-    renderHud($("hud"), this.game);
+    renderHud($("hud"), this.game, undefined, () => this.openSheet());
     renderPanel($("panel"), this.game);
     this.syncMusic();
     this.log.render();

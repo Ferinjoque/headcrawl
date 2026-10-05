@@ -46,7 +46,7 @@ function foe(m: Monster, detail: boolean) {
   const stats = m.boss
     ? `${m.boss.title}. ${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${m.affix ? `${AFFIX[m.affix].name} ` : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
+      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
       : ARCH_NAME[m.archetype];
   return h(
     "div",

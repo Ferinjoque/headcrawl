@@ -4,7 +4,7 @@
   --ink-line: oklch(0.3 0.04 30);
   --text: oklch(0.92 0.02 70);
   --text-dim: oklch(0.72 0.03 60);
-  --text-faint: oklch(0.58 0.03 50);
+  --text-faint: oklch(0.6 0.03 50);
   --ember: oklch(0.66 0.17 45);
   --brick: oklch(0.8 0.15 62);
   --floor: oklch(0.62 0.2 345);
@@ -224,6 +224,18 @@ body {
   align-items: baseline;
   gap: 2px;
   color: var(--text);
+}
+.hud-stats {
+  all: unset;
+  display: inline-flex;
+  gap: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition: border-color 150ms var(--ease);
+}
+.hud-stats:hover,
+.hud-stats:focus-visible {
+  border-bottom-color: var(--ember);
 }
 .hud-xp {
   position: relative;
@@ -671,7 +683,7 @@ body.dragging #screen::after {
   gap: 6px;
   justify-items: stretch;
   padding: 16px 18px;
-  min-width: min(560px, 92vw);
+  min-width: min(680px, 92vw);
   background: oklch(0.15 0.025 20 / 0.94);
   border: 1px solid var(--ember);
   box-shadow: 0 0 24px oklch(0.66 0.17 45 / 0.35);
@@ -693,6 +705,9 @@ body.dragging #screen::after {
 }
 .perk-name {
   color: var(--gold);
+}
+.perk.keep .perk-name {
+  color: var(--text-dim);
 }
 .perk:hover,
 .perk:focus-visible {
@@ -788,6 +803,7 @@ body.dragging #screen::after {
     min-height: calc(2 * 1.15em + 14px);
   }
   .hud-stat,
+  .hud-stats,
   .hud-help,
   .hud-floor small {
     display: none;
