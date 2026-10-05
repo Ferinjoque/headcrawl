@@ -8,6 +8,7 @@ import { loadSpec, type DungeonSpec } from "../spec";
 import { rememberBuild } from "./recent";
 import { encodeSpec, type Route } from "./share";
 import { loadToken } from "./token";
+import type { Level } from "../game/extras";
 
 export interface BuildHost {
   /** Status line under the build forms. */
@@ -16,6 +17,8 @@ export interface BuildHost {
   busy(on: boolean): void;
   navigate(route: Route): void;
   fail(message: string): void;
+  /** The difficulty for a run started from a fresh build. */
+  level(): Level | undefined;
 }
 
 const NOT_A_REPO = "That doesn't look like owner/repo or a GitHub link.";
@@ -69,7 +72,8 @@ export class Builder {
     const sha = res.spec.repo.head;
     this.remember(repo.owner, repo.repo, sha, json);
     rememberBuild({ owner: repo.owner, repo: repo.repo, sha });
-    this.host.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0 });
+    const level = this.host.level();
+    this.host.navigate({ kind: "github", owner: repo.owner, repo: repo.repo, sha, run: 0, ...(level ? { level } : {}) });
   }
 
   /** Build the same repo at an old ref and at its latest commit, then compare. */

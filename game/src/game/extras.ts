@@ -182,7 +182,10 @@ export const GHOST_DAMAGE = 0.5;
 
 // ---- daily twists ---------------------------------------------------------
 
-export type ModId = "friday" | "legacy" | "hotfix" | "review" | "lightsout";
+export type ModId = "friday" | "legacy" | "hotfix" | "review" | "lightsout" | Level;
+
+/** Difficulty, picked in settings. Normal has no mod; dailies are always normal. */
+export type Level = "story" | "hard";
 
 export const MODS: Record<ModId, { name: string; text: string }> = {
   friday: { name: "friday deploy", text: "Bosses move faster. Nobody deploys on a Friday, and yet." },
@@ -190,6 +193,8 @@ export const MODS: Record<ModId, { name: string; text: string }> = {
   hotfix: { name: "hotfix", text: "Attack +2, max HP down a fifth. Ship it." },
   review: { name: "code review", text: "Every kill heals 1." },
   lightsout: { name: "lights out", text: "You see two cells less. The office turned the lights off." },
+  story: { name: "story", text: "Monsters hit for half. For reading the code, not fighting it." },
+  hard: { name: "hard", text: "Monsters have half again as much HP and hit a quarter harder." },
 };
 
 const ROTATION: ModId[] = ["legacy", "hotfix", "review", "lightsout"];
@@ -223,6 +228,12 @@ export function modMonster(m: Monster, mods: readonly ModId[]): void {
     m.xp = Math.round(m.xp * 1.25);
   }
   if (mods.includes("friday") && m.boss) m.speed += 30;
+  if (mods.includes("story")) m.damage = Math.max(1, Math.round(m.damage * 0.5));
+  if (mods.includes("hard")) {
+    m.maxHp = Math.round(m.maxHp * 1.5);
+    m.hp = m.maxHp;
+    m.damage = Math.max(1, Math.round(m.damage * 1.25));
+  }
 }
 
 // ---- time travel ----------------------------------------------------------

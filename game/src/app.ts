@@ -24,7 +24,7 @@ import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/sett
 import { setColors } from "./render/palette";
 import { recordFinished } from "./ui/records";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
-import { MODS, dailyMod, type ModId } from "./game/extras";
+import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
 import { dropSave, findSave, putSave } from "./ui/save";
 import { RULES, decodeLog } from "./game/record";
@@ -103,6 +103,7 @@ export class App {
       },
       navigate: (route) => this.navigate(route),
       fail: (msg) => this.failToTitle(msg),
+      level: () => this.levelForNewRuns(),
     });
     this.settingsMenu = new SettingsMenu({
       settings: () => this.settings,
@@ -122,6 +123,7 @@ export class App {
       show: (node) => this.showScreen(node, true),
       navigate: (route) => this.navigate(route),
       freshRun,
+      level: () => this.levelForNewRuns(),
       build: (target) => void this.builder.fromGitHub(target),
       compare: (repo, ref) => void this.builder.compare(repo, ref),
       openFile: () => ($("file") as HTMLInputElement).click(),
@@ -338,6 +340,10 @@ export class App {
     this.director.sync(this.sound.context, this.sound.enabled && this.settings.music, game, scene);
   }
 
+  private levelForNewRuns(): Level | undefined {
+    return this.settings.level === "normal" ? undefined : this.settings.level;
+  }
+
   private dailyLabel(): string {
     return this.route.kind === "gallery" ? dailyLabel(this.gallery, this.route.slug, this.route.run, this.dailyTry) : "";
   }
@@ -418,7 +424,8 @@ export class App {
     }
     this.mode = "end";
     this.stopAuto();
-    const share = resultText(game, shareLink(location.href), this.dailyLabel(), this.code());
+    const level = this.route.kind !== "title" && this.route.level && !this.dailyMod ? this.route.level : "";
+    const share = resultText(game, shareLink(location.href), [this.dailyLabel(), level].filter(Boolean).join(" "), this.code());
     this.showScreen(
       endScreen(game, share, this.copied, {
         again: () => this.again(),
@@ -485,7 +492,9 @@ export class App {
     // The twist comes from the run number alone, so a replay of an old daily
     // keeps it even after the gallery changes.
     const mod = this.route.kind === "gallery" ? dailyMod(run) : null;
-    const mods = mod ? [mod] : [];
+    // Dailies are always normal, so everyone's result means the same thing.
+    const level = !mod && this.route.kind !== "title" ? this.route.level : undefined;
+    const mods: ModId[] = [...(mod ? [mod] : []), ...(level ? [level] : [])];
     this.dailyMod = mod;
     this.director.reset();
     this.recorded = false;

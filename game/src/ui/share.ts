@@ -7,6 +7,7 @@
 
 import { Inflate, deflateSync, strFromU8, strToU8 } from "fflate";
 import type { Game } from "../game/game";
+import type { Level } from "../game/extras";
 
 const MAX_INFLATED = 4 * 1024 * 1024;
 const MAX_LINK = 1024 * 1024;
@@ -20,6 +21,8 @@ interface Extra {
   race?: string;
   /** The rules version a watch or race log was recorded under. */
   v?: number;
+  /** Difficulty other than normal. Part of the run, like the run number. */
+  level?: Level;
 }
 
 export type Route =
@@ -40,9 +43,12 @@ function parseExtra(query: string): Extra | null {
   const log = /^[A-Za-z0-9_-]{1,400000}$/;
   if (watch !== null && !log.test(watch)) return null;
   if (race !== null && !log.test(race)) return null;
+  const level = params.get("level");
+  const lv = level === "story" || level === "hard" ? { level: level as Level } : {};
+  if (level !== null && !("level" in lv)) return null;
   const v = params.get("v");
   const version = v && /^\d{1,4}$/.test(v) ? { v: Number(v) } : {};
-  return { run: Number(run), ...(watch ? { watch } : {}), ...(race ? { race } : {}), ...((watch || race) ? version : {}) };
+  return { run: Number(run), ...lv, ...(watch ? { watch } : {}), ...(race ? { race } : {}), ...((watch || race) ? version : {}) };
 }
 
 export function parseRoute(hash: string): Route {
@@ -68,6 +74,7 @@ export function routeHash(route: Route): string {
   if (route.kind === "compare") return `#/vs/${route.owner}/${route.repo}@${route.a}..${route.b}`;
   const params = new URLSearchParams();
   if (route.run && route.kind !== "custom") params.set("run", String(route.run));
+  if (route.level) params.set("level", route.level);
   if (route.watch) params.set("watch", route.watch);
   if (route.race) params.set("race", route.race);
   if ((route.watch || route.race) && route.v) params.set("v", String(route.v));

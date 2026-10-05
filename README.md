@@ -101,7 +101,7 @@ repo has its own theme. It gets darker the deeper you go, drums come in when
 something wants you dead, and bosses get a motif made from their name.
 Each language has its own instruments, the vendor plays lounge music, a
 ghost in sight hums, and daily runs ring a bell. `m`
-mutes everything; `,` opens settings (music on its own, text size,
+mutes everything; `,` opens settings (music on its own, difficulty, text size,
 colorblind friendly or high contrast colors, calm motion). On a phone, tap
 a monster to see what it is. `b` on the title opens the bestiary: what
 you've refactored, the gnarliest bosses you beat and what keeps getting you.

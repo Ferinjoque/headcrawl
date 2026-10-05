@@ -4,9 +4,9 @@ import { settingsScreen, type TokenView } from "./screens";
 import { cycle, type Settings } from "./settings";
 import { clearToken, saveToken, tokenPlace } from "./token";
 
-export type SettingKey = "sound" | "music" | "text" | "colors" | "motion" | "tips";
+export type SettingKey = "sound" | "music" | "text" | "colors" | "motion" | "level" | "tips";
 
-const KEYS: Record<string, SettingKey> = { "1": "sound", "2": "music", "3": "text", "4": "colors", "5": "motion", "6": "tips" };
+const KEYS: Record<string, SettingKey> = { "1": "sound", "2": "music", "3": "text", "4": "colors", "5": "motion", "6": "level", "7": "tips" };
 
 /** The next value of one setting. Pure, so a test can walk through them. */
 export function nextSettings(s: Settings, which: SettingKey): Settings {
@@ -19,6 +19,8 @@ export function nextSettings(s: Settings, which: SettingKey): Settings {
       return { ...s, colors: cycle(["glow", "colorblind", "contrast"] as const, s.colors) };
     case "motion":
       return { ...s, motion: cycle(["full", "calm"] as const, s.motion) };
+    case "level":
+      return { ...s, level: cycle(["normal", "hard", "story"] as const, s.level) };
     default:
       return s;
   }
@@ -53,6 +55,7 @@ export class SettingsMenu {
           text: () => this.change("text"),
           colors: () => this.change("colors"),
           motion: () => this.change("motion"),
+          level: () => this.change("level"),
           tips: () => this.change("tips"),
           saveToken: (text, remember) =>
             this.open(

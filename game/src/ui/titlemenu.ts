@@ -7,6 +7,7 @@ import { recentBuilds } from "./recent";
 import { listSaves } from "./save";
 import { titleScreen, type TitleView } from "./screens";
 import { parseRoute, type Route } from "./share";
+import type { Level } from "../game/extras";
 
 export interface TitleHost {
   gallery(): GalleryEntry[];
@@ -14,6 +15,8 @@ export interface TitleHost {
   navigate(route: Route): void;
   /** A new run number for a fresh game. */
   freshRun(): number;
+  /** The difficulty from settings, for runs started here. */
+  level(): Level | undefined;
   build(target: string): void;
   compare(repo: string, ref: string): void;
   openFile(): void;
@@ -33,6 +36,11 @@ export class TitleMenu {
 
   constructor(host: TitleHost) {
     this.host = host;
+  }
+
+  private level(): { level?: Level } {
+    const level = this.host.level();
+    return level ? { level } : {};
   }
 
   /** Back to the plain list: nothing unfolded. */
@@ -56,7 +64,7 @@ export class TitleMenu {
         this.error,
         daily && { repo: daily.entry.repo, label: daily.label, played: dailyStarts(daily.label) > 0 },
         {
-          play: (slug) => h.navigate({ kind: "gallery", slug, run: h.freshRun() }),
+          play: (slug) => h.navigate({ kind: "gallery", slug, run: h.freshRun(), ...this.level() }),
           daily: () => this.playDaily(),
           build: (target) => h.build(target),
           reopen: (r) => h.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
@@ -148,7 +156,7 @@ export class TitleMenu {
       // Let a focused button handle its own Enter.
       if (document.activeElement instanceof HTMLButtonElement) return;
       const entry = h.gallery()[this.selected];
-      if (entry) h.navigate({ kind: "gallery", slug: entry.slug, run: h.freshRun() });
+      if (entry) h.navigate({ kind: "gallery", slug: entry.slug, run: h.freshRun(), ...this.level() });
       return;
     }
     const actions: Record<string, () => void> = {

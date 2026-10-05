@@ -469,6 +469,7 @@ export interface SettingsHandlers {
   text(): void;
   colors(): void;
   motion(): void;
+  level(): void;
   tips(): void;
   saveToken(text: string, remember: boolean): void;
   clearToken(): void;
@@ -480,6 +481,12 @@ const TOKEN_PLACES: Record<TokenPlace, string> = {
   tab: "Token saved until this tab closes.",
   device: "Token remembered on this device.",
 };
+
+const LEVEL_NAMES = {
+  story: "story: monsters hit for half",
+  normal: "normal",
+  hard: "hard: tougher monsters that hit harder",
+} as const;
 
 const COLOR_NAMES = { glow: "glow (default)", colorblind: "colorblind friendly", contrast: "high contrast" } as const;
 
@@ -507,7 +514,8 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", tok
     row("3", "text size", s.text, on.text),
     row("4", "colors", COLOR_NAMES[s.colors], on.colors),
     row("5", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
-    row("6", "tips", "show them again", on.tips),
+    row("6", "difficulty", LEVEL_NAMES[s.level], on.level),
+    row("7", "tips", "show them again", on.tips),
     note ? h("p", { class: "t-good", role: "status" }, note) : null,
     tokenSection(token, on),
     h("div", { class: "actions" }, btn("esc", "back", on.close)),
