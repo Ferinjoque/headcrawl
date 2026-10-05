@@ -8,9 +8,9 @@ import type { Monster } from "./types";
 export type Affix = "god" | "deep" | "hot";
 
 export const AFFIX: Record<Affix, { name: string; text: string }> = {
-  god: { name: "god function", text: "too long to read in one sitting. Half again as much HP" },
-  deep: { name: "deeply nested", text: "armored, takes 2 less damage" },
-  hot: { name: "hot path", text: "changed all the time. Faster, and worth more" },
+  god: { name: "huge", text: "a function too long to read in one sitting. Half again as much HP" },
+  deep: { name: "deep", text: "nested many levels deep. Armored, takes 2 less damage" },
+  hot: { name: "hot", text: "from a file that changes all the time. Faster, and worth more" },
 };
 
 export const ELITE = {

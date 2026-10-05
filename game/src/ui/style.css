@@ -954,6 +954,11 @@ body.dragging #screen::after {
 .perk-name {
   color: var(--gold);
 }
+.perk-about {
+  display: block;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
 .perk.rare {
   border-color: oklch(0.88 0.16 90 / 0.55);
 }
@@ -1177,7 +1182,8 @@ body.dragging #screen::after {
 }
 
 /* Bestiary and sheet: a second line under an entry, quieter. */
-.page .entry .sub {
+.page .entry .sub,
+.page .row .sub {
   display: block;
 }
 @media (max-width: 600px) {

@@ -142,7 +142,7 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
   if (m.enemy?.deprecated && p.hp > 0) {
-    if (!p.slowed) g.say(`DeprecationWarning from ${m.name}. You slow down.`, "bad");
+    if (!p.slowed) g.say(`${m.name} is outdated code, and its hit slows you down.`, "bad");
     p.slowed = SLOW.turns;
   }
   if (p.hp <= 0 && g.cheats.god) p.hp = 1;

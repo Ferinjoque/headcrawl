@@ -28,9 +28,9 @@ export class Aim {
     const game = this.host.game();
     if (!game) return;
     if (this.active) return this.shoot(game);
-    if (game.player.review > 0) return this.host.say(`Your last comment is still open. ${game.player.review} more turns.`);
-    if (!this.start(game)) return this.host.say("No one in range to review. Comments reach 5 cells.");
-    this.host.say("Aiming a review comment: tab for the next target, f to send, esc to drop it.");
+    if (game.player.review > 0) return this.host.say(`Not ready yet: ${game.player.review} more turns.`);
+    if (!this.start(game)) return this.host.say("Nothing in range. Shots reach 5 cells.");
+    this.host.say("Aiming: tab picks the next target, f shoots, esc puts it away.");
     this.host.redraw();
   }
 

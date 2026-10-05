@@ -7,9 +7,9 @@ const KEY = "headcrawl.hints.v1";
 
 const TIPS = {
   monster: "Tip: walk into a monster to hit it.",
-  item: "Tip: walk over an item to take it. TODOs heal, / is a weapon, [ is armor.",
+  item: "Tip: walk over things to take them. ! potions heal, / is a weapon, [ is armor.",
   telegraph: "Tip: red cells get hit next turn. Step out of them, then hit back.",
-  lowhp: "Tip: low on HP. z rests when nothing is chasing you, q drinks a TODO.",
+  lowhp: "Tip: low on HP. z rests when nothing is chasing you, q drinks a potion.",
   stairs: "Tip: the boss left stairs (>) in its room. Stand on them and press >.",
   explore: "Tip: x explores for you and stops when something shows up.",
 } as const;

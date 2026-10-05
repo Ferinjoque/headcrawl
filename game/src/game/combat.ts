@@ -118,7 +118,7 @@ export function killMonster(g: Game, m: Monster): void {
     p.bosses++;
     p.bossNames.push(`${m.name}, ${m.boss.title}`);
     g.floor.bossDead = true;
-    g.say(`${m.name} falls. ${m.boss.final ? "HEAD is yours." : "The way down opens."}`, "boss");
+    g.say(`${m.name} falls. ${m.boss.final ? "You reached the bottom." : "The way down opens."}`, "boss");
     if (m.boss.final) {
       g.outcome = "won";
       g.emit({ t: "victory" });

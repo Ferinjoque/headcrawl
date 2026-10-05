@@ -148,9 +148,9 @@ export class LabPanel {
         h(
           "div",
           { class: "chips" },
-          chip("TODO", "drop a TODO near you", () => this.act((x) => dropItem(x, "potion"))),
-          chip("HACK", "drop a HACK near you", () => this.act((x) => dropItem(x, "scroll"))),
-          chip("XXX", "drop a cursed XXX near you", () => this.act((x) => dropItem(x, "curse"))),
+          chip("potion", "drop a potion (TODO) near you", () => this.act((x) => dropItem(x, "potion"))),
+          chip("scroll", "drop a scroll (HACK) near you", () => this.act((x) => dropItem(x, "scroll"))),
+          chip("curse", "drop a curse (XXX) near you", () => this.act((x) => dropItem(x, "curse"))),
           chip("coffee", "drop a coffee near you", () => this.act((x) => dropItem(x, "coffee"))),
         ),
         h("p", { class: "faint lab-note" }, "Practice: no save, no records, no daily."),

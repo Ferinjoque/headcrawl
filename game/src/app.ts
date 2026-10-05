@@ -668,7 +668,7 @@ export class App {
         replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style));
       }
       if (e.t === "descend") this.floorCard();
-      if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "git merge" : "git checkout", e.name, "floor", e.merged ? "back where you left" : "a side branch. > at the far end merges you back"));
+      if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "back" : "side door", e.name, "floor", e.merged ? "back where you left" : "another version of this floor. > at the far end takes you back"));
     }
   }
 

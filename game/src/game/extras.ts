@@ -68,7 +68,7 @@ export const DEALS: Deal[] = [
   },
   {
     id: "tiny",
-    text: "attack +1, and you drop every TODO you carry. Eleven lines, somehow essential.",
+    text: "attack +1, and you drop every potion you carry. Eleven lines, somehow essential.",
     apply: (p) => {
       p.atk += 1;
       p.potions = [];
@@ -76,7 +76,7 @@ export const DEALS: Deal[] = [
   },
   {
     id: "peer",
-    text: "attack +2 and max HP +4, but one more XXX curse on you.",
+    text: "attack +2 and max HP +4, but one more curse on you.",
     apply: (p) => {
       p.atk += 2;
       p.maxHp += 4;
@@ -94,7 +94,7 @@ export const DEALS: Deal[] = [
   },
   {
     id: "types",
-    text: "type definitions: armor with 1 more defense than yours, attack -1.",
+    text: "its type definitions as armor, 1 more defense than yours. Attack -1.",
     apply: (p, { dep, depth }) => {
       p.armor = armor(`@types/${dep.name}`, ECOSYSTEM_LANGUAGE[dep.ecosystem], Math.max(armorBonus(2, depth), (p.armor?.bonus ?? 0) + 1));
       p.atk = Math.max(1, p.atk - 1);
@@ -102,7 +102,7 @@ export const DEALS: Deal[] = [
   },
   {
     id: "abandoned",
-    text: "max HP +16. Last release in 2014, and it shows: one more XXX curse.",
+    text: "max HP +16. Last updated in 2014, and it shows: one more curse.",
     apply: (p) => {
       p.maxHp += 16;
       p.hp += 16;
@@ -111,7 +111,7 @@ export const DEALS: Deal[] = [
   },
   {
     id: "fork",
-    text: "a fork that patches your weapon: +1 on it, max HP -4. Bare hands get attack +1.",
+    text: "someone's patched copy: your weapon gets +1, max HP -4. Bare hands get attack +1.",
     apply: (p) => {
       if (p.weapon) p.weapon = { ...p.weapon, bonus: p.weapon.bonus + 1 };
       else p.atk += 1;

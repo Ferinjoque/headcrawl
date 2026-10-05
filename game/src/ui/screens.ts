@@ -1,6 +1,7 @@
 import type { Game } from "../game/game";
 import { h, plural } from "./dom";
 import { paneTabs } from "./win";
+import { BEHIND, LOOT, MONSTERS, PLACES, type Term } from "./glossary";
 import type { Change, Comparison } from "../lite/compare";
 import type { Settings } from "./settings";
 import type { TokenPlace } from "./token";
@@ -39,11 +40,15 @@ export function btn(key: string, label: string, onclick: () => void) {
 
 export function helpScreen(close: () => void) {
   const row = (a: string, b: string) => h("p", { class: "row" }, h("span", { class: "t-loot" }, a), h("span", null, b));
+  // Game words first; the faint line under each says what code it came from.
+  const term = (label: string, t: Term) =>
+    h("p", { class: "row" }, h("span", { class: "t-loot" }, label), h("span", null, t.does || t.real, t.does ? h("small", { class: "faint sub" }, t.real) : null));
+  const kinds = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "remote", "boss"] as const;
   return h(
     "div",
     { class: "page" },
     h("h1", { class: "t-boss" }, "how it works"),
-    h("p", { class: "dim" }, "Every number in the game comes from the code. Same commit, same dungeon."),
+    h("p", { class: "dim" }, "Get to the bottom. Each floor has a boss; beat it and the stairs down open. You get one life."),
     paneTabs([
       {
         label: "keys",
@@ -52,59 +57,28 @@ export function helpScreen(close: () => void) {
           row("x", "explore until something shows up"),
           row("z", "rest until healed"),
           row(". or space", "wait a turn"),
-          row(">", "stairs once the boss is dead; on a Y door, check out a side branch"),
-          row("f", "review comment: half a hit on a monster up to 5 cells away. Tab picks, f sends"),
-          row("q / r", "drink a TODO / read a HACK"),
+          row(">", "stairs, once the boss is dead. On a Y side door, go in"),
+          row("f", "shoot a monster up to 5 cells away for half a hit. Tab picks, f shoots"),
+          row("q / r", "drink a potion / read a scroll"),
           row("c", "you: every number behind a fight, your gear and tools"),
-          row("click or tap", "walk there; hover a monster to inspect it"),
+          row("click or tap", "walk there; hover a monster to see what it is"),
           row("tab", "show or hide the side panel"),
           row("m / ,", "sound, settings"),
           row("`", "lab tools, in the lab and practice runs"),
         ],
       },
-      {
-        label: "the map",
-        body: [
-          row("folder", "a floor. Deeper floors hold code the rest imports."),
-          row("file", "a room, sized by lines of code"),
-          row("~ import", "a corridor between files that import each other"),
-          row("# passage", "a corridor between neighbours in the folder tree"),
-          row("loop", "an import cycle. The corridor walks you back where you came from, once."),
-          row("test file", "a shrine (*). Step on it to heal, once."),
-          row("<<< >>>", "a merge conflict left in the file: both versions fight you"),
-          row("Y branch", "another branch of the repo. > checks it out: no boss, a weapon by the stairs"),
-          row("$ vendor", "sells the repo's dependencies. Each one helps, and each one costs."),
-          row("& keeper", "whoever committed most to the floor. Say hi once for a coffee."),
-        ],
-      },
+      { label: "the map", body: PLACES.map((p) => term(p.glyph ? `${p.glyph} ${p.name}` : p.name, p)) },
       {
         label: "monsters",
         body: [
-          row("a function", "a monster named after it: complexity is HP, nesting is damage, parameters speed"),
-          row("tangle", "lots of branches. Regrows, finish it fast."),
-          row("nest", "deep nesting. Winds up a big hit: step out of the red."),
-          row("hydra", "too many parameters. Splits in two when hurt."),
-          row("wall", "very long function. Armored and slow."),
-          row("imp", "tiny function. Fast."),
-          row("ghost", "nothing calls it. Drifts through walls, hits softly."),
-          row("remote", "talks to the network. Shoots along a red line from 4 cells away."),
-          row("bug", "everything else. Dodges now and then."),
-          row("elite", "bold on a tile: a god function, deeply nested or a hot path. Worth more."),
-          row("struck through", "deprecated. Its hits slow you for 3 turns."),
-          row("boss", "the hotspot, most churn times complexity. Its style comes from its code: deep sweeps wide, sprawling calls helpers, a god function heals, a hot path speeds up."),
+          h("p", { class: "dim" }, "Every monster is a function from the code, named after it. The harder the code is to follow, the tougher the monster."),
+          ...kinds.map((k) => term(MONSTERS[k].name, MONSTERS[k])),
+          term("elite", { name: "elite", does: "drawn bold on a tile. Tougher, worth more, drops gear more often.", real: "the worst function in a busy room" }),
+          term("struck through", { name: "outdated", does: "its hits slow you for 3 turns", real: "code marked as deprecated: on its way out" }),
         ],
       },
-      {
-        label: "loot",
-        body: [
-          row("! TODO", "heals when you finally do it"),
-          row("/ weapon", "a FIXME, or a function a monster or boss dropped. Fights like its language: Rust pierces, Go never misses, Python cleaves"),
-          row("[ armor", "a test suite, or the error handling around a function. Takes defense off every hit"),
-          row("? HACK", "a random trick. Sometimes git checkout: the floor as it was a year ago"),
-          row("% XXX", "cursed: attack up, max HP down"),
-          row("c coffee", "dropped by monsters, heals a little"),
-        ],
-      },
+      { label: "loot", body: (Object.keys(LOOT) as (keyof typeof LOOT)[]).map((k) => term(`${LOOT[k].glyph} ${LOOT[k].name}`, LOOT[k])) },
+      { label: "the code", body: BEHIND.map((line) => h("p", null, line)) },
       {
         label: "your repo",
         body: [
@@ -168,7 +142,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
     h(
       "p",
       { class: "dim" },
-      `Level ${p.level}. ${plural(p.kills, "function")} refactored. ${p.bosses} of ${game.spec.floors.length} bosses. ${p.turns} turns.`,
+      `Level ${p.level}. ${plural(p.kills, "kill")}. ${p.bosses} of ${game.spec.floors.length} bosses. ${p.turns} turns.`,
     ),
     h("pre", { class: "share" }, share),
     h(

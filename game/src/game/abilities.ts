@@ -2,20 +2,7 @@
 // ability has an answer the player can find: step out of the red, focus the
 // regrowing one, don't waste a scroll on the armored one.
 
-import type { Monster } from "./types";
-
-export const ABILITY: Record<Monster["archetype"], string> = {
-  tangle: "regrows 1 HP every turn, finish it fast",
-  nest: "winds up a heavy hit, step out of the red",
-  hydra: "splits in two the first time it gets hurt",
-  wall: "armored, takes 2 less damage, slow",
-  imp: "small and fast",
-  bug: "dodges one hit in five. Can't reproduce.",
-  ghost: "dead code: drifts through walls, hits softly",
-  remote: "a network call: shoots along a line from up to 4 cells, step off the red",
-  spawn: "a helper its boss called in",
-  boss: "winds up an area attack, get out of the red",
-};
+// What each one does in words lives in ui/glossary.ts.
 
 export const TUNING = {
   tangleRegen: 1,

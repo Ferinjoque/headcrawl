@@ -262,7 +262,7 @@ export class Game {
     }
     const vendor = this.floor.vendor;
     if (vendor && vendor.x === nx && vendor.y === ny) {
-      if (vendor.sold) this.say("The vendor has nothing left for you on this floor.");
+      if (vendor.sold) this.say("The shop has nothing left for you on this floor.");
       else this.vendorChoice = vendor.offers;
       return true;
     }
@@ -291,9 +291,9 @@ export class Game {
       this.emit({ t: "heal", x: p.x, y: p.y, amount });
       this.say("The tests pass. You feel whole again.", "good");
     }
-    if (tile === Tile.StairsDown) this.say(this.main ? "Stairs back to where you branched off. Press > to merge." : "Stairs down. Press > to descend.", "info");
+    if (tile === Tile.StairsDown) this.say(this.main ? "Stairs back to the floor you came from. Press > to go back." : "Stairs down. Press > to descend.", "info");
     const door = this.floor.branch;
-    if (door && !door.used && door.x === p.x && door.y === p.y) this.say(`A side branch: ${door.name}. Press > to check it out.`, "lore");
+    if (door && !door.used && door.x === p.x && door.y === p.y) this.say(`A side door to ${door.name}, another version of this floor. Press > to go in.`, "lore");
     const trap = this.floor.map.loops.find((l) => l.cell === grid.idx(p.x, p.y));
     if (trap && !this.floor.loopsDone.has(trap.cell)) return this.loopBack(trap);
     if (roomIndex >= 0 && roomIndex !== prevRoom && grid.get(p.x, p.y) !== Tile.Wall) this.enterRoom(roomIndex);
@@ -306,14 +306,14 @@ export class Game {
     const spot = this.freeNeighbour(room.cx, room.cy) ?? [room.cx, room.cy];
     [this.player.x, this.player.y] = spot;
     this.emit({ t: "loop" });
-    this.say(`Circular import: ${trap.a} needs ${trap.b}, which needs ${trap.a}. You end up back where you started.`, "lore");
+    this.say(`A loop: ${trap.a} needs ${trap.b}, which needs ${trap.a}. You end up back where you started.`, "lore");
   }
 
   private meetKeeper(k: NonNullable<FloorState["keeper"]>): void {
     if (k.met) return this.say(`${k.name} is busy. Something about a release.`);
     k.met = true;
     const quote = k.subject ? ` Their last commit here: "${k.subject}".` : "";
-    this.say(`${k.name}, ${k.commits} commits on this floor.${quote} They hand you a coffee.`, "lore");
+    this.say(`${k.name} wrote most of this floor.${quote} They hand you a coffee.`, "lore");
     this.heal(Math.max(1, Math.round(this.player.maxHp * KEEPER_HEAL)));
   }
 
@@ -342,7 +342,7 @@ export class Game {
         this.floor.bossMet = true;
         boss.awake = true;
         boss.lastTaunt = this.player.turns;
-        if (room.last_commit) this.say(`Last commit here: "${room.last_commit}"`, "lore");
+        if (room.last_commit) this.say(`Last change here: "${room.last_commit}"`, "lore");
         this.emit({
           t: "intro",
           name: boss.name,
@@ -356,7 +356,7 @@ export class Game {
     }
     if (!this.visited.has(room.id)) {
       this.visited.add(room.id);
-      if (room.conflicts) this.say(`Merge conflict in ${room.path}: both versions are in here, and both want you.`, "bad");
+      if (room.conflicts) this.say(`${room.path} has two versions of itself in here, and both want you. A merge conflict.`, "bad");
       this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info", true);
       if (room.blurb) this.say(`"${room.blurb}"`, "lore", true);
     }
@@ -381,7 +381,7 @@ export class Game {
       if (p.level % PLAYER.atkEveryLevels === 0) p.atk++;
       p.hp = Math.min(p.maxHp, p.hp + PLAYER.hpPerLevel + Math.ceil(p.maxHp * 0.2));
       this.emit({ t: "levelup", level: p.level });
-      this.say(`Level ${p.level}. You understand this codebase a little better.`, "good");
+      this.say(`Level ${p.level}. You understand this code a little better.`, "good");
       this.perksOwed++;
     }
     this.offerPerks();
@@ -459,7 +459,7 @@ export class Game {
     this.emit({ t: "descend", floor: next });
     if (this.has("stash")) {
       p.potions.push({ id: `stash${next}`, kind: "potion", x: p.x, y: p.y, loot: null, source: "git stash" });
-      this.say("git stash pop. A TODO you set aside is back in your pack.", "good", true);
+      this.say("git stash pop. A potion you set aside is back in your pack.", "good", true);
     }
     this.enterFloorMessages();
     return true;
@@ -475,7 +475,7 @@ export class Game {
     this.lastRoom = -1;
     [p.x, p.y] = this.floor.map.start;
     this.emit({ t: "branch", name: door.name, merged: false });
-    this.say(`git checkout ${door.name}. No boss here; something sharp waits by the stairs, and they merge you back.`, "lore");
+    this.say(`Through the side door: ${door.name}. No boss here; a weapon waits by the stairs, and they take you back.`, "lore");
     return true;
   }
 
@@ -487,7 +487,7 @@ export class Game {
     this.lastRoom = -1;
     [this.player.x, this.player.y] = [main.x, main.y];
     this.emit({ t: "branch", name: main.name, merged: true });
-    this.say(`git merge ${main.name}. Back where you were.`, "lore");
+    this.say(`Back on ${main.name}, where you left.`, "lore");
     return true;
   }
 

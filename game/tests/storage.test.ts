@@ -65,7 +65,7 @@ describe("run log", () => {
     game.player.bossNames = ["main, the Restless"];
     game.outcome = "won";
     const log = runLog(game, "https://x/");
-    expect(log).toContain("Reached HEAD.");
+    expect(log).toContain("Reached the bottom.");
     expect(log).toMatch(/3 bugs/);
     expect(log).toContain("main, the Restless");
   });

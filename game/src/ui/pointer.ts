@@ -1,7 +1,6 @@
 // Mouse and touch on the map: hover to inspect, click to walk. On phones the
 // first tap on a monster or item shows what it is; tapping again walks there.
 
-import { ABILITY } from "../game/abilities";
 import { styleLine } from "../game/bossmoves";
 import { AFFIX } from "../game/elites";
 import { installLine } from "../game/extras";
@@ -9,6 +8,7 @@ import type { Game } from "../game/game";
 import { describe, TRAITS } from "../game/gear";
 import { walkable } from "../map/grid";
 import { h, plural, replace } from "./dom";
+import { LOOT, MONSTERS } from "./glossary";
 import type { Command } from "./input";
 
 export interface PointerHost {
@@ -21,7 +21,6 @@ export interface PointerHost {
   aimAt(x: number, y: number): boolean;
 }
 
-const ITEM_NAMES = { potion: "TODO", weapon: "weapon", armor: "armor", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
 
 /** Fills the tooltip for the cell, or returns false if there is nothing to say. */
 function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
@@ -36,11 +35,11 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
       h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
       h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
-      h("div", { class: "t-lore" }, ABILITY[m.archetype]),
+      h("div", { class: "t-lore" }, `${MONSTERS[m.archetype].name}: ${MONSTERS[m.archetype].does}`),
       m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
-      e?.deprecated ? h("div", { class: "t-bad" }, "deprecated: its hits slow you down for 3 turns") : null,
-      e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
-      m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
+      e?.deprecated ? h("div", { class: "t-bad" }, "outdated code: its hits slow you down for 3 turns") : null,
+      e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
+      m.boss ? h("div", { class: "faint" }, `${m.boss.title}. Its file changed ${plural(m.boss.churn, "time")}.`) : null,
       m.boss && styleLine(m.boss) ? h("div", { class: "t-boss" }, styleLine(m.boss)) : null,
       m.awake ? null : h("div", { class: "faint" }, "asleep"),
     );
@@ -65,9 +64,10 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     const who = l?.author ? `${when ? " " : ""}by ${l.author}` : "";
     replace(
       tip,
-      h("div", { class: "tip-name t-loot" }, ITEM_NAMES[item.kind]),
+      h("div", { class: "tip-name t-loot" }, LOOT[item.kind].name),
+      h("div", null, LOOT[item.kind].does),
       l ? h("div", null, `"${l.text}"`) : h("div", null, "Still warm."),
-      when || who ? h("div", { class: "faint" }, when + who) : null,
+      h("div", { class: "faint" }, `${LOOT[item.kind].real}${when || who ? `, ${when}${who}` : ""}`),
       item.source ? h("div", { class: "faint" }, item.source) : null,
     );
     return true;
@@ -77,8 +77,8 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     replace(
       tip,
       h("div", { class: "tip-name t-lore" }, br.name),
-      h("div", null, "Another branch of this repo. The same folder, laid out the way it has it."),
-      h("div", { class: "faint" }, br.used ? "Already checked out." : "Stand on it and press > to check it out."),
+      h("div", null, "A side door: this floor as another version of the code has it."),
+      h("div", { class: "faint" }, br.used ? "You've been in." : "Stand on it and press > to go in."),
     );
     return true;
   }
@@ -87,7 +87,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     replace(
       tip,
       h("div", { class: "tip-name t-lore" }, k.name),
-      h("div", null, `${k.commits} commits on this floor, more than anyone.`),
+      h("div", null, `Changed this floor ${plural(k.commits, "time")}, more than anyone.`),
       h("div", { class: "faint" }, k.met ? "You've talked." : "Walk into them to say hi."),
     );
     return true;
@@ -95,7 +95,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
   if (v && v.x === x && v.y === y) {
     replace(
       tip,
-      h("div", { class: "tip-name t-loot" }, "the vendor"),
+      h("div", { class: "tip-name t-loot" }, "the shop"),
       v.sold ? h("div", { class: "dim" }, "Sold out on this floor.") : h("div", null, "Walk into them to see what's for sale."),
       ...(v.sold ? [] : v.offers.map((o) => h("div", { class: "faint" }, installLine(o.dep)))),
     );

@@ -190,7 +190,7 @@ export function spawnBoss(g: Game, style: BossStyle): Monster | null {
     hot: { nesting: 2, params: 1, nloc: 40, churn: 80 },
     plain: { nesting: 2, params: 1, nloc: 40, churn: 5 },
   };
-  const boss: Boss = { ...base, id: nextId("b"), name: `${style}_boss`, title: `the ${BOSS_STYLE[style].name}`, final: false, ...shape[style] };
+  const boss: Boss = { ...base, id: nextId("b"), name: `${style}_boss`, title: `a ${BOSS_STYLE[style].name} boss`, final: false, ...shape[style] };
   const room = Math.max(0, g.floor.map.grid.roomAt(at[0], at[1]));
   const m = fromBoss(boss, at[0], at[1], room, g.floor.index, g.spec.floors.length);
   m.awake = true;

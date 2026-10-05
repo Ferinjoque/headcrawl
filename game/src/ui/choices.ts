@@ -1,5 +1,5 @@
 // The cards that stop the game until you choose: a perk on level up, the
-// vendor's two dependencies, or gear on the floor when that slot is full.
+// shop's two deals, or gear on the floor when that slot is full.
 // Keys 1, 2 and 3 pick; esc walks away where walking away is allowed.
 
 import type { Game } from "../game/game";
@@ -10,13 +10,13 @@ import type { Offer } from "../game/extras";
 import { h, replace } from "./dom";
 import type { Command } from "./input";
 
-function option(key: string, name: string, text: string, pick: () => void, cls = "") {
+function option(key: string, name: string, text: string, pick: () => void, cls = "", about = "") {
   return h(
     "button",
     { class: `perk ${cls}`.trim(), type: "button", onclick: pick },
     h("kbd", null, key),
     h("span", { class: "perk-name" }, name),
-    h("span", { class: "perk-text" }, text),
+    h("span", { class: "perk-text" }, text, about ? h("small", { class: "perk-about" }, about) : null),
   );
 }
 
@@ -25,15 +25,15 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
     "div",
     { class: "card choice", role: "dialog", "aria-label": "Pick a tool" },
     h("div", { class: "card-kicker" }, "level up. pick a tool"),
-    ...ids.map((id, i) => option(String(i + 1), PERKS[id].name, PERKS[id].rare ? `rare. ${PERKS[id].text}` : PERKS[id].text, () => pick(i), PERKS[id].rare ? "rare" : "")),
+    ...ids.map((id, i) => option(String(i + 1), PERKS[id].name, PERKS[id].rare ? `rare. ${PERKS[id].text}` : PERKS[id].text, () => pick(i), PERKS[id].rare ? "rare" : "", PERKS[id].about)),
   );
 }
 
 export function vendorCard(offers: Offer[], pick: (index: number) => void) {
   return h(
     "div",
-    { class: "card choice", role: "dialog", "aria-label": "The vendor" },
-    h("div", { class: "card-kicker" }, "a vendor. one dependency per floor"),
+    { class: "card choice", role: "dialog", "aria-label": "The shop" },
+    h("div", { class: "card-kicker" }, "the shop. one buy per floor, from the libraries this code uses"),
     ...offers.map((o, i) => option(String(i + 1), o.dep.name, o.deal.text, () => pick(i))),
     option("esc", "walk away", "", () => pick(-1)),
   );

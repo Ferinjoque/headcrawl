@@ -13,7 +13,7 @@ import { key, tabs, win, type Tab } from "./win";
 export type TitleTab = "repos" | "github" | "code" | "files";
 
 export const TITLE_TABS: Tab<TitleTab>[] = [
-  { id: "repos", label: "repos", cap: "1" },
+  { id: "repos", label: "dungeons", cap: "1" },
   { id: "github", label: "any GitHub repo", cap: "2" },
   { id: "code", label: "run code", cap: "3" },
   { id: "files", label: "files", cap: "4" },
@@ -216,7 +216,7 @@ export function titleScreen(s: TitleState, on: TitleHandlers) {
     "div",
     { class: "page title" },
     h("pre", { class: "wordmark", "aria-label": "HEADCRAWL" }, wordmark()),
-    h("p", { class: "tagline" }, "A git repo, played as a dungeon."),
+    h("p", { class: "tagline" }, "A roguelike dug out of real code."),
     save
       ? h(
           "button",

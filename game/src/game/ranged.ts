@@ -45,13 +45,13 @@ function firstOnLine(g: Game, x: number, y: number): Monster | null {
 export function review(g: Game, dx: number, dy: number): boolean {
   const p = g.player;
   if (p.review > 0) {
-    g.say(`Your last comment is still open. ${p.review} more turns.`);
+    g.say(`Not ready yet: ${p.review} more turns.`);
     return false;
   }
   if (Math.max(Math.abs(dx), Math.abs(dy)) > REVIEW.range || (!dx && !dy)) return false;
   const m = firstOnLine(g, p.x + dx, p.y + dy);
   if (!m || !g.isVisible(m.x, m.y)) {
-    g.say("Nothing there to review.");
+    g.say("Nothing there to shoot.");
     return false;
   }
   p.review = REVIEW.cooldown;
@@ -59,7 +59,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   m.awake = true;
   if (!g.rng.chance(HIT.player)) {
     g.emit({ t: "miss", x: m.x, y: m.y });
-    g.say(`Your comment on ${m.name} gets resolved without a change.`);
+    g.say(`Your shot misses ${m.name}. Resolved without a change.`);
     return true;
   }
   const crit = g.rng.chance(critChance(g));
@@ -67,7 +67,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   if (crit) dmg *= critMultiplier(g);
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  g.say(`nit: ${m.name}. It takes ${dmg}.`, "good", true);
+  g.say(`nit: ${m.name} takes ${dmg}.`, "good", true);
   if (m.hp <= 0) killMonster(g, m);
   else if (m.boss) bossPhase(g, m);
   return true;

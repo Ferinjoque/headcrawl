@@ -23,7 +23,7 @@ export function runLog(game: Game, link: string): string {
   const f = game.floorSpec;
   const outcome =
     game.outcome === "won"
-      ? "Reached HEAD."
+      ? "Reached the bottom."
       : game.outcome === "dead"
         ? `Killed by ${game.killer} on floor ${f.index + 1} (${f.name}).`
         : `Still on floor ${f.index + 1} (${f.name}).`;
@@ -47,7 +47,7 @@ export function runLog(game: Game, link: string): string {
     `cursed   ${p.curses}`,
     `tools    ${p.perks.map((id) => PERKS[id].name).join(", ") || "none"}`,
     "",
-    `Refactored ${p.kills} functions:`,
+    `Beat ${p.kills} monsters:`,
     ...(kills.length ? kills : ["  none"]),
     "",
     "Bosses beaten:",

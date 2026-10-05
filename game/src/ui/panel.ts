@@ -6,28 +6,10 @@ import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
 import { h, plural, replace } from "./dom";
+import { LOOT, MONSTERS } from "./glossary";
 
-const ARCH_NAME: Record<string, string> = {
-  tangle: "tangle: regrows",
-  nest: "nest: winds up big hits",
-  hydra: "hydra: splits when hurt",
-  wall: "wall: armored, slow",
-  imp: "imp: fast",
-  bug: "bug: dodgy",
-  ghost: "ghost: dead code, walks through walls",
-  remote: "remote: shoots from a distance",
-  spawn: "helper",
-  boss: "boss",
-};
-
-const ITEM: Record<string, [string, string]> = {
-  potion: ["!", "TODO"],
-  weapon: ["/", "weapon"],
-  armor: ["[", "armor"],
-  scroll: ["?", "HACK"],
-  curse: ["%", "XXX"],
-  coffee: ["c", "coffee"],
-};
+/** "tangle: regrows". Helpers and bosses go by the kind alone. */
+const kindLine = (k: Monster["archetype"]) => (k === "spawn" || k === "boss" ? MONSTERS[k].name : `${MONSTERS[k].name}: ${MONSTERS[k].short}`);
 
 /** "test_app_tearing_down_with_unhandled" -> "test_app_te…with_unhandled": the end is what differs. */
 export function shortName(name: string, max = 28): string {
@@ -45,10 +27,10 @@ function hpBar(hp: number, max: number): HTMLElement {
 function foe(m: Monster, detail: boolean) {
   const e = m.enemy;
   const stats = m.boss
-    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
+    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "deprecated, slows you. " : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
-      : ARCH_NAME[m.archetype];
+      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${kindLine(m.archetype)}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}`
+      : kindLine(m.archetype);
   return h(
     "div",
     { class: "foe" },
@@ -85,8 +67,8 @@ function itemRow(i: Game["floor"]["items"][number]) {
   return h(
     "div",
     { class: "foe" },
-    h("span", { class: "t-loot" }, ITEM[i.kind][0]),
-    h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : ITEM[i.kind][1]),
+    h("span", { class: "t-loot" }, LOOT[i.kind].glyph),
+    h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : LOOT[i.kind].name),
     h("span", { class: "stats inline" }, lootNote(i)),
   );
 }
@@ -129,9 +111,9 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     h(
       "p",
       { class: "carry" },
-      h("span", { class: p.potions.length ? "t-good" : "faint" }, h("kbd", null, "q"), ` ! TODO ${p.potions.length}`),
-      h("span", { class: p.scrolls.length ? "t-loot" : "faint" }, h("kbd", null, "r"), ` ? HACK ${p.scrolls.length}`),
-      p.curses ? h("span", { class: "t-bad" }, ` % XXX ${p.curses}`) : null,
+      h("span", { class: p.potions.length ? "t-good" : "faint" }, h("kbd", null, "q"), ` ! potion ${p.potions.length}`),
+      h("span", { class: p.scrolls.length ? "t-loot" : "faint" }, h("kbd", null, "r"), ` ? scroll ${p.scrolls.length}`),
+      p.curses ? h("span", { class: "t-bad" }, ` % curse ${p.curses}`) : null,
     ),
     p.perks.length > 3
       ? h("p", { class: "faint tools" }, `${plural(p.perks.length, "tool")}, `, h("kbd", null, "c"), " lists them")
@@ -149,10 +131,10 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     ...(room
       ? [
         h("p", { class: "path" }, room.spec.path),
-        h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, ${plural(room.spec.churn, "commit")}`),
+        h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, changed ${plural(room.spec.churn, "time")}`),
         room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
         room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
-        room.spec.last_commit ? h("p", { class: "faint" }, "last commit ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
+        room.spec.last_commit ? h("p", { class: "faint" }, "last change ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
         ]
       : [h("p", { class: "faint" }, "In a corridor between files.")]),
   );

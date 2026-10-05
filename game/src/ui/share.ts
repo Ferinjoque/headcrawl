@@ -183,7 +183,7 @@ export function resultText(game: Game, link: string, label = "", code: string | 
   const repo = `${game.spec.repo.name} @${game.spec.repo.head.slice(0, 7)}`;
   const head =
     game.outcome === "won"
-      ? `reached HEAD in ${p.turns} turns`
+      ? `cleared in ${p.turns} turns`
       : game.outcome === "dead"
         ? `died to ${game.killer} on floor ${f.index + 1} of ${total}, turn ${p.turns}`
         : `on floor ${f.index + 1} of ${total}, turn ${p.turns}`;
@@ -191,7 +191,7 @@ export function resultText(game: Game, link: string, label = "", code: string | 
     `HEADCRAWL${label ? ` ${label}` : ""}  ${repo}`,
     floorRow(game),
     head,
-    `lv ${p.level}, ${p.kills} functions refactored, ${p.bosses} of ${total} bosses`,
+    `lv ${p.level}, ${p.kills} kills, ${p.bosses} of ${total} bosses`,
     ...(code ? [`run code ${code}`] : []),
     // A local link only repeats what the run code already says.
     ...(code && link.startsWith("#") ? [] : [link]),

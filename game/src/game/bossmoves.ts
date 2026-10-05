@@ -7,10 +7,10 @@ import type { Boss } from "../spec";
 export type BossStyle = "deep" | "sprawl" | "long" | "hot" | "plain";
 
 export const BOSS_STYLE: Record<BossStyle, { name: string; text: string }> = {
-  deep: { name: "deeply nested", text: "its sweep reaches 3 cells, but comes slower" },
-  sprawl: { name: "too many arguments", text: "calls a helper every few turns, not just when hurt" },
-  long: { name: "god function", text: "heals while you are out of reach" },
-  hot: { name: "hot path", text: "gets faster the longer the fight goes" },
+  deep: { name: "deep", text: "its sweep reaches 3 cells, but comes slower" },
+  sprawl: { name: "crowded", text: "calls a helper every few turns, not just when hurt" },
+  long: { name: "huge", text: "heals while you are out of reach" },
+  hot: { name: "hot", text: "gets faster the longer the fight goes" },
   plain: { name: "plain", text: "winds up an area attack, calls helpers at half health" },
 };
 
@@ -39,7 +39,7 @@ export function bossParams(b: Boss): number {
   return inside.split(",").filter((p) => p.trim() && !/^(self|cls|this)$/.test(p.trim())).length;
 }
 
-/** "hot path: gets faster the longer the fight goes", or "" for a plain boss. */
+/** "hot: gets faster the longer the fight goes", or "" for a plain boss. */
 export function styleLine(b: Boss): string {
   const s = styleOf(b);
   return s === "plain" ? "" : `${BOSS_STYLE[s].name}: ${BOSS_STYLE[s].text}`;
