@@ -24,7 +24,8 @@ export function monstersAct(g: Game): void {
     if (m.archetype === "tangle" && !g.has("ci") && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + TUNING.tangleRegen);
     // A god function rewrites itself while you can't reach it.
     if (m.boss && styleOf(m.boss) === "long" && dist(m, g.player) > 1 && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + BOSS_MOVES.longRegen);
-    m.energy += m.speed;
+    // A DeprecationWarning on you: everything else gets half a turn more.
+    m.energy += g.player.slowed > 0 ? Math.round(m.speed * SLOW.factor) : m.speed;
     while (m.energy >= 100 && g.outcome === "playing") {
       m.energy -= 100;
       monsterTurn(g, m, chase, taken);
@@ -140,6 +141,10 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   if (p.armor) dmg = Math.max(1, dmg - p.armor.bonus);
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
+  if (m.enemy?.deprecated && p.hp > 0) {
+    if (!p.slowed) g.say(`DeprecationWarning from ${m.name}. You slow down.`, "bad");
+    p.slowed = SLOW.turns;
+  }
   if (p.hp <= 0 && g.cheats.god) p.hp = 1;
   if (p.hp <= 0 && g.has("flag") && g.flagUsedOn !== g.floor.index) {
     g.flagUsedOn = g.floor.index;
@@ -162,6 +167,9 @@ export function struckChance(g: Game): number {
 }
 
 const BREAKER = 0.15;
+
+/** What a deprecated function's hit does to you. */
+export const SLOW = { turns: 3, factor: 1.5 };
 
 export function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));

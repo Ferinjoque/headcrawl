@@ -14,6 +14,7 @@ import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, plac
 import type { LoopTrap } from "../map/layout";
 import type { Gear } from "./gear";
 import { styleLine } from "./bossmoves";
+import { branchFloor, placeBranch, type BranchDoor } from "./branches";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
@@ -55,6 +56,7 @@ export class Game {
   readonly wielded: Gear[] = [];
   /** Lab and practice switches. Never on in a run that counts. */
   readonly cheats = { god: false, frozen: false };
+  private main: { floor: FloorState; x: number; y: number; name: string } | null = null;
   /** The floor where a Feature flag saved you, -1 before that. */
   flagUsedOn = -1;
   /** Set by an async weapon: the monsters skip this turn. */
@@ -83,6 +85,7 @@ export class Game {
       weapon: null,
       armor: null,
       review: 0,
+      slowed: 0,
       level: 1,
       xp: 0,
       nextXp: xpForLevel(1),
@@ -106,6 +109,7 @@ export class Game {
     modFloor(floor, this.mods);
     floor.vendor = placeVendor(floor, this.spec);
     floor.keeper = placeKeeper(floor, this.spec);
+    floor.branch = placeBranch(floor, this.spec);
     return floor;
   }
 
@@ -229,6 +233,7 @@ export class Game {
     this.player.turns++;
     const p = this.player;
     if (p.review > 0) p.review--;
+    if (p.slowed > 0) p.slowed--;
     const regenEvery = this.has("caffeine") ? PLAYER.regenEvery - 1 : PLAYER.regenEvery;
     if (p.turns % regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
     // Sight first, so monsters wake on what the player can see right now.
@@ -286,7 +291,9 @@ export class Game {
       this.emit({ t: "heal", x: p.x, y: p.y, amount });
       this.say("The tests pass. You feel whole again.", "good");
     }
-    if (tile === Tile.StairsDown) this.say("Stairs down. Press > to descend.", "info");
+    if (tile === Tile.StairsDown) this.say(this.main ? "Stairs back to where you branched off. Press > to merge." : "Stairs down. Press > to descend.", "info");
+    const door = this.floor.branch;
+    if (door && !door.used && door.x === p.x && door.y === p.y) this.say(`A side branch: ${door.name}. Press > to check it out.`, "lore");
     const trap = this.floor.map.loops.find((l) => l.cell === grid.idx(p.x, p.y));
     if (trap && !this.floor.loopsDone.has(trap.cell)) return this.loopBack(trap);
     if (roomIndex >= 0 && roomIndex !== prevRoom && grid.get(p.x, p.y) !== Tile.Wall) this.enterRoom(roomIndex);
@@ -349,6 +356,7 @@ export class Game {
     }
     if (!this.visited.has(room.id)) {
       this.visited.add(room.id);
+      if (room.conflicts) this.say(`Merge conflict in ${room.path}: both versions are in here, and both want you.`, "bad");
       this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info", true);
       if (room.blurb) this.say(`"${room.blurb}"`, "lore", true);
     }
@@ -437,10 +445,13 @@ export class Game {
 
   private tryDescend(): boolean {
     const p = this.player;
+    const door = this.floor.branch;
+    if (door && !door.used && door.x === p.x && door.y === p.y) return this.checkout(door);
     if (this.floor.map.grid.get(p.x, p.y) !== Tile.StairsDown) {
       this.say("There are no stairs here.");
       return false;
     }
+    if (this.main) return this.merge();
     const next = this.floor.index + 1;
     this.floor = this.makeFloor(next);
     this.lastRoom = -1;
@@ -452,6 +463,37 @@ export class Game {
     }
     this.enterFloorMessages();
     return true;
+  }
+
+  /** Into a side branch: the same floor laid out the way that branch has it. */
+  private checkout(door: BranchDoor): boolean {
+    const p = this.player;
+    door.used = true;
+    this.main = { floor: this.floor, x: p.x, y: p.y, name: door.name };
+    this.floor = branchFloor(this.spec, this.floor.index, door.name);
+    modFloor(this.floor, this.mods);
+    this.lastRoom = -1;
+    [p.x, p.y] = this.floor.map.start;
+    this.emit({ t: "branch", name: door.name, merged: false });
+    this.say(`git checkout ${door.name}. No boss here; something sharp waits by the stairs, and they merge you back.`, "lore");
+    return true;
+  }
+
+  /** Back to the floor you left, where you left it. */
+  private merge(): boolean {
+    const main = this.main!;
+    this.main = null;
+    this.floor = main.floor;
+    this.lastRoom = -1;
+    [this.player.x, this.player.y] = [main.x, main.y];
+    this.emit({ t: "branch", name: main.name, merged: true });
+    this.say(`git merge ${main.name}. Back where you were.`, "lore");
+    return true;
+  }
+
+  /** On a side branch: the floor you came from, to go back to. */
+  get inBranch(): string | null {
+    return this.main?.name ?? null;
   }
 
   private enterFloorMessages(): void {

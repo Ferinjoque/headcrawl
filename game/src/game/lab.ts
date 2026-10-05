@@ -76,9 +76,15 @@ function labFloor(index: number, final: boolean): Floor {
     enemies: [enemy("fetch_page", "bug"), enemy("parse_config", "bug", { ccn: 9, nloc: 80 }), enemy("tiny", "imp", { hp: 5, speed: 140 })],
     loot: [loot("blade", "FIXME", "this leaks"), loot("scroll", "HACK", "works on my machine")],
   });
+  const conflicted = room(`r${index}5`, index ? "deeper/merge.py" : "merge.py", {
+    wing,
+    size: 3,
+    conflicts: 1,
+    enemies: [enemy("resolve", "bug"), enemy("rebase", "bug", { deprecated: true })],
+  });
   const tests = room(`r${index}3`, index ? "deeper/test_lab.py" : "test_lab.py", { wing, kind: "shrine", size: 2, functions: 24 });
   const lair = room(`r${index}4`, index ? "deeper/boss.py" : "boss.py", { wing, kind: "lair", size: 4 });
-  const rooms = [start, arena, range, tests, lair];
+  const rooms = [start, arena, range, tests, lair, conflicted];
   const link = (a: Room, b: Room) => ({ a: a.id, b: b.id, kind: "import" as const, weight: 1 });
   return {
     id: `f${index}`,
@@ -87,7 +93,7 @@ function labFloor(index: number, final: boolean): Floor {
     path: index ? "lab/deeper" : "lab",
     wings: [{ id: wing, path: index ? "lab/deeper" : "lab", name: index ? "deeper" : "lab" }],
     rooms: rooms as Floor["rooms"],
-    edges: [link(start, arena), link(arena, range), link(arena, tests), link(arena, lair)],
+    edges: [link(start, arena), link(arena, range), link(arena, tests), link(arena, lair), link(range, conflicted)],
     entry: start.id,
     lair: lair.id,
     boss: {
@@ -114,7 +120,14 @@ export function labSpec(): DungeonSpec {
     schema_version: 1,
     generator: "lab",
     seed: LAB_SHA,
-    repo: { name: "headcrawl/lab", head: LAB_SHA, committed_at: 0, commits_scanned: 0, languages: [] },
+    repo: {
+      name: "headcrawl/lab",
+      head: LAB_SHA,
+      committed_at: 0,
+      commits_scanned: 0,
+      languages: [],
+      branches: [{ name: "feature/practice", head: LAB_SHA }],
+    },
     floors: [labFloor(0, false), labFloor(1, true)],
     totals: { files: 10, rooms: 10, functions: 12, enemies: 6, loot: 3, loc: 1200, skipped: 0 },
   };
@@ -152,12 +165,12 @@ const NAMES: Record<LabKind, Partial<Enemy> & { name: string; archetype: Enemy["
 };
 
 /** Put one monster of this kind near you, awake. Null if there is no room. */
-export function spawn(g: Game, kind: LabKind, affix: Affix | null = null): Monster | null {
+export function spawn(g: Game, kind: LabKind, affix: Affix | null = null, deprecated = false): Monster | null {
   const at = spotNear(g);
   if (!at) return null;
   const { name, archetype, ...over } = NAMES[kind];
   const room = Math.max(0, g.floor.map.grid.roomAt(at[0], at[1]));
-  const m = fromEnemy(enemy(name, archetype, over), at[0], at[1], room, g.floor.index, g.spec.floors.length);
+  const m = fromEnemy(enemy(name, archetype, { ...over, deprecated }), at[0], at[1], room, g.floor.index, g.spec.floors.length);
   if (affix) makeElite(m, affix);
   m.awake = true;
   g.floor.monsters.push(m);

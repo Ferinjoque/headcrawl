@@ -7,6 +7,7 @@ import shutil
 import stat
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -43,16 +44,34 @@ def is_local(target: str) -> bool:
 
 def analyze_target(target: str, limits: Limits = DEFAULT, name: str | None = None) -> DungeonSpec:
     if is_local(target):
-        return analyze(Path(target), name=name, limits=limits)
+        root = Path(target)
+        return analyze(
+            root, name=name, limits=limits, branches=_branches(lambda cur: gitio.local_branches(root, cur), root)
+        )
     url = gitio.normalize_url(target)
     tmp = tempfile.mkdtemp(prefix="headcrawl-")
     try:
         dest = Path(tmp) / "repo"
         gitio.clone(url, dest, limits, keep=wanted)
         repo_name = name or url.rstrip("/").removesuffix(".git").split("/", 3)[-1]
-        return analyze(dest, name=repo_name, url=url, limits=limits)
+        return analyze(
+            dest,
+            name=repo_name,
+            url=url,
+            limits=limits,
+            branches=_branches(lambda cur: gitio.remote_branches(url, cur), dest),
+        )
     finally:
         _cleanup(tmp)
+
+
+def _branches(fetch: Callable[[str | None], list[tuple[str, str]]], root: Path) -> list[tuple[str, str]]:
+    """Side branches for the side doors. Optional: any git trouble means none."""
+    try:
+        current = gitio.head(root).branch if gitio.is_repo(root) else None
+        return fetch(current)
+    except gitio.GitError:
+        return []
 
 
 def write_json(data: str, out: str | None) -> None:

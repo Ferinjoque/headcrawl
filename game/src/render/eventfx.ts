@@ -78,6 +78,7 @@ export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number, quie
       fx.shake(4, now);
       break;
     case "descend":
+    case "branch":
       fx.clear();
       break;
     default:

@@ -9,6 +9,7 @@ import { affixFor, eliteOf, isRemote, makeElite } from "./elites";
 import { fromFixme, fromTests } from "./gear";
 import type { Item, Monster } from "./types";
 import type { KeeperNpc, Vendor } from "./extras";
+import type { BranchDoor } from "./branches";
 
 export interface FloorState {
   index: number;
@@ -28,7 +29,12 @@ export interface FloorState {
   rewound: boolean;
   /** XP multiplier for this floor's monsters, above 1 when the cap left some out. */
   xpScale: number;
+  /** A door to one of the repo's other branches, or null. */
+  branch: BranchDoor | null;
 }
+
+/** How many of the other side's functions a conflicted file adds. */
+export const CONFLICT_COPIES = 3;
 
 /**
  * Big repos have hundreds of functions a floor. Fighting every one makes a
@@ -163,6 +169,19 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
       if (e === elite) makeElite(m, affixFor(e, room)!);
       monsters.push(m);
     }
+    // A merge conflict left in the file: their version of it fights too.
+    if (room.conflicts && enemies.length) {
+      const theirs = (room.past?.enemies.length ? room.past.enemies : enemies).slice(0, CONFLICT_COPIES);
+      theirs.forEach((e, i) => {
+        const c = cells.pop();
+        if (!c) return;
+        const m = fromEnemy(e, c[0], c[1], rect.index, floor.index, floors);
+        m.id = `${e.id}t${i}`;
+        m.name = `${e.name} (theirs)`.slice(0, 80);
+        m.xp = Math.round(m.xp * roster.xpScale);
+        monsters.push(m);
+      });
+    }
     for (const l of room.loot) {
       const c = cells.pop();
       if (!c) continue;
@@ -191,5 +210,6 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     loopsDone: new Set(),
     rewound: false,
     xpScale: roster.xpScale,
+    branch: null,
   };
 }

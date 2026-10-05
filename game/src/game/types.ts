@@ -60,6 +60,8 @@ export interface Player {
   armor: Gear | null;
   /** Turns until you can leave another review comment (f). */
   review: number;
+  /** Turns left of a DeprecationWarning: monsters move half again as often. */
+  slowed: number;
   level: number;
   xp: number;
   nextXp: number;
@@ -86,6 +88,8 @@ export type GameEvent =
   | { t: "levelup"; level: number }
   | { t: "perk"; id: PerkId }
   | { t: "equip"; x: number; y: number; gear: Gear }
+  /** Into a side branch, or merged back out of one. */
+  | { t: "branch"; name: string; merged: boolean }
   /** A review comment flying from you to a monster. */
   | { t: "shot"; x: number; y: number; tx: number; ty: number }
   | { t: "descend"; floor: number }

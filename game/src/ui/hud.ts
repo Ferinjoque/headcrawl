@@ -43,6 +43,7 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onS
       h("small", null, "f "),
       p.review ? `${p.review}` : "ready",
     ),
+    p.slowed ? h("span", { class: "hud-slow", title: "A deprecated function hit you: monsters act half again as often" }, `slowed ${p.slowed}`) : null,
     h("span", { class: "hud-spacer" }),
     h("span", { class: "hud-floor" }, h("small", null, `floor ${f.index + 1}/${total} `), f.name),
     goal,

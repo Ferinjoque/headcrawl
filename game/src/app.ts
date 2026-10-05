@@ -681,7 +681,7 @@ export class App {
   private handleEvents(events: GameEvent[], game: Game = this.game!, quiet = false): void {
     const now = performance.now();
     for (const e of events) {
-      if (e.t === "descend" || e.t === "loop") this.renderer.snapCamera();
+      if (e.t === "descend" || e.t === "loop" || e.t === "branch") this.renderer.snapCamera();
       if (quiet && e.t === "intro") continue;
       eventFx(e, this.fx, game, now, quiet);
       if (quiet) continue;
@@ -694,6 +694,7 @@ export class App {
         replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style));
       }
       if (e.t === "descend") this.floorCard();
+      if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "git merge" : "git checkout", e.name, "floor", e.merged ? "back where you left" : "a side branch. > at the far end merges you back"));
     }
   }
 

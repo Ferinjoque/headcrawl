@@ -47,7 +47,7 @@ function foe(m: Monster, detail: boolean) {
   const stats = m.boss
     ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
+      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "deprecated, slows you. " : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
       : ARCH_NAME[m.archetype];
   return h(
     "div",

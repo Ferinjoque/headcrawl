@@ -159,6 +159,10 @@ export class Sound {
         this.tone(300, 0.06, "square", 0.4, 600);
         this.tone(300, 0.06, "square", 0.4, 150, 0.07);
         break;
+      case "branch":
+        this.tone(e.merged ? 300 : 500, 0.18, "triangle", 0.45, e.merged ? 600 : 250);
+        this.tone(e.merged ? 600 : 250, 0.18, "triangle", 0.35, undefined, 0.18);
+        break;
       case "descend":
         this.tone(400, 0.5, "sine", 0.5, 80);
         break;

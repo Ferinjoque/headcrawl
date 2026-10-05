@@ -70,6 +70,8 @@ class Enemy(_Model):
     nesting: int = Field(ge=0, le=1000)
     params: int = Field(ge=0, le=1000)
     nloc: int = Field(ge=0, le=10_000_000)
+    # Marked deprecated in the code (@deprecated, #[deprecated], Deprecated: ...).
+    deprecated: bool = False
 
 
 class Loot(_Model):
@@ -143,6 +145,8 @@ class Room(_Model):
     enemies: list[Enemy] = Field(max_length=MAX_ENEMIES)
     loot: list[Loot] = Field(max_length=MAX_LOOT)
     past: RoomPast | None = None
+    # Merge conflicts committed into the file (<<<<<<< ... ======= ... >>>>>>>).
+    conflicts: int = Field(default=0, ge=0, le=1000)
 
 
 class Edge(_Model):
@@ -211,6 +215,13 @@ class Dependency(_Model):
     ecosystem: Ecosystem
 
 
+class Branch(_Model):
+    """Another branch on the remote, for the side doors on each floor."""
+
+    name: Name
+    head: Sha
+
+
 class RepoInfo(_Model):
     name: Name
     url: Line | None = None
@@ -220,6 +231,9 @@ class RepoInfo(_Model):
     commits_scanned: int = Field(ge=0, le=1_000_000_000)
     languages: list[LanguageShare] = Field(max_length=32)
     dependencies: list[Dependency] = Field(default_factory=list, max_length=40)
+    # Only from command line builds: a branch list isn't pinned to a commit, so
+    # the browser leaves it out and a link builds the same dungeon for everyone.
+    branches: list[Branch] = Field(default_factory=list, max_length=8)
 
 
 class Totals(_Model):

@@ -177,6 +177,29 @@
       "title": "BossPast",
       "type": "object"
     },
+    "Branch": {
+      "additionalProperties": false,
+      "description": "Another branch on the remote, for the side doors on each floor.",
+      "properties": {
+        "head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "head"
+      ],
+      "title": "Branch",
+      "type": "object"
+    },
     "Dependency": {
       "additionalProperties": false,
       "properties": {
@@ -273,6 +296,11 @@
           "minimum": 1,
           "title": "Damage",
           "type": "integer"
+        },
+        "deprecated": {
+          "default": false,
+          "title": "Deprecated",
+          "type": "boolean"
         },
         "hp": {
           "maximum": 999,
@@ -610,6 +638,14 @@
           "default": null,
           "title": "Branch"
         },
+        "branches": {
+          "items": {
+            "$ref": "#/$defs/Branch"
+          },
+          "maxItems": 8,
+          "title": "Branches",
+          "type": "array"
+        },
         "commits_scanned": {
           "maximum": 1000000000,
           "minimum": 0,
@@ -693,6 +729,13 @@
           "maximum": 1000000,
           "minimum": 0,
           "title": "Churn",
+          "type": "integer"
+        },
+        "conflicts": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Conflicts",
           "type": "integer"
         },
         "enemies": {

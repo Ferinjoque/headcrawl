@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from . import __version__, gitio, stats
+from . import __version__, gitio, markers, stats
 from .deps import dependencies
 from .floors import Group, group_floors, order_floors, wing_of
 from .graph import corridors, cycle_members
@@ -19,6 +19,7 @@ from .models import (
     Archetype,
     Boss,
     BossPast,
+    Branch,
     DungeonSpec,
     Edge,
     EdgeKind,
@@ -235,6 +236,7 @@ def analyze(
     commit_authors: dict[str, list[tuple[str, str, str, str]]] | None = None,
     past_root: Path | None = None,
     past_year: int = 0,
+    branches: list[tuple[str, str]] | None = None,
 ) -> DungeonSpec:
     """`complete` is False when the caller could only fetch part of the repo:
     then a function that looks unused may be called from a file we never
@@ -329,6 +331,7 @@ def analyze(
             commits_scanned=commits,
             languages=[LanguageShare(name=k, loc=v) for k, v in sorted(langs.items(), key=lambda kv: (-kv[1], kv[0]))],
             dependencies=dependencies(root),
+            branches=[Branch(name=clean(n, 80) or "branch", head=s) for n, s in branches or []],
         ),
         floors=floors,
         totals=Totals(
@@ -505,6 +508,7 @@ def _room(
         enemies=enemies,
         loot=_loot(ctx, rep),
         past=None if kind is RoomKind.SHRINE else _room_past(ctx, rep, skip),
+        conflicts=markers.conflict_hunks(rep.src.text),
     )
 
 
@@ -576,10 +580,13 @@ def _last_commit(ctx: _Context, rep: FileReport) -> str | None:
 def _enemies(ctx: _Context, rep: FileReport, skip: FunctionMetric | None) -> list[Enemy]:
     funcs = [f for f in rep.metric.functions if f is not skip]
     funcs.sort(key=lambda f: (-stats.threat(f), f.start_line))
-    return [_enemy(ctx, f, rep) for f in funcs[: ctx.limits.max_enemies_per_room]]
+    lines = rep.src.text.splitlines()
+    return [_enemy(ctx, f, rep, lines=lines) for f in funcs[: ctx.limits.max_enemies_per_room]]
 
 
-def _enemy(ctx: _Context, f: FunctionMetric, rep: FileReport, ghost: bool = True) -> Enemy:
+def _enemy(
+    ctx: _Context, f: FunctionMetric, rep: FileReport, ghost: bool = True, lines: list[str] | None = None
+) -> Enemy:
     return Enemy(
         id=ctx.ids("e"),
         name=_display_name(f, rep.path),
@@ -594,6 +601,7 @@ def _enemy(ctx: _Context, f: FunctionMetric, rep: FileReport, ghost: bool = True
         nesting=f.nesting,
         params=f.params,
         nloc=f.nloc,
+        deprecated=bool(lines) and markers.is_deprecated(lines or [], f.start_line, f.end_line),
     )
 
 

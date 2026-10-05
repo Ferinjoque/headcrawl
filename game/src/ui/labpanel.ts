@@ -35,6 +35,7 @@ export class LabPanel {
   private open = false;
   private enabled = false;
   private affix: Affix | null = null;
+  private deprecated = false;
 
   private el: HTMLElement;
   private host: LabHost;
@@ -107,12 +108,16 @@ export class LabPanel {
         "div",
         { class: "lab-body" },
         h("h3", null, "spawn"),
-        h("div", { class: "chips" }, ...LAB_KINDS.map((k) => chip(k, `spawn a ${k} near you`, () => this.act((x) => void spawn(x, k, this.affix))))),
+        h("div", { class: "chips" }, ...LAB_KINDS.map((k) => chip(k, `spawn a ${k} near you`, () => this.act((x) => void spawn(x, k, this.affix, this.deprecated))))),
         h(
           "div",
           { class: "chips" },
           chip("plain", "spawn ordinary monsters", () => this.setAffix(null), this.affix === null),
           ...(Object.keys(AFFIX) as Affix[]).map((a) => chip(AFFIX[a].name, `spawn elites: ${AFFIX[a].text}`, () => this.setAffix(a), this.affix === a)),
+          chip("deprecated", "spawn deprecated ones: their hits slow you", () => {
+            this.deprecated = !this.deprecated;
+            this.render();
+          }, this.deprecated),
         ),
         h(
           "div",

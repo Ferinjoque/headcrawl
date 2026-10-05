@@ -249,6 +249,11 @@ export class Renderer {
             const horizontal = y === r.y || y === r.y + r.h - 1;
             ch = horizontal ? ((x - r.x) % 2 === 0 ? "[" : "]") : x === r.x ? "[" : "]";
             col = room && room === map.lair ? mix(C.brick, C.boss, 0.45) : C.brick;
+            // Conflict markers for walls: <<<<<<< on top, >>>>>>> below, ======= at the sides.
+            if (r.spec.conflicts) {
+              ch = y === r.y ? "<" : y === r.y + r.h - 1 ? ">" : "=";
+              col = mix(C.brick, C.danger, 0.6);
+            }
             break;
           }
           case Tile.Floor: {
@@ -350,6 +355,15 @@ export class Renderer {
       lctx.fillStyle = rgba(C.gold, v.sold ? 0.4 : this.lightAt(scene, v.x, v.y) + 0.15);
       lctx.fillText("$", px + cellW / 2, py + cellH / 2);
     }
+    const b = floor.branch;
+    if (b && show(b.x, b.y)) {
+      const px = ox + b.x * cellW;
+      const py = oy + b.y * cellH;
+      ctx.fillStyle = rgba(C.violet, b.used ? 0.04 : 0.16);
+      ctx.fillRect(px, py, cellW, cellH);
+      lctx.fillStyle = rgba(C.violet, b.used ? 0.35 : this.lightAt(scene, b.x, b.y) + 0.2);
+      lctx.fillText("Y", px + cellW / 2, py + cellH / 2);
+    }
     for (const m of floor.monsters) {
       if (!show(m.x, m.y)) continue;
       this.drawMonster(scene, m, ox, oy, now);
@@ -436,6 +450,8 @@ export class Renderer {
     lctx.fillStyle = rgba(col, (m.awake ? Math.min(1, light + 0.2) : light * 0.75) * fade);
     lctx.fillText(m.glyph, px + cellW / 2, py + cellH / 2);
     if (m.affix) lctx.font = `${this.fontPx}px ${FONT}`;
+    // Deprecated code is struck through, the way an editor shows it.
+    if (m.enemy?.deprecated) lctx.fillRect(px + cellW * 0.15, py + cellH * 0.52, cellW * 0.7, Math.max(1, this.dpr * 1.5));
     if (m.hp < m.maxHp) {
       const w = Math.max(1, Math.round((cellW - 2) * (m.hp / m.maxHp)));
       lctx.fillStyle = rgba(C.danger, 0.9);

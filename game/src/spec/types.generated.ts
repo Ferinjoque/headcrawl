@@ -57,6 +57,7 @@ export type Path = string;
 export type Rooms = [Room, ...Room[]];
 export type Blurb = string | null;
 export type Churn1 = number;
+export type Conflicts = number;
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
  * via the `definition` "Archetype".
@@ -64,6 +65,7 @@ export type Churn1 = number;
 export type Archetype = "tangle" | "nest" | "hydra" | "wall" | "imp" | "bug" | "ghost";
 export type Ccn2 = number;
 export type Damage1 = number;
+export type Deprecated = boolean;
 export type Hp1 = number;
 export type Id2 = string;
 export type Line1 = number;
@@ -125,6 +127,12 @@ export type Name5 = string;
 export type Path2 = string;
 export type Generator = string;
 export type Branch = string | null;
+export type Head = string;
+export type Name6 = string;
+/**
+ * @maxItems 8
+ */
+export type Branches = Branch1[];
 export type CommitsScanned = number;
 export type CommittedAt = number;
 /**
@@ -132,19 +140,19 @@ export type CommittedAt = number;
  * via the `definition` "Ecosystem".
  */
 export type Ecosystem = "npm" | "pypi" | "go" | "cargo" | "gem" | "composer";
-export type Name6 = string;
+export type Name7 = string;
 /**
  * @maxItems 40
  */
 export type Dependencies = Dependency[];
-export type Head = string;
+export type Head1 = string;
 export type Loc1 = number;
-export type Name7 = string;
+export type Name8 = string;
 /**
  * @maxItems 32
  */
 export type Languages = LanguageShare[];
-export type Name8 = string;
+export type Name9 = string;
 export type Url = string | null;
 export type SchemaVersion = number;
 export type Seed = string;
@@ -244,6 +252,7 @@ export interface Keeper {
 export interface Room {
   blurb?: Blurb;
   churn: Churn1;
+  conflicts?: Conflicts;
   enemies: Enemies;
   functions: Functions;
   heat: Heat;
@@ -267,6 +276,7 @@ export interface Enemy {
   archetype: Archetype;
   ccn: Ccn2;
   damage: Damage1;
+  deprecated?: Deprecated;
   hp: Hp1;
   id: Id2;
   line: Line1;
@@ -318,13 +328,24 @@ export interface Wing1 {
  */
 export interface RepoInfo {
   branch?: Branch;
+  branches?: Branches;
   commits_scanned: CommitsScanned;
   committed_at: CommittedAt;
   dependencies?: Dependencies;
-  head: Head;
+  head: Head1;
   languages: Languages;
-  name: Name8;
+  name: Name9;
   url?: Url;
+}
+/**
+ * Another branch on the remote, for the side doors on each floor.
+ *
+ * This interface was referenced by `DungeonSpec`'s JSON-Schema
+ * via the `definition` "Branch".
+ */
+export interface Branch1 {
+  head: Head;
+  name: Name6;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -332,7 +353,7 @@ export interface RepoInfo {
  */
 export interface Dependency {
   ecosystem: Ecosystem;
-  name: Name6;
+  name: Name7;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema
@@ -340,7 +361,7 @@ export interface Dependency {
  */
 export interface LanguageShare {
   loc: Loc1;
-  name: Name7;
+  name: Name8;
 }
 /**
  * This interface was referenced by `DungeonSpec`'s JSON-Schema

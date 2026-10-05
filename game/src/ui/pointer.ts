@@ -38,6 +38,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
       h("div", { class: "t-lore" }, ABILITY[m.archetype]),
       m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
+      e?.deprecated ? h("div", { class: "t-bad" }, "deprecated: its hits slow you down for 3 turns") : null,
       e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
       m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
       m.boss && styleLine(m.boss) ? h("div", { class: "t-boss" }, styleLine(m.boss)) : null,
@@ -68,6 +69,16 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       l ? h("div", null, `"${l.text}"`) : h("div", null, "Still warm."),
       when || who ? h("div", { class: "faint" }, when + who) : null,
       item.source ? h("div", { class: "faint" }, item.source) : null,
+    );
+    return true;
+  }
+  const br = game.floor.branch;
+  if (br && br.x === x && br.y === y) {
+    replace(
+      tip,
+      h("div", { class: "tip-name t-lore" }, br.name),
+      h("div", null, "Another branch of this repo. The same folder, laid out the way it has it."),
+      h("div", { class: "faint" }, br.used ? "Already checked out." : "Stand on it and press > to check it out."),
     );
     return true;
   }

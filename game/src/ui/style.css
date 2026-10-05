@@ -237,6 +237,9 @@ body {
 .hud-stats:focus-visible {
   border-bottom-color: var(--ember);
 }
+.hud-slow {
+  color: var(--danger);
+}
 .hud-review {
   color: var(--text-faint);
 }

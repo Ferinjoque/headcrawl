@@ -409,3 +409,34 @@ def last_subject(path: Path, rel: str) -> str | None:
 def commit_count(path: Path, limits: Limits = DEFAULT) -> int:
     out = run(["rev-list", f"--max-count={limits.churn_commits}", "--count", "HEAD"], cwd=path)
     return int(out.strip() or 0)
+
+
+_BOT_BRANCHES = ("dependabot/", "renovate/", "gh-pages", "greenkeeper/", "snyk-")
+_BRANCH_NAME = re.compile(r"^[A-Za-z0-9._/-]{1,80}$")
+
+
+def _pick_branches(rows: list[tuple[str, str]], current: str | None, limit: int) -> list[tuple[str, str]]:
+    """Real work in progress only: no bot branches, not the one we built."""
+    keep = [
+        (name, sha)
+        for name, sha in rows
+        if name != current and _SHA.match(sha) and _BRANCH_NAME.match(name) and not name.startswith(_BOT_BRANCHES)
+    ]
+    return sorted(keep)[:limit]
+
+
+def remote_branches(url: str, current: str | None, limit: int = 8) -> list[tuple[str, str]]:
+    """Branch names and heads on the remote, without fetching anything else."""
+    out = run(["ls-remote", "--heads", "--", normalize_url(url)], timeout=30)
+    rows = []
+    for line in out.splitlines():
+        sha, _, ref = line.partition("\t")
+        if ref.startswith("refs/heads/"):
+            rows.append((ref.removeprefix("refs/heads/"), sha.strip()))
+    return _pick_branches(rows, current, limit)
+
+
+def local_branches(path: Path, current: str | None, limit: int = 8) -> list[tuple[str, str]]:
+    out = run(["for-each-ref", "--format=%(refname:short)%09%(objectname)", "refs/heads"], cwd=path)
+    rows = [tuple(line.split("\t", 1)) for line in out.splitlines() if "\t" in line]
+    return _pick_branches([(a, b) for a, b in rows], current, limit)
