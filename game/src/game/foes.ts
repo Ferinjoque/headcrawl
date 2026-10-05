@@ -85,7 +85,7 @@ function aim(g: Game, m: Monster): boolean {
   const end = line.at(-1);
   if (!end || end[0] !== p.x || end[1] !== p.y) return false;
   m.threat = line;
-  g.emit({ t: "telegraph", x: m.x, y: m.y });
+  g.emit({ t: "telegraph", x: m.x, y: m.y, line: true });
   g.say(`${m.name} opens a connection. Get off the red line.`, "bad");
   return true;
 }

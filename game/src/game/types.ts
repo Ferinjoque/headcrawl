@@ -87,7 +87,8 @@ export type GameEvent =
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
   | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean }
-  | { t: "telegraph"; x: number; y: number }
+  /** A wind-up. "line" is a remote call aiming; the rest hit an area. */
+  | { t: "telegraph"; x: number; y: number; line?: boolean }
   | { t: "dodge"; x: number; y: number }
   | { t: "split"; x: number; y: number }
   | { t: "reveal" }

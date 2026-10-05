@@ -125,8 +125,31 @@ export class Sound {
         this.tone(82, 1.2, "sawtooth", 0.35, 61);
         break;
       case "telegraph":
-        this.tone(880, 0.05, "square", 0.4);
-        this.tone(880, 0.05, "square", 0.4, undefined, 0.09);
+        if (e.line) {
+          // A connection opening: a modem-ish chirp that climbs.
+          this.tone(600, 0.16, "sine", 0.45, 1400);
+          this.tone(1400, 0.05, "square", 0.25, undefined, 0.17);
+        } else {
+          this.tone(880, 0.05, "square", 0.4);
+          this.tone(880, 0.05, "square", 0.4, undefined, 0.09);
+        }
+        break;
+      case "equip":
+        if (e.gear.slot === "weapon") {
+          this.noise(0.09, 0.35, 4000);
+          this.tone(1200, 0.14, "triangle", 0.45, 1800, 0.02);
+        } else {
+          this.tone(140, 0.12, "sine", 0.7, 90);
+          this.tone(620, 0.05, "square", 0.3, undefined, 0.05);
+        }
+        break;
+      case "loop":
+        this.tone(330, 0.18, "sine", 0.5, 160);
+        this.tone(160, 0.18, "sine", 0.5, 330, 0.18);
+        break;
+      case "rewind":
+        this.tone(900, 0.45, "sawtooth", 0.35, 180);
+        this.noise(0.4, 0.2, 1500);
         break;
       case "split":
         this.tone(300, 0.06, "square", 0.4, 600);
