@@ -24,6 +24,13 @@ const ITEM: Record<string, [string, string]> = {
   coffee: ["c", "coffee"],
 };
 
+/** "test_app_tearing_down_with_unhandled" -> "test_app_te…with_unhandled": the end is what differs. */
+export function shortName(name: string, max = 28): string {
+  if (name.length <= max) return name;
+  const tail = Math.ceil((max - 1) * 0.6);
+  return `${name.slice(0, max - 1 - tail)}…${name.slice(-tail)}`;
+}
+
 function hpBar(hp: number, max: number): HTMLElement {
   const fill = h("i");
   fill.style.width = `${max > 0 ? Math.max(0, Math.min(100, (hp / max) * 100)).toFixed(1) : 0}%`;
@@ -41,7 +48,7 @@ function foe(m: Monster, detail: boolean) {
     "div",
     { class: "foe" },
     h("span", { class: m.boss ? "t-boss glow" : m.awake ? "t-bad" : "dim" }, m.glyph),
-    h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, m.name),
+    h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, shortName(m.name)),
     hpBar(m.hp, m.maxHp),
     detail ? h("span", { class: "stats" }, stats) : null,
   );

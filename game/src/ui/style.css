@@ -124,7 +124,7 @@ body {
   overflow: hidden;
   padding: 6px 14px 10px;
   border-top: 1px solid var(--ink-line);
-  min-height: calc(4 * 1.15em + 16px);
+  min-height: calc(3 * 1.15em + 16px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -829,4 +829,60 @@ body.dragging #screen::after {
 .page a:hover,
 .page a:focus-visible {
   color: var(--gold);
+}
+
+/* Repo difficulty: brighter ember is harder. Never green; green means health. */
+.diff-1 { color: oklch(0.6 0.06 50); }
+.diff-2 { color: oklch(0.68 0.1 50); }
+.diff-3 { color: oklch(0.74 0.14 50); }
+.diff-4 { color: oklch(0.76 0.18 40); }
+.diff-5 { color: var(--boss); }
+
+/* Bestiary rows in each monster's own colour, as on the map. */
+.kind-tangle { color: oklch(0.72 0.24 330); }
+.kind-nest { color: oklch(0.72 0.2 35); }
+.kind-hydra { color: oklch(0.82 0.14 190); }
+.kind-wall { color: oklch(0.7 0.1 250); }
+.kind-imp { color: oklch(0.88 0.17 100); }
+.kind-bug { color: oklch(0.8 0.14 225); }
+.kind-ghost { color: oklch(0.86 0.05 280); }
+.kind-spawn { color: oklch(0.75 0.15 340); }
+
+/* The share box is game text, not browser monospace. */
+.share {
+  font-family: inherit;
+  font-size: var(--fs-m);
+  line-height: 1.2;
+}
+
+/* Touch devices: no keyboard, so no [key] labels. */
+@media (pointer: coarse) {
+  .btn kbd,
+  .continue kbd,
+  .perk kbd {
+    display: none;
+  }
+  /* Without key labels a button needs an edge to look tappable. */
+  .btn {
+    padding: 8px 12px;
+    margin: 0 8px 8px 0;
+    border: 1px solid var(--ink-line);
+  }
+}
+
+@media (max-width: 900px) {
+  #touch {
+    grid-template-columns: repeat(3, 46px);
+    gap: 5px;
+  }
+  #touch button {
+    height: 46px;
+  }
+  /* Repo comments are the point; let a phone log line wrap once. */
+  #log p {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 }

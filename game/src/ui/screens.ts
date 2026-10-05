@@ -38,12 +38,13 @@ function btn(key: string, label: string, onclick: () => void) {
 }
 
 // Difficulty as a word, not another row of # marks.
+// Brighter ember is harder; never green, which means health.
 const DIFF: Record<number, [string, string]> = {
-  1: ["gentle", "t-good"],
-  2: ["easy", "t-good"],
-  3: ["fair", "t-loot"],
-  4: ["hard", "t-bad"],
-  5: ["brutal", "t-boss"],
+  1: ["gentle", "diff-1"],
+  2: ["mild", "diff-2"],
+  3: ["fair", "diff-3"],
+  4: ["tough", "diff-4"],
+  5: ["brutal", "diff-5"],
 };
 
 export interface TitleHandlers {
@@ -294,7 +295,7 @@ export function bestiaryScreen(c: Codex, close: () => void) {
       ? h("p", { class: "dim" }, `${plural(c.runs, "run")} in ${plural(c.repos.length, "repo")}, ${c.wins} cleared. Kept in this browser.`)
       : h("p", { class: "dim" }, "Nothing yet. Finish a run and it shows up here."),
     h("h2", null, "refactored"),
-    ...KINDS.map((k) => row(`${k} x${c.kills[k] ?? 0}`, ABILITY[k], c.kills[k] ? "t-loot" : "faint")),
+    ...KINDS.map((k) => row(`${k} x${c.kills[k] ?? 0}`, ABILITY[k], c.kills[k] ? `kind-${k}` : "faint")),
     c.bosses.length ? h("h2", null, "bosses beaten, gnarliest first") : null,
     ...c.bosses.map((b) => row(b.name, `${b.repo}, ${plural(b.ccn, "branch")}`, "t-boss")),
     deaths.length ? h("h2", null, "what keeps getting you") : null,
@@ -328,7 +329,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
     won ? null : h("pre", { class: "tomb", "aria-hidden": "true" }, TOMB),
     h("h1", { class: won ? "t-loot glow" : "t-bad glow" }, won ? "HEAD reached" : "segfault"),
     won
-      ? h("p", null, `You beat ${f.boss.name}, ${f.boss.title}, and walked out the top of ${game.spec.repo.name}.`)
+      ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, and walked out the top of ${game.spec.repo.name}.`)
       : h("p", null, "Killed by ", h("span", { class: "t-bad" }, killer ?? "something"), ` on floor ${f.index + 1} (${f.name}).`),
     h(
       "p",
@@ -343,8 +344,8 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
         ? btn("r", "play this run yourself", on.again)
         : btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
       btn("c", copied ? "copied" : "copy result", on.copy),
-      btn("esc", "pick another repo", on.menu),
-      btn("tab", more ? "less" : "share and save", on.more),
+      btn("m", "repo list", on.menu),
+      btn("tab", more ? "less" : "more", on.more),
     ),
     more
       ? h(
@@ -527,12 +528,13 @@ function tokenSection({ place, note }: TokenView, on: SettingsHandlers): HTMLEle
     "section",
     { "aria-labelledby": "token-heading" },
     h("h2", { id: "token-heading" }, "github token (optional)"),
+    h("p", { class: "dim" }, "More GitHub calls an hour, and TODO years and authors in repos built here."),
     h(
       "p",
-      { class: "dim" },
-      "With your own token GitHub allows 5000 calls an hour, and repos built here show the year each TODO was written. ",
-      h("a", { href: "https://github.com/settings/personal-access-tokens/new", target: "_blank", rel: "noopener noreferrer" }, "Make a fine-grained token"),
-      " with public repos read-only and no other permissions. It stays in this browser and is only sent to api.github.com.",
+      { class: "faint" },
+      "A ",
+      h("a", { href: "https://github.com/settings/personal-access-tokens/new", target: "_blank", rel: "noopener noreferrer" }, "fine-grained token"),
+      ", public repos read-only. Only ever sent to api.github.com.",
     ),
     h("p", { class: place === "none" ? "faint" : "t-good" }, TOKEN_PLACES[place]),
     h(
@@ -565,6 +567,7 @@ function tokenSection({ place, note }: TokenView, on: SettingsHandlers): HTMLEle
 }
 
 export interface PauseHandlers {
+  copy(): void;
   resume(): void;
   restart(): void;
   settings(): void;
@@ -585,9 +588,10 @@ export function pauseScreen(on: PauseHandlers, code: string | null = null, where
       "div",
       { class: "actions" },
       btn("esc", "resume", on.resume),
-      btn("n", "start a new run", on.restart),
+      code ? btn("c", "copy run code", on.copy) : null,
+      btn("r", "new run, new rolls", on.restart),
       btn(",", "settings", on.settings),
-      btn("m", "back to the repo list", on.menu),
+      btn("m", "repo list", on.menu),
     ),
   );
 }

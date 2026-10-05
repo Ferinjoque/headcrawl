@@ -99,8 +99,11 @@ export function touchPad(el: HTMLElement, send: (c: Command) => void): void {
     ["x", { kind: "explore" }],
     [">", { kind: "descend" }],
     ["q", { kind: "quaff" }],
+    ["menu", { kind: "menu" }],
+    ["panel", { kind: "panel" }],
+    ["?", { kind: "help" }],
   ];
-  const arrows: Record<string, string> = { y: "↖", k: "↑", u: "↗", h: "←", l: "→", b: "↙", j: "↓", n: "↘" };
+  const arrows: Record<string, string> = { y: "↖", k: "↑", u: "↗", h: "←", l: "→", b: "↙", j: "↓", n: "↘", menu: "≡", panel: "i" };
   el.replaceChildren(
     ...pad.map(([label, cmd]) => {
       const b = document.createElement("button");

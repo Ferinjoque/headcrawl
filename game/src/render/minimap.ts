@@ -17,13 +17,35 @@ const COLORS: Partial<Record<number, RGB>> = {
 export function drawMinimap(canvas: HTMLCanvasElement, game: Game): void {
   const { grid, lair } = game.floor.map;
   const { seen } = game.floor;
-  canvas.width = grid.width;
-  canvas.height = grid.height;
+  // Crop to what you've seen, plus a margin, so a small explored area isn't a dot in a big box.
+  let x0 = grid.width;
+  let y0 = grid.height;
+  let x1 = 0;
+  let y1 = 0;
+  for (let i = 0; i < seen.length; i++) {
+    if (!seen[i]) continue;
+    const x = i % grid.width;
+    const y = (i - x) / grid.width;
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  if (x1 < x0) [x0, y0, x1, y1] = [0, 0, grid.width - 1, grid.height - 1];
+  x0 = Math.max(0, x0 - 3);
+  y0 = Math.max(0, y0 - 2);
+  x1 = Math.min(grid.width - 1, x1 + 3);
+  y1 = Math.min(grid.height - 1, y1 + 2);
+  const w = x1 - x0 + 1;
+  const hgt = y1 - y0 + 1;
+  canvas.width = w;
+  canvas.height = hgt;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const img = ctx.createImageData(grid.width, grid.height);
+  const img = ctx.createImageData(w, hgt);
   const put = (x: number, y: number, c: RGB) => {
-    const o = (y * grid.width + x) * 4;
+    if (x < x0 || x > x1 || y < y0 || y > y1) return;
+    const o = ((y - y0) * w + (x - x0)) * 4;
     img.data[o] = c[0];
     img.data[o + 1] = c[1];
     img.data[o + 2] = c[2];

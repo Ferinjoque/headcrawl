@@ -91,7 +91,7 @@ export class App {
     this.renderer = new Renderer($("view") as HTMLCanvasElement);
     this.renderer.reduced = this.reduced;
     this.fx.reduced = this.reduced;
-    this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 4);
+    this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 3);
     this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
     this.applySettings();
     this.builder = new Builder({
@@ -395,6 +395,10 @@ export class App {
     this.scheduleSave(true);
     this.showScreen(
       pauseScreen({
+        copy: () => {
+          const code = this.code();
+          if (code) void copyText(code);
+        },
         resume: () => this.closeOverlay(),
         restart: () => this.restart(),
         settings: () => this.openSettings(),
@@ -657,7 +661,7 @@ export class App {
     for (const e of events) {
       if (e.t === "descend" || e.t === "loop") this.renderer.snapCamera();
       if (quiet && e.t === "intro") continue;
-      eventFx(e, this.fx, game, now);
+      eventFx(e, this.fx, game, now, quiet);
       if (quiet) continue;
       this.sound.play(e);
       if (e.t === "msg" && !e.quiet) this.log.push(e.text, e.tone);
@@ -690,7 +694,7 @@ export class App {
       if (e.target instanceof HTMLInputElement || !this.compareRoutes) return;
       if (e.key === "1") this.navigate(this.compareRoutes.then);
       else if (e.key === "2") this.navigate(this.compareRoutes.now);
-      else if (e.key === "Escape") this.navigate({ kind: "title" });
+      else if (e.key === "Escape" || e.key === "m" || e.key === "M") this.navigate({ kind: "title" });
       return;
     }
     if (this.mode === "dying" || this.mode === "loading") return;
@@ -714,7 +718,12 @@ export class App {
       this.navigate({ kind: "title" });
       return;
     }
-    if (this.mode === "pause" && (e.key === "n" || e.key === "N")) {
+    if (this.mode === "pause" && (e.key === "c" || e.key === "C")) {
+      const code = this.code();
+      if (code) void copyText(code);
+      return;
+    }
+    if (this.mode === "pause" && (e.key === "n" || e.key === "N" || e.key === "r" || e.key === "R")) {
       this.restart();
       return;
     }
@@ -796,7 +805,7 @@ export class App {
     } else if (this.attract.game) {
       const demo = this.attract.game;
       this.renderer.render(
-        { floor: demo.floor, player: demo.player, sight: PLAYER.sight, dim: 0.2, threat: demo.threatened() },
+        { floor: demo.floor, player: demo.player, sight: PLAYER.sight, dim: 0.32, threat: demo.threatened() },
         this.fx,
         now,
         // Keep the demo off to the right of the menu column on wide screens.

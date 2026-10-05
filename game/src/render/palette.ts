@@ -55,10 +55,11 @@ export const C: Record<ColorRole, RGB> = { ...GLOW };
 const GLOW_ARCHETYPE: Record<string, RGB> = {
   tangle: oklch(0.72, 0.24, 330),
   nest: oklch(0.72, 0.2, 35),
-  hydra: oklch(0.82, 0.14, 200),
+  hydra: oklch(0.82, 0.14, 190),
   wall: oklch(0.7, 0.1, 250),
   imp: oklch(0.88, 0.17, 100),
-  bug: oklch(0.85, 0.2, 130),
+  // Not green: green means health.
+  bug: oklch(0.8, 0.14, 225),
   ghost: oklch(0.86, 0.05, 280),
   spawn: oklch(0.75, 0.15, 340),
   boss: GLOW.boss,

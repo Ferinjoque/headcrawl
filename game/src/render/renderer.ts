@@ -85,7 +85,9 @@ export class Renderer {
     this.bloomB.height = Math.ceil(h / 2);
     const byWidth = rect.width / (64 * 0.62);
     const byHeight = rect.height / (30 * 0.92);
-    this.fontPx = Math.round(Math.max(15, Math.min(34, byWidth, byHeight)) * this.textScale * this.dpr);
+    // Phones show less of the map, at a size you can read.
+    const floor = rect.width < 600 ? 22 : 15;
+    this.fontPx = Math.round(Math.max(floor, Math.min(34, byWidth, byHeight)) * this.textScale * this.dpr);
     this.cellW = Math.round(this.fontPx * 0.62);
     this.cellH = Math.round(this.fontPx * 0.92);
   }

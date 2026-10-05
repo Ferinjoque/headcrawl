@@ -6,7 +6,12 @@ import type { GameEvent } from "../game/types";
 import type { Effects } from "./effects";
 import { C } from "./palette";
 
-export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number): void {
+export function eventFx(e: GameEvent, fx: Effects, game: Game, now: number, quiet = false): void {
+  // Behind the title only light shows: flashes and sparks, never words or numbers.
+  if (quiet && (e.t === "hit" || e.t === "miss" || e.t === "heal" || e.t === "levelup" || e.t === "dodge" || e.t === "split")) {
+    if (e.t === "hit" || e.t === "split") fx.flash(e.x, e.y, e.t === "hit" && e.onPlayer ? C.danger : C.player, now);
+    return;
+  }
   switch (e.t) {
     case "hit":
       fx.float(e.x, e.y, e.crit ? `${e.amount}!` : String(e.amount), e.onPlayer ? C.danger : e.crit ? C.gold : C.text, now);

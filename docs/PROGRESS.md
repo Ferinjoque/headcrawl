@@ -148,8 +148,9 @@ redraws the whole view at 20 fps when idle.
 
 - Balance: with the vendor the bot wins about 3 in 4 gallery runs. Check
   against human play before retuning.
-- Flavor: gemma4 works since Ollama 0.35 (`--model gemma4`); qwen2.5:7b
-  stays the default.
+- Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
+  itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
+  more lines past the filter. qwen2.5:7b stays the default.
 
 ## Notes
 
