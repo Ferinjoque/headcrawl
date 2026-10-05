@@ -13,6 +13,7 @@ import { buildFloor, type FloorState } from "./world";
 import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, placeVendor, type ModId, type Offer } from "./extras";
 import type { LoopTrap } from "../map/layout";
 import type { Gear } from "./gear";
+import { styleLine } from "./bossmoves";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
@@ -336,6 +337,7 @@ export class Game {
           where: `${room.path}:${boss.boss.line}`,
           text: boss.boss.taunts[0],
           final: Boolean(boss.boss.final),
+          style: styleLine(boss.boss),
         });
       } else if (boss) this.taunt(boss);
     }

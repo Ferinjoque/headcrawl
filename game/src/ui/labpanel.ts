@@ -18,7 +18,9 @@ import {
   openStairs,
   revealAll,
   spawn,
+  spawnBoss,
 } from "../game/lab";
+import { BOSS_STYLE, type BossStyle } from "../game/bossmoves";
 import { ALL_PERKS, PERKS, type PerkId } from "../game/perks";
 import { h, replace } from "./dom";
 
@@ -111,6 +113,11 @@ export class LabPanel {
           { class: "chips" },
           chip("plain", "spawn ordinary monsters", () => this.setAffix(null), this.affix === null),
           ...(Object.keys(AFFIX) as Affix[]).map((a) => chip(AFFIX[a].name, `spawn elites: ${AFFIX[a].text}`, () => this.setAffix(a), this.affix === a)),
+        ),
+        h(
+          "div",
+          { class: "chips" },
+          ...(Object.keys(BOSS_STYLE) as BossStyle[]).map((s) => chip(`boss: ${BOSS_STYLE[s].name}`, BOSS_STYLE[s].text, () => this.act((x) => void spawnBoss(x, s)))),
         ),
         h("h3", null, "gear"),
         h(

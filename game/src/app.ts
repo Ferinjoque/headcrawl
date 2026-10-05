@@ -682,7 +682,7 @@ export class App {
       else if (e.t === "taunt") this.log.push(`${e.name}: "${e.text}"`, "boss");
       else if (e.t === "intro") {
         this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
-        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text));
+        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style));
       }
       if (e.t === "descend") this.floorCard();
     }

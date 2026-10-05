@@ -684,6 +684,9 @@ def _boss(ctx: _Context, rep: FileReport, f: FunctionMetric, depth: int, final: 
         taunts=_taunts(ctx, rep, f, final),
         final=final,
         past=_past(ctx, rep, f),
+        nesting=f.nesting,
+        params=f.params,
+        nloc=f.nloc,
     )
 
 

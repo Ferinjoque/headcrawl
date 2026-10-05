@@ -13,8 +13,11 @@ export type Hp = number;
 export type Id = string;
 export type Line = number;
 export type Name = string;
-export type Ccn1 = number;
+export type Nesting = number;
 export type Nloc = number;
+export type Params = number;
+export type Ccn1 = number;
+export type Nloc1 = number;
 export type Year = number;
 export type Signature = string;
 export type Speed = number;
@@ -65,9 +68,9 @@ export type Hp1 = number;
 export type Id2 = string;
 export type Line1 = number;
 export type Name3 = string;
-export type Nesting = number;
-export type Nloc1 = number;
-export type Params = number;
+export type Nesting1 = number;
+export type Nloc2 = number;
+export type Params1 = number;
 export type Signature1 = string;
 export type Speed1 = number;
 export type Xp1 = number;
@@ -191,6 +194,9 @@ export interface Boss {
   id: Id;
   line: Line;
   name: Name;
+  nesting?: Nesting;
+  nloc?: Nloc;
+  params?: Params;
   past?: BossPast | null;
   signature: Signature;
   speed: Speed;
@@ -206,7 +212,7 @@ export interface Boss {
  */
 export interface BossPast {
   ccn: Ccn1;
-  nloc: Nloc;
+  nloc: Nloc1;
   year: Year;
 }
 /**
@@ -265,9 +271,9 @@ export interface Enemy {
   id: Id2;
   line: Line1;
   name: Name3;
-  nesting: Nesting;
-  nloc: Nloc1;
-  params: Params;
+  nesting: Nesting1;
+  nloc: Nloc2;
+  params: Params1;
   signature: Signature1;
   speed: Speed1;
   xp: Xp1;

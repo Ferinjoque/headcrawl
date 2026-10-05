@@ -5,6 +5,8 @@ import { BOSS, HIT, WAKE_RANGE } from "./balance";
 import { TUNING } from "./abilities";
 import { chaseMap, stepToward } from "./chase";
 import { GHOST_DAMAGE, ghostStep } from "./extras";
+import { BOSS_MOVES, styleOf } from "./bossmoves";
+import { callHelper } from "./combat";
 import { REMOTE, lineCells } from "./elites";
 import type { Game } from "./game";
 import type { Monster } from "./types";
@@ -20,6 +22,8 @@ export function monstersAct(g: Game): void {
     if (!m.awake && g.isVisible(m.x, m.y) && dist(m, g.player) <= (m.boss ? 3 : WAKE_RANGE)) m.awake = true;
     if (!m.awake) continue;
     if (m.archetype === "tangle" && !g.has("ci") && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + TUNING.tangleRegen);
+    // A god function rewrites itself while you can't reach it.
+    if (m.boss && styleOf(m.boss) === "long" && dist(m, g.player) > 1 && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + BOSS_MOVES.longRegen);
     m.energy += m.speed;
     while (m.energy >= 100 && g.outcome === "playing") {
       m.energy -= 100;
@@ -36,13 +40,7 @@ function monsterTurn(g: Game, m: Monster, chase: Int16Array, taken: Uint8Array):
     return;
   }
   if (m.cooldown > 0) m.cooldown--;
-  if (m.boss) {
-    m.turns++;
-    if (m.turns % TUNING.bossSweepEvery === 0 && dist(m, p) <= TUNING.bossSweepRadius + 1) {
-      windUp(g, m, TUNING.bossSweepRadius, `${m.name} winds up. Get out of the red.`);
-      return;
-    }
-  }
+  if (m.boss && bossTurn(g, m)) return;
   if (m.archetype === "remote" && m.cooldown === 0 && aim(g, m)) return;
   if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
     if (m.archetype === "nest" && m.cooldown === 0) {
@@ -60,6 +58,31 @@ function monsterTurn(g: Game, m: Monster, chase: Int16Array, taken: Uint8Array):
     [m.x, m.y] = step;
     taken[grid.idx(m.x, m.y)] = 1;
   }
+}
+
+/** What a boss does before walking or swinging. True if that used its turn. */
+function bossTurn(g: Game, m: Monster): boolean {
+  const style = styleOf(m.boss!);
+  const mv = BOSS_MOVES;
+  m.turns++;
+  if (style === "hot" && m.turns % mv.hotEvery === 0 && m.speed < m.boss!.speed + mv.hotCap) {
+    m.speed += mv.hotStep;
+    g.say(`${m.name} speeds up. Somebody pushed another fix.`, "bad", true);
+  }
+  if (style === "sprawl" && m.turns % mv.sprawlEvery === 0) {
+    const helpers = g.floor.monsters.filter((x) => x.archetype === "spawn").length;
+    if (helpers < mv.sprawlMaxHelpers && callHelper(g, m)) {
+      g.say(`${m.name} passes one more argument. A helper shows up.`, "boss");
+      return true;
+    }
+  }
+  const radius = style === "deep" ? mv.deepRadius : TUNING.bossSweepRadius;
+  const every = style === "deep" ? mv.deepEvery : TUNING.bossSweepEvery;
+  if (m.turns % every === 0 && dist(m, g.player) <= radius + 1) {
+    windUp(g, m, radius, `${m.name} winds up. Get out of the red.`);
+    return true;
+  }
+  return false;
 }
 
 /** Mark every open cell within `radius` as about to be hit. */

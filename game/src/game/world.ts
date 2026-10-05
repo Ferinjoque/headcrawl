@@ -97,7 +97,7 @@ export function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: n
   };
 }
 
-function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, floors: number): Monster {
+export function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, floors: number): Monster {
   const cap = capsFor(depth, floors);
   const k = bossScale(depth);
   const hp = Math.max(1, Math.round(softCap(b.hp * k, cap.bossHp)));

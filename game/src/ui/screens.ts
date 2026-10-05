@@ -360,13 +360,14 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
 }
 
 /** The big title card for a new floor or a boss, over the map. */
-export function bannerCard(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string) {
+export function bannerCard(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string, style?: string) {
   return h(
     "div",
     { class: "card" },
     h("div", { class: "card-kicker" }, kicker),
     h("div", { class: `card-name ${kind}${name.length > 14 ? " long" : ""}` }, name),
     h("div", { class: "card-sub" }, sub),
+    style ? h("div", { class: "card-style" }, style) : null,
     quote ? h("div", { class: "card-quote" }, `"${quote}"`) : null,
   );
 }

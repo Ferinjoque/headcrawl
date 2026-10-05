@@ -63,6 +63,27 @@
           "title": "Name",
           "type": "string"
         },
+        "nesting": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Nesting",
+          "type": "integer"
+        },
+        "nloc": {
+          "default": 0,
+          "maximum": 10000000,
+          "minimum": 0,
+          "title": "Nloc",
+          "type": "integer"
+        },
+        "params": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Params",
+          "type": "integer"
+        },
         "past": {
           "anyOf": [
             {

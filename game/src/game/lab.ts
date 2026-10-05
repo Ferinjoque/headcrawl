@@ -2,14 +2,15 @@
 // monster, weapon or perk in front of you. The same tools work in a practice
 // run of a real dungeon. Nothing here runs in a run that counts.
 
-import type { DungeonSpec, Enemy, Floor, Loot, Room } from "../spec";
+import type { Boss, DungeonSpec, Enemy, Floor, Loot, Room } from "../spec";
+import { BOSS_STYLE, type BossStyle } from "./bossmoves";
 import { Tile } from "../map/grid";
 import { makeElite, type Affix } from "./elites";
 import { armor, armorBonus, weapon, weaponBonus } from "./gear";
 import type { Game } from "./game";
 import type { PerkId } from "./perks";
 import type { ItemKind, Monster } from "./types";
-import { fromEnemy } from "./world";
+import { fromBoss, fromEnemy } from "./world";
 
 const LAB_SHA = "1abc0de1abc0de1abc0de1abc0de1abc0de1abc0";
 
@@ -161,6 +162,27 @@ export function spawn(g: Game, kind: LabKind, affix: Affix | null = null): Monst
   m.awake = true;
   g.floor.monsters.push(m);
   g.say(`lab: ${m.name}${affix ? ` (elite, ${affix})` : ""} appears.`, "lore");
+  return m;
+}
+
+/** A boss of the given style next to you, not the floor's last one. */
+export function spawnBoss(g: Game, style: BossStyle): Monster | null {
+  const at = spotNear(g);
+  if (!at) return null;
+  const base = g.floorSpec.boss;
+  const shape: Record<BossStyle, Partial<Boss>> = {
+    deep: { nesting: 8, params: 1, nloc: 40, churn: 5 },
+    sprawl: { nesting: 2, params: 7, nloc: 40, churn: 5 },
+    long: { nesting: 2, params: 1, nloc: 240, churn: 5 },
+    hot: { nesting: 2, params: 1, nloc: 40, churn: 80 },
+    plain: { nesting: 2, params: 1, nloc: 40, churn: 5 },
+  };
+  const boss: Boss = { ...base, id: nextId("b"), name: `${style}_boss`, title: `the ${BOSS_STYLE[style].name}`, final: false, ...shape[style] };
+  const room = Math.max(0, g.floor.map.grid.roomAt(at[0], at[1]));
+  const m = fromBoss(boss, at[0], at[1], room, g.floor.index, g.spec.floors.length);
+  m.awake = true;
+  g.floor.monsters.push(m);
+  g.say(`lab: ${m.name}, ${BOSS_STYLE[style].name}.`, "lore");
   return m;
 }
 

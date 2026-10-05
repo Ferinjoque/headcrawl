@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { styleLine } from "../game/bossmoves";
 import { AFFIX } from "../game/elites";
 import { describe, TRAITS } from "../game/gear";
 import { PERKS } from "../game/perks";
@@ -44,7 +45,7 @@ function hpBar(hp: number, max: number): HTMLElement {
 function foe(m: Monster, detail: boolean) {
   const e = m.enemy;
   const stats = m.boss
-    ? `${m.boss.title}. ${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
+    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
     : e
       ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
       : ARCH_NAME[m.archetype];

@@ -157,6 +157,19 @@ export function bossPhase(g: Game, m: Monster): void {
   if (made) g.say(`${m.name} calls its helpers.`, "boss");
 }
 
+/** One helper in a free cell next to the boss. False if it is boxed in. */
+export function callHelper(g: Game, boss: Monster): boolean {
+  const grid = g.floor.map.grid;
+  for (const [dx, dy] of RING) {
+    const x = boss.x + dx;
+    const y = boss.y + dy;
+    if (grid.get(x, y) !== Tile.Floor || g.monsterAt(x, y) || (x === g.player.x && y === g.player.y)) continue;
+    g.floor.monsters.push(spawnHelper(g, boss, x, y));
+    return true;
+  }
+  return false;
+}
+
 /** Too many parameters: hurt it and it comes apart into two smaller calls. */
 function splitHydra(g: Game, m: Monster): void {
   m.split = true;

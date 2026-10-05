@@ -674,6 +674,10 @@ body.dragging #screen::after {
 .card-sub {
   font-size: var(--fs-m);
 }
+.card-style {
+  margin-top: 6px;
+  color: var(--danger);
+}
 .card-quote {
   color: var(--lore);
   margin-top: 10px;

@@ -107,6 +107,10 @@ class Boss(_Model):
     taunts: list[Line] = Field(min_length=1, max_length=6)
     final: bool = False
     past: BossPast | None = None
+    # How the boss fights comes from these. Older dungeons don't have them.
+    nesting: int = Field(default=0, ge=0, le=1000)
+    params: int = Field(default=0, ge=0, le=1000)
+    nloc: int = Field(default=0, ge=0, le=10_000_000)
 
 
 class RoomPast(_Model):
