@@ -49,15 +49,17 @@ const worstLine = (t: Trophy | undefined) => (t ? `gnarliest: ${t.name}, ${plura
 export function bestiaryScreen(c: Codex, close: () => void) {
   const deaths = topDeaths(c);
   const met = KINDS.filter((k) => c.kills[k]).length;
-  const kinds = KINDS.map((k) =>
+  // Met ones first in every section; what's left to find sits at the bottom.
+  const metFirst = <T extends string>(list: readonly T[], met: (x: T) => boolean) => [...list.filter(met), ...list.filter((x) => !met(x))];
+  const kinds = metFirst(KINDS, (k) => !!c.kills[k]).map((k) =>
     c.kills[k]
       ? entry(`${k} x${c.kills[k]}`, `kind-${k}`, [ABILITY[k], worstLine(c.worst[k]), c.first[k] ? `first met in ${c.first[k]}` : null])
       : unknown(KIND_HINT[k]),
   );
-  const elites = AFFIXES.map((a) =>
+  const elites = metFirst(AFFIXES, (a) => !!c.elites[a]).map((a) =>
     c.elites[a] ? entry(`${AFFIX[a].name} x${c.elites[a]}`, "t-boss", [AFFIX[a].text]) : unknown(ELITE_HINT[a]),
   );
-  const weapons = WEAPON_TRAITS.map((t) =>
+  const weapons = metFirst(WEAPON_TRAITS, (t) => !!c.traits[t]).map((t) =>
     c.traits[t]
       ? entry(`${TRAITS[t].name} x${c.traits[t]}`, "t-loot", [TRAITS[t].text])
       : unknown(`a weapon from ${languagesWith(t).join(", ")} code`),

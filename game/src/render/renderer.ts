@@ -402,7 +402,8 @@ export class Renderer {
     // Elites sit on a faint tile of their own color and in bold, so they
     // stand out by shape as well as by light.
     if (m.affix) {
-      ctx.fillStyle = rgba(col, 0.16 * Math.max(light, 0.4));
+      // A floor on the tile, so an elite at the edge of sight still reads as one.
+      ctx.fillStyle = rgba(col, 0.18 * Math.max(light, 0.75));
       ctx.fillRect(px, py, cellW, cellH);
       lctx.font = `bold ${this.fontPx}px ${FONT}`;
     }
