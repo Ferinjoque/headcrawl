@@ -35,3 +35,37 @@ export function tabs<T extends string>(list: Tab<T>[], current: T, pick: (id: T)
     ),
   );
 }
+
+/**
+ * Tabs that switch panes inside one page, for overlays too long to scroll
+ * through. The number keys switch them too (the app clicks the tab).
+ */
+export function paneTabs(panes: { label: string; body: Child[] }[]): HTMLElement {
+  const bodies = panes.map((p, i) => h("div", { class: "tab-pane", role: "tabpanel", hidden: i !== 0 }, ...p.body));
+  const buttons = panes.map((p, i) =>
+    h(
+      "button",
+      {
+        class: "tab",
+        type: "button",
+        role: "tab",
+        "aria-selected": String(i === 0),
+        onclick: () => {
+          bodies.forEach((b, j) => (b.hidden = j !== i));
+          buttons.forEach((b, j) => b.setAttribute("aria-selected", String(j === i)));
+        },
+      },
+      h("kbd", null, String(i + 1)),
+      p.label,
+    ),
+  );
+  return h("div", { class: "pane-tabs" }, h("div", { class: "tabs inner", role: "tablist" }, ...buttons), ...bodies);
+}
+
+/** A number key in an overlay with tabs: open that tab. True if it did. */
+export function tabKey(root: HTMLElement, key: string): boolean {
+  if (!/^[1-9]$/.test(key)) return false;
+  const tab = root.querySelectorAll<HTMLElement>('.pane-tabs [role="tab"]')[Number(key) - 1];
+  tab?.click();
+  return !!tab;
+}

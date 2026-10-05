@@ -30,6 +30,7 @@ import { recordFinished } from "./ui/records";
 import { labSpec } from "./game/lab";
 import { LabPanel } from "./ui/labpanel";
 import { Aim } from "./ui/aim";
+import { tabKey } from "./ui/win";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -710,6 +711,7 @@ export class App {
     const typing = e.target instanceof HTMLInputElement;
     if (e.key === "`" && this.mode === "play") return this.labPanel.toggle();
     if (this.mode === "play" && this.aim.onKey(e)) return;
+    if (this.mode === "help" && tabKey($("screen"), e.key)) return this.sound.ui("move");
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
       e.preventDefault();
       return this.openSettings();

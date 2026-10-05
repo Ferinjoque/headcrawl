@@ -7,6 +7,7 @@ import { TRAITS, languagesWith, type Trait } from "../game/gear";
 import { topDeaths, type Codex, type Trophy } from "./codex";
 import { h, plural } from "./dom";
 import { btn } from "./screens";
+import { paneTabs } from "./win";
 
 const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "remote", "spawn"] as const;
 const AFFIXES: Affix[] = ["god", "deep", "hot"];
@@ -71,17 +72,28 @@ export function bestiaryScreen(c: Codex, close: () => void) {
     c.runs
       ? h("p", { class: "dim" }, `${plural(c.runs, "run")} in ${plural(c.repos.length, "repo")}, ${c.wins} cleared. ${met} of ${KINDS.length} kinds met. Kept in this browser.`)
       : h("p", { class: "dim" }, "Nothing yet. Finish a run and it shows up here."),
-    h("h2", null, "refactored"),
-    ...kinds,
-    h("h2", null, "elites"),
-    ...elites,
-    h("h2", null, "weapons carried"),
-    ...weapons,
-    c.best ? entry("best ever", "t-loot", [`${c.best.name} +${c.best.bonus}, ${TRAITS[c.best.trait as Trait]?.name ?? c.best.trait} (${c.best.repo})`]) : null,
-    c.bosses.length ? h("h2", null, "bosses beaten, gnarliest first") : null,
-    ...c.bosses.map((b) => entry(b.name, "t-boss", [`${b.repo}, ${plural(b.ccn, "branch")}`])),
-    deaths.length ? h("h2", null, "what keeps getting you") : null,
-    ...deaths.map(([name, n]) => entry(name, "t-bad", [`x${n}`])),
+    paneTabs([
+      { label: "refactored", body: kinds },
+      {
+        label: "elites and weapons",
+        body: [
+          h("h2", null, "elites"),
+          ...elites,
+          h("h2", null, "weapons carried"),
+          ...weapons,
+          c.best ? entry("best ever", "t-loot", [`${c.best.name} +${c.best.bonus}, ${TRAITS[c.best.trait as Trait]?.name ?? c.best.trait} (${c.best.repo})`]) : null,
+        ],
+      },
+      {
+        label: "bosses",
+        body: [
+          h("h2", null, "beaten, gnarliest first"),
+          ...(c.bosses.length ? c.bosses.map((b) => entry(b.name, "t-boss", [`${b.repo}, ${plural(b.ccn, "branch")}`])) : [h("p", { class: "faint" }, "None yet. Every floor ends with one.")]),
+          h("h2", null, "what keeps getting you"),
+          ...(deaths.length ? deaths.map(([name, n]) => entry(name, "t-bad", [`x${n}`])) : [h("p", { class: "faint" }, "Nothing yet.")]),
+        ],
+      },
+    ]),
     h("div", { class: "actions" }, btn("esc", "back", close)),
   );
 }

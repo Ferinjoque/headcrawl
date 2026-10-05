@@ -25,7 +25,7 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
     "div",
     { class: "card choice", role: "dialog", "aria-label": "Pick a tool" },
     h("div", { class: "card-kicker" }, "level up. pick a tool"),
-    ...ids.map((id, i) => option(String(i + 1), PERKS[id].name, PERKS[id].text, () => pick(i))),
+    ...ids.map((id, i) => option(String(i + 1), PERKS[id].name, PERKS[id].rare ? `rare. ${PERKS[id].text}` : PERKS[id].text, () => pick(i), PERKS[id].rare ? "rare" : "")),
   );
 }
 
