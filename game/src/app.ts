@@ -16,12 +16,13 @@ import { loadSpec, type DungeonSpec } from "./spec";
 import { replace } from "./ui/dom";
 import { loadGallery, loadGalleryDungeon, type GalleryEntry } from "./ui/gallery";
 import { renderHud } from "./ui/hud";
-import { keyToCommand, touchPad, type Command } from "./ui/input";
+import { commandAction, keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { bestiaryScreen } from "./ui/bestiary";
 import { endKey, type EndHandlers } from "./ui/screens";
-import { bannerCard, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
+import { bannerCard, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
+import { CompareView } from "./ui/compareview";
 import { choiceAction, syncChoice } from "./ui/choices";
 import { sheetScreen } from "./ui/sheet";
 import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/settings";
@@ -36,7 +37,6 @@ import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
 import { dropSave, findSave, putSave } from "./ui/save";
 import { RULES, decodeLog } from "./game/record";
-import { compareSpecs } from "./lite/compare";
 import { Builder, bindFiles } from "./ui/builder";
 import { bindPointer } from "./ui/pointer";
 import { copyText, runLink, saveCast, saveGif, saveLog } from "./ui/exports";
@@ -96,6 +96,7 @@ export class App {
   private navSeq = 0;
   private saveTimer = 0;
   private watcher: Watcher;
+  private compare: CompareView;
   private copied = false;
   private lastDraw = 0;
   private dirty = true;
@@ -157,6 +158,17 @@ export class App {
       lab: () => this.navigate({ kind: "lab", run: 0, practice: true }),
       tick: (kind) => this.sound.ui(kind),
       caption: () => this.attract.caption(),
+    });
+    this.compare = new CompareView({
+      builder: this.builder,
+      navigate: (route) => this.navigate(route),
+      freshRun,
+      show: (node) => {
+        this.mode = "compare";
+        this.route = { kind: "title" };
+        document.body.classList.add("titling");
+        this.showScreen(node, true);
+      },
     });
     this.watcher = new Watcher({
       game: () => (this.mode === "watch" ? this.game : null),
@@ -259,7 +271,7 @@ export class App {
     this.attract.stop();
     if (route.kind === "compare") {
       this.game = null;
-      return this.showCompare(route.owner, route.repo, route.a, route.b, seq);
+      return this.compare.show(route.owner, route.repo, route.a, route.b, () => seq === this.navSeq);
     }
     this.mode = "loading";
     let text: string | null;
@@ -382,28 +394,6 @@ export class App {
     if (!el) return;
     el.className = tone;
     el.textContent = text;
-  }
-
-  private compareRoutes: { then: PlayRoute; now: PlayRoute } | null = null;
-
-  private async showCompare(owner: string, repo: string, a: string, b: string, seq: number): Promise<void> {
-    const pair = await this.builder.pair(owner, repo, a, b, () => seq === this.navSeq);
-    if (!pair) return;
-    this.mode = "compare";
-    this.route = { kind: "title" };
-    this.compareRoutes = {
-      then: { kind: "github", owner, repo, sha: a, run: freshRun() },
-      now: { kind: "github", owner, repo, sha: b, run: freshRun() },
-    };
-    document.body.classList.add("titling");
-    this.showScreen(
-      compareScreen(`${owner}/${repo}`, compareSpecs(...pair), {
-        playThen: () => this.compareRoutes && this.navigate(this.compareRoutes.then),
-        playNow: () => this.compareRoutes && this.navigate(this.compareRoutes.now),
-        menu: () => this.navigate({ kind: "title" }),
-      }),
-      true,
-    );
   }
 
   /** Help, the bestiary and the character sheet: read, then esc back to where you were. */
@@ -611,30 +601,12 @@ export class App {
     if (this.mode !== "play" || !this.game) return;
     this.stopAuto();
     if (this.game.perkChoice) return;
-    switch (c.kind) {
-      case "move":
-        this.step({ type: "move", dx: c.dx, dy: c.dy });
-        break;
-      case "wait":
-        this.step({ type: "wait" });
-        break;
-      case "descend":
-        this.step({ type: "descend" });
-        break;
-      case "quaff":
-        this.step({ type: "quaff" });
-        break;
-      case "read":
-        this.step({ type: "read" });
-        break;
-      case "explore":
-        this.hints.learned("explore");
-        this.startAuto({ kind: "explore" });
-        break;
-      case "rest":
-        this.startAuto({ kind: "rest", startHp: this.game.player.hp });
-        break;
-    }
+    const action = commandAction(c);
+    if (action) this.step(action);
+    else if (c.kind === "explore") {
+      this.hints.learned("explore");
+      this.startAuto({ kind: "explore" });
+    } else if (c.kind === "rest") this.startAuto({ kind: "rest", startHp: this.game.player.hp });
   }
 
   step(action: Parameters<Game["act"]>[0]): boolean {
@@ -718,13 +690,7 @@ export class App {
     }
     if (this.mode === "title") return this.title.key(e);
     if (this.mode === "watch") return this.watcher.key(e);
-    if (this.mode === "compare") {
-      if (e.target instanceof HTMLInputElement || !this.compareRoutes) return;
-      if (e.key === "1") this.navigate(this.compareRoutes.then);
-      else if (e.key === "2") this.navigate(this.compareRoutes.now);
-      else if (e.key === "Escape" || e.key === "m" || e.key === "M") this.navigate({ kind: "title" });
-      return;
-    }
+    if (this.mode === "compare") return this.compare.key(e);
     if (this.mode === "dying" || this.mode === "loading") return;
     if (this.mode === "end") return endKey(e, this.endOn);
     if (this.mode === "pause" && (e.key === "m" || e.key === "M")) {

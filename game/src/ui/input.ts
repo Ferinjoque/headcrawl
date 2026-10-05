@@ -1,3 +1,5 @@
+import type { Action } from "../game/types";
+
 export type Command =
   | { kind: "move"; dx: number; dy: number }
   | { kind: "wait" }
@@ -13,6 +15,13 @@ export type Command =
   | { kind: "panel" }
   | { kind: "sound" }
   | { kind: "perk"; index: number };
+
+/** The turn a plain command takes, or null for the ones that open things or run on their own. */
+export function commandAction(c: Command): Action | null {
+  if (c.kind === "move") return { type: "move", dx: c.dx, dy: c.dy };
+  if (c.kind === "wait" || c.kind === "descend" || c.kind === "quaff" || c.kind === "read") return { type: c.kind };
+  return null;
+}
 
 const MOVES: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
