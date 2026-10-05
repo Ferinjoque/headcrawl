@@ -119,6 +119,7 @@ export type Name4 = string;
 export type Enemies1 = Enemy[];
 export type Year2 = number;
 export type Path1 = string;
+export type Reverts = number;
 export type Size = number;
 export type Wing = string;
 /**
@@ -270,6 +271,7 @@ export interface Room {
   name: Name4;
   past?: RoomPast | null;
   path: Path1;
+  reverts?: Reverts;
   size: Size;
   wing: Wing;
 }

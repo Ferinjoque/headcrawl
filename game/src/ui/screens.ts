@@ -77,6 +77,7 @@ export function helpScreen(close: () => void) {
           ...kinds.map((k) => term(MONSTERS[k].name, MONSTERS[k])),
           term("elite", { name: "elite", does: "drawn bold on a tile. Tougher, worth more, drops gear more often.", real: "the worst function in a busy room" }),
           term("struck through", { name: "outdated", does: "its hits slow you for 3 turns", real: "code marked as deprecated: on its way out" }),
+          term("reverted", { name: "reverted", does: "the first time it dies, it comes back at half HP", real: "from a file where someone undid a change with git revert" }),
         ],
       },
       { label: "loot", body: (Object.keys(LOOT) as (keyof typeof LOOT)[]).map((k) => term(`${LOOT[k].glyph} ${LOOT[k].name}`, LOOT[k])) },

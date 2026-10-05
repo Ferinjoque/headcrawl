@@ -165,13 +165,14 @@ const NAMES: Record<LabKind, Partial<Enemy> & { name: string; archetype: Enemy["
 };
 
 /** Put one monster of this kind near you, awake. Null if there is no room. */
-export function spawn(g: Game, kind: LabKind, affix: Affix | null = null, deprecated = false): Monster | null {
+export function spawn(g: Game, kind: LabKind, affix: Affix | null = null, deprecated = false, reverted = false): Monster | null {
   const at = spotNear(g);
   if (!at) return null;
   const { name, archetype, ...over } = NAMES[kind];
   const room = Math.max(0, g.floor.map.grid.roomAt(at[0], at[1]));
   const m = fromEnemy(enemy(name, archetype, { ...over, deprecated }), at[0], at[1], room, g.floor.index, g.spec.floors.length);
   if (affix) makeElite(m, affix);
+  if (reverted) m.undo = 1;
   m.awake = true;
   g.floor.monsters.push(m);
   g.say(`lab: ${m.name}${affix ? ` (elite, ${affix})` : ""} appears.`, "lore");

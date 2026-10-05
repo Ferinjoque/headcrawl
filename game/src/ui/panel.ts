@@ -29,7 +29,7 @@ function foe(m: Monster, detail: boolean) {
   const stats = m.boss
     ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${kindLine(m.archetype)}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}`
+      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${m.undo ? "comes back once. " : ""}${kindLine(m.archetype)}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}`
       : kindLine(m.archetype);
   return h(
     "div",

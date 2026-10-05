@@ -103,6 +103,7 @@ export function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: n
     turns: 0,
     cooldown: 0,
     split: false,
+    undo: 0,
   };
 }
 
@@ -134,6 +135,7 @@ export function fromBoss(b: Boss, x: number, y: number, room: number, depth: num
     turns: 0,
     cooldown: 0,
     split: false,
+    undo: 0,
   };
 }
 
@@ -173,6 +175,12 @@ export function buildFloor(floor: Floor, seed: string, floors = 1, gate: Gate = 
       if (e === elite) makeElite(m, affixFor(e, room)!);
       if (e.deprecated && !gate("deprecated", floor.index)) m.enemy = { ...e, deprecated: false };
       monsters.push(m);
+    }
+    // A file someone reverted: its toughest monster has been undone before.
+    if (room.reverts && gate("reverts", floor.index)) {
+      const here = monsters.filter((m) => m.room === rect.index);
+      const toughest = here.sort((a, b) => b.maxHp - a.maxHp || a.id.localeCompare(b.id))[0];
+      if (toughest) toughest.undo = 1;
     }
     // A merge conflict left in the file: their version of it fights too.
     if (room.conflicts && conflictsOn && enemies.length) {

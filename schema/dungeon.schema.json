@@ -829,6 +829,13 @@
           "title": "Path",
           "type": "string"
         },
+        "reverts": {
+          "default": 0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Reverts",
+          "type": "integer"
+        },
         "size": {
           "maximum": 5,
           "minimum": 1,

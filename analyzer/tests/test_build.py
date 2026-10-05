@@ -56,8 +56,8 @@ def test_sample_repo(make_repo: MakeRepo) -> None:
     assert run_fn.ccn >= 5
 
     for f in spec.floors:
-        assert f.boss.code, f.boss.name
-        assert f.boss.name.split(".")[-1].split("::")[-1] in f.boss.code[0] or f.boss.code[0].startswith(("def", "function", "fn"))
+        short = f.boss.name.split(".")[-1].split("::")[-1]
+        assert f.boss.code and short in f.boss.code[0], f.boss.code
 
 
 def test_same_repo_same_dungeon(make_repo: MakeRepo) -> None:

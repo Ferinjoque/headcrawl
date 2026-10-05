@@ -38,6 +38,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       h("div", { class: "t-lore" }, `${MONSTERS[m.archetype].name}: ${MONSTERS[m.archetype].does}`),
       m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
       e?.deprecated ? h("div", { class: "t-bad" }, "outdated code: its hits slow you down for 3 turns") : null,
+      m.undo ? h("div", { class: "t-bad" }, "reverted before: the first time it dies, it comes back at half HP") : null,
       e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
       m.boss ? h("div", { class: "faint" }, `${m.boss.title}. Its file changed ${plural(m.boss.churn, "time")}.`) : null,
       m.boss && styleLine(m.boss) ? h("div", { class: "t-boss" }, styleLine(m.boss)) : null,

@@ -291,6 +291,39 @@ def churn(path: Path, limits: Limits = DEFAULT) -> Counter[str]:
     return counts
 
 
+def is_revert(subject: str) -> bool:
+    """`git revert` titles its commits 'Revert "..."'."""
+    return subject.startswith("Revert ")
+
+
+def reverts(path: Path, limits: Limits = DEFAULT) -> Counter[str]:
+    """How many revert commits among the last N touched each file."""
+    out = run(
+        [
+            "log",
+            "--no-show-signature",
+            f"--max-count={limits.churn_commits}",
+            "--name-only",
+            "--relative",
+            "--no-renames",
+            "--no-merges",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--format=%x00%s",
+        ],
+        cwd=path,
+        timeout=120,
+    )
+    counts: Counter[str] = Counter()
+    take = False
+    for line in out.splitlines():
+        if line.startswith("\0"):
+            take = is_revert(line[1:])
+        elif take and line.strip():
+            counts[line.strip()] += 1
+    return counts
+
+
 @dataclass(frozen=True)
 class LineAge:
     year: int

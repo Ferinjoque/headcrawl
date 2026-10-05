@@ -18,7 +18,7 @@ const MOVES: Record<string, [number, number]> = {
  * Bumped whenever the same log would play out differently (new mechanics,
  * new rolls). Saves and links carry it so old ones can be spotted.
  */
-export const RULES = 6;
+export const RULES = 7;
 
 const PERKS = "ABC";
 // Vendor: first offer, second offer, walk away.

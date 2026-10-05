@@ -7,7 +7,7 @@ from hypothesis import strategies as st
 
 from headcrawl import gitio
 
-from .conftest import MakeRepo
+from .conftest import MakeRepo, _git, write_files
 
 
 @pytest.mark.parametrize(
@@ -155,3 +155,18 @@ def test_blame_reads_commits_not_the_working_tree(make_repo: MakeRepo, tmp_path:
     assert ages[1].year == 2020
     assert gitio.last_subject(root, "a.py")
     assert not marker.exists()
+
+
+def test_reverts_counts_revert_commits_per_file(make_repo: MakeRepo) -> None:
+    root = make_repo({"a.py": "x = 1\n", "b.py": "y = 1\n"}, {"a.py": "x = 2\n"})
+    write_files(root, {"a.py": "x = 1\n"})
+    _git(root, "commit", "-qam", 'Revert "c1: touch things"')
+    assert gitio.reverts(root) == {"a.py": 1}
+    assert gitio.is_revert('Revert "x"') and not gitio.is_revert("Reverting the flux capacitor")
+
+
+def test_browser_builds_count_reverts_from_commit_lists() -> None:
+    from headcrawl.build import _reverts
+
+    rows = {"a.py": [("n", 'Revert "x"', "s", "d"), ("n", "fix", "s", "d")], "b.py": [("n", "fix", "s", "d")]}
+    assert _reverts(rows) == {"a.py": 1}

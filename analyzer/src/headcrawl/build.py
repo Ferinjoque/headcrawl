@@ -5,7 +5,7 @@ import re
 import time
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 from . import __version__, gitio, markers, stats
@@ -176,6 +176,14 @@ class _Context:
     # Without git: the repo's files a year back, fetched by the caller, and that commit's year.
     past_root: Path | None
     past_year: int
+    # File -> commits titled "Revert ..." that touched it.
+    reverts: Counter[str] = field(default_factory=Counter)
+
+
+def _reverts(commit_authors: dict[str, list[tuple[str, str, str, str]]]) -> Counter[str]:
+    """Revert commits per file, from commit lists the caller fetched."""
+    counts = {path: sum(1 for row in rows if gitio.is_revert(row[1])) for path, rows in commit_authors.items()}
+    return Counter({path: n for path, n in counts.items() if n})
 
 
 def _analyze_file(src: SourceFile, churn: int) -> FileReport | None:
@@ -303,6 +311,7 @@ def analyze(
         {},
         past_root.resolve() if past_root else None,
         past_year,
+        gitio.reverts(root, limits) if in_git else _reverts(commit_authors or {}),
     )
     groups = order_floors(group_floors(sorted(reports), limits.max_floors, limits.max_rooms_per_floor), edges)
 
@@ -509,6 +518,7 @@ def _room(
         loot=_loot(ctx, rep),
         past=None if kind is RoomKind.SHRINE else _room_past(ctx, rep, skip),
         conflicts=markers.conflict_hunks(rep.src.text),
+        reverts=min(ctx.reverts.get(rep.path, 0), 1000),
     )
 
 

@@ -452,6 +452,8 @@ export class Renderer {
     if (m.affix) lctx.font = `${this.fontPx}px ${FONT}`;
     // Deprecated code is struck through, the way an editor shows it.
     if (m.enemy?.deprecated) lctx.fillRect(px + cellW * 0.15, py + cellH * 0.52, cellW * 0.7, Math.max(1, this.dpr * 1.5));
+    // Reverted once already: a small tick at the top right, like a version mark.
+    if (m.undo) lctx.fillRect(px + cellW * 0.78, py + cellH * 0.1, Math.max(2, this.dpr * 2), Math.max(2, this.dpr * 2));
     if (m.hp < m.maxHp) {
       const w = Math.max(1, Math.round((cellW - 2) * (m.hp / m.maxHp)));
       lctx.fillStyle = rgba(C.danger, 0.9);

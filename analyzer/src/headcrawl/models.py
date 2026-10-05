@@ -149,6 +149,8 @@ class Room(_Model):
     past: RoomPast | None = None
     # Merge conflicts committed into the file (<<<<<<< ... ======= ... >>>>>>>).
     conflicts: int = Field(default=0, ge=0, le=1000)
+    # Commits titled "Revert ..." that touched the file.
+    reverts: int = Field(default=0, ge=0, le=1000)
 
 
 class Edge(_Model):

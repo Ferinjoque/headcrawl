@@ -33,6 +33,8 @@ export interface Monster {
   /** Turns until this monster may wind up again. */
   cooldown: number;
   split: boolean;
+  /** From a file someone reverted: the first time it dies, it comes back at half HP. */
+  undo: number;
 }
 
 /** FIXMEs from the spec come in as weapons. */

@@ -62,10 +62,7 @@ export function critMultiplier(g: Game): number {
 function strike(g: Game, m: Monster, dmg: number, crit: boolean): boolean {
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  if (m.hp <= 0) {
-    killMonster(g, m);
-    return true;
-  }
+  if (m.hp <= 0 && killMonster(g, m)) return true;
   if (m.boss) bossPhase(g, m);
   else if (m.archetype === "hydra" && !m.split && !g.has("di")) splitHydra(g, m);
   return false;
@@ -104,7 +101,14 @@ function perkBonus(g: Game, m: Monster): number {
   return 0;
 }
 
-export function killMonster(g: Game, m: Monster): void {
+/** False when the monster was reverted instead: it's back at half HP. */
+export function killMonster(g: Game, m: Monster): boolean {
+  if (m.undo > 0) {
+    m.undo--;
+    m.hp = Math.max(1, Math.ceil(m.maxHp / 2));
+    g.say(`${m.name} gets reverted. It's back, at half HP.`, "bad");
+    return false;
+  }
   const p = g.player;
   g.floor.monsters = g.floor.monsters.filter((x) => x !== m);
   p.kills++;
@@ -122,7 +126,7 @@ export function killMonster(g: Game, m: Monster): void {
     if (m.boss.final) {
       g.outcome = "won";
       g.emit({ t: "victory" });
-      return;
+      return true;
     }
     const [sx, sy] = g.floor.map.stairsDown;
     g.floor.map.grid.set(sx, sy, Tile.StairsDown);
@@ -136,6 +140,7 @@ export function killMonster(g: Game, m: Monster): void {
   }
   if (g.player.weapon?.trait === "arc") g.heal(TRAIT.arcHeal);
   g.gainXp(g.has("logging") ? Math.round((m.xp * 4) / 3) : m.xp);
+  return true;
 }
 
 /** Hit hard enough, a boss gets faster and calls helpers. */
@@ -179,7 +184,7 @@ function splitHydra(g: Game, m: Monster): void {
   const half = Math.ceil(m.hp / 2);
   m.hp -= half;
   const n = g.spawnCount++;
-  g.floor.monsters.push({ ...m, id: `h${n}`, name: `${m.name}'`, x: spot[0], y: spot[1], hp: half, threat: [], energy: 0 });
+  g.floor.monsters.push({ ...m, id: `h${n}`, name: `${m.name}'`, x: spot[0], y: spot[1], hp: half, threat: [], energy: 0, undo: 0 });
   g.emit({ t: "split", x: spot[0], y: spot[1] });
   g.say(`${m.name} splits in two.`, "bad");
 }
@@ -194,6 +199,7 @@ function spawnHelper(g: Game, boss: Monster, x: number, y: number): Monster {
     glyph: "_",
     archetype: "spawn",
     affix: null,
+    undo: 0,
     x,
     y,
     hp: 6 + depth * 2,
