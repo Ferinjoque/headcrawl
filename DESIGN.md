@@ -60,19 +60,28 @@ Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
   and turn count live on the pause screen.
 - Message log at the bottom, four lines (two on phones), newest brightest.
   Lines that repeat the floor card or the panel go to the run log only.
-- Side panel on wide screens: what is in sight (stats for the nearest only),
-  what you carry with its key, the minimap, then the file you stand in.
-  Empty sections are not drawn. On narrow screens it slides in.
-- Title: wordmark, one line, continue, the repo list, four keys. Everything
-  else (GitHub build, then vs now, folder, file, settings, bestiary) is
-  behind tab. Behind it the bot plays a gallery dungeon (attract mode).
-- Menus and end screens render as text blocks over a dimmed map, no cards.
+- Side panel on wide screens, in fixed regions that never move (Brogue's
+  rule): a focus box with the nearest thing's stats, then up to six rows in
+  the order things came into view (not re-sorted by distance), then the
+  pack, which always shows both gear slots and the TODO/HACK counts, the
+  minimap, and the file you stand in. Regions keep their height when empty.
+  On short screens they tighten; on narrow screens the panel slides in.
+- The top line always shows the same fields; def reads 0 without armor.
+- Title: wordmark, one line, a continue button when a run is waiting, then
+  one framed window with tabs on its top edge: repos (a list with the
+  picked repo's details beside it, descend or practice), any GitHub repo,
+  run code, files. Daily, bestiary, the lab, settings and help are key
+  buttons below it. 1 to 4 or tab switch tabs. Behind it all the bot plays a
+  gallery dungeon (attract mode).
+- Overlays (pause, help, settings, the sheet, the bestiary, the end screen)
+  are framed windows over a dimmed map, the heading set into the top border
+  like an old TUI. Long ones (help, bestiary) have tabs; number keys switch.
   Choice cards (level up, vendor, gear swap) sit at the bottom of the stage.
   The gear card names both items and says how much better or worse the new
   one is; the one you keep is dimmed.
 - The character sheet (`c`, or atk/def in the top line) and the bestiary
-  are the same text pages as help: label column, value column, a quieter
-  second line under an entry. On phones entries stack.
+  use the same rows as help: label column, value column, a quieter second
+  line under an entry. On phones entries stack.
 - Green means health and nothing else.
 
 ## Motion
@@ -87,6 +96,17 @@ Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
 
 ## Components
 
-Buttons are bracketed text: `[Enter] play`, `[R] retry`. Hover and focus
-brighten the text and draw the brackets in the accent. Inputs are a single
-line with a block cursor.
+Windows: one 1px frame in a warm brown (`--frame`), the title in the top
+border, a dark fill. Panes inside split by a single neutral line. Never
+nested frames, never side stripes.
+
+Buttons are key caps: the key in ember, then what it does, on a slightly
+raised fill with a 3px shadow below for depth. Hover lifts 1px and lights
+the edge in ember; pressing pushes it down 2px. The one button a screen is
+mostly for (descend, resume, try again) carries an ember fill. Calm motion
+keeps the light, drops the movement. Touch screens get 44px tall buttons.
+
+Tabs sit on a window's top edge; the open one joins the window below.
+Choice options are the same pressable tiles; a rare tool gets a gold edge.
+Moving in a menu ticks, picking clicks. Inputs are a single line with a
+block cursor.

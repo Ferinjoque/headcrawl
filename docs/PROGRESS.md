@@ -3,7 +3,7 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-05, round 8): M0-M5 done, plus a UI redesign, music and a
+Status (2026-10-05, round 9): M0-M5 done, plus a UI redesign, music and a
 lot of mechanics on top. Playable and tested. Shipped as a private GitHub
 repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
 with play.py; no hosted site (owner's call, 2026-10-03).
@@ -183,12 +183,30 @@ redraws the whole view at 20 fps when idle.
   only worthwhile deals, rests to full, drinks early when surrounded) runs
   next to the plain one in the balance report.
 
+- Round 9 (owner: sounds, boss styles, ranged, more repo data, a test
+  area, modern menus, impeccable on everything):
+  - Sounds for gear, remote aim, loops, rewinds, branches, menu ticks.
+  - The lab (#/lab, l on the title) and practice runs (p, ?practice=1):
+    game/lab.ts tools + ui/labpanel.ts. npm run sim (sim/balance.sim.ts).
+  - Boss styles from the boss's own code (game/bossmoves.ts); the analyzer
+    writes boss nesting, params and nloc.
+  - Review comments (f): game/ranged.ts, ui/aim.ts. Rules 5.
+  - Analyzer: deprecated functions and conflict hunks (markers.py), up to 8
+    branches from command line builds. Game: deprecated hits slow you,
+    conflict rooms add "theirs", Y doors check out a branch floor.
+  - Gallery rebuilt with flavor (18 of 20 repos have branches).
+  - Menus redesigned after research (Brogue, Cogmind, Qud, Balatro):
+    framed windows, tabs, key-cap buttons, a title with a detail pane, tabbed
+    help and bestiary, and a side panel in fixed regions. Critique 29 to 32.
+  - Bots: plain 39 of 60, careful 50 of 60 on the rebuilt gallery.
+
 ## Next ideas
 
-- Balance: plain bot 45 of 60 gallery runs, careful bot 50 of 60 (deaths on
-  jsoup and mediatr bosses). People can also retreat into corridors, so
-  normal should feel fair and hard is there for more. Still worth a real
-  playtest before retuning.
+- Balance: npm run sim gives both bots on the whole gallery. Still worth a
+  real playtest before retuning; the lab makes any fight easy to set up.
+- Side branches only come from command line builds; the browser could get
+  them from a token-free source pinned to the commit, if one exists.
+- Critique leftovers: the empty "in sight" block, tabs wrapping on phones.
 - Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
   itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
   more lines past the filter. qwen2.5:7b stays the default.

@@ -23,8 +23,6 @@ export const DROPS = {
   gear: 0.03,
   /** Of those, how many are armor. */
   armorShare: 0.3,
-  /** Test functions guard things: armor from a kill in a test file. */
-  testArmor: 0.12,
 };
 
 export const TRAIT = {

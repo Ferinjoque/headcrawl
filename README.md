@@ -63,6 +63,9 @@ npm run py           # builds the analyzer and fetches Python for the browser (a
 | whoever committed most to a folder | the `&` keeper on that floor: say hi once for a coffee |
 | dependencies in the root manifest | the `$` vendor in each entry room |
 | who last touched a TODO line | written on the loot ("a FIXME from 2012 by alice") |
+| a function marked deprecated | struck through; its hits slow you for 3 turns |
+| a merge conflict committed into a file | a room walled in `<<<` and `>>>` where both versions fight |
+| the repo's other branches (command line builds) | `Y` side doors: the same folder laid out the way that branch has it |
 
 The rock between rooms is filled with the floor's own identifiers.
 
@@ -78,7 +81,7 @@ Monsters play differently depending on what kind of code they are:
 | bug | everything else | dodges now and then |
 | ghost | nothing mentions it, tests included | drifts through walls, hits softly |
 | remote | a small function that talks to the network (`fetch`, `send`, `emit`...) | lines up a shot from 4 cells away, step off the red line |
-| boss | the floor's hotspot | winds up area attacks |
+| boss | the floor's hotspot | winds up area attacks; deeply nested ones sweep wider, ones with many parameters call helpers, long ones heal out of reach, hot paths speed up |
 
 One monster in a busy room can be an elite, drawn bold on a faint tile: a
 god function (60+ lines, more HP), deeply nested (armored) or a hot path
@@ -120,8 +123,10 @@ fuzzing...); the rare ones come up a third as often.
 Pick a repo from the gallery, or bring your own (below). Behind the menu
 the bot plays a random gallery dungeon, so you can see what you're in for.
 Arrows, `hjkl` or `yubn` move and attack. `x` explores until something
-shows up, `z` rests, `>` takes the stairs once the boss is dead, `c` shows
-your stats and gear, `?` shows everything else. Health is the first thing on the top line.
+shows up, `z` rests, `>` takes the stairs once the boss is dead, `f`
+leaves a review comment on a monster up to 5 cells away (half a hit, then
+a few turns to recharge), `c` shows your stats and gear, `?` shows
+everything else. Health is the first thing on the top line.
 
 The vendor (`$`) in each entry room sells two of the repo's real
 dependencies, one per floor. Every deal helps and every one costs
@@ -205,6 +210,22 @@ a link you can send; the whole dungeon lives in the part of the URL after
 and taunts. It only keeps lines that talk about the actual function, checks
 first that the model follows prompts at all, and falls back to the built-in
 lines otherwise. Off by default, and the game never needs it.
+
+## The lab, practice runs and the sim
+
+`l` on the title opens the lab: a small two-floor dungeon with a tools
+panel over the map. Spawn any monster kind, as an elite or deprecated, a
+boss of each style, hand yourself any weapon, armor or tool, turn on god
+mode, freeze the floor, reveal it, open the stairs. `` ` `` hides the panel.
+`p` on a repo (or `?practice=1` on any link) starts a practice run with the
+same tools: it never saves and never counts toward records, the bestiary
+or the daily.
+
+For balance work, `npm run sim` in `game/` plays the gallery with two bots
+(one takes whatever comes first, one chooses like a person would) and
+prints wins, floors, levels, kills, turns and killers per dungeon.
+`SIM_DUNGEONS=flask,axum`, `SIM_RUNS=10`, `SIM_STYLE=careful` and
+`SIM_LEVEL=hard` narrow it down.
 
 ## How it's built
 

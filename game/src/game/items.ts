@@ -149,9 +149,8 @@ export function dropGear(g: Game, m: Monster): void {
   const room = g.floor.map.rooms[m.room]?.spec;
   if (!room) return;
   const depth = g.floor.index;
-  const tests = room.kind === "shrine";
-  if (!g.rng.chance(m.affix ? ELITE.gear : tests ? DROPS.testArmor : DROPS.gear)) return;
-  const asArmor = tests || g.rng.chance(DROPS.armorShare);
+  if (!g.rng.chance(m.affix ? ELITE.gear : DROPS.gear)) return;
+  const asArmor = g.rng.chance(DROPS.armorShare);
   const gear = asArmor
     ? armor(guardName(e.name, room.language), room.language, armorBonus(Math.min(8, e.nesting * 2), depth))
     : weapon(e.name, room.language, weaponBonus(Math.min(9, Math.ceil(e.ccn / 3)), depth));
