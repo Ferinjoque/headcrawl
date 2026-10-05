@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { describe, TRAITS } from "../game/gear";
 import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
@@ -18,7 +19,8 @@ const ARCH_NAME: Record<string, string> = {
 
 const ITEM: Record<string, [string, string]> = {
   potion: ["!", "TODO"],
-  blade: ["/", "FIXME"],
+  weapon: ["/", "weapon"],
+  armor: ["[", "armor"],
   scroll: ["?", "HACK"],
   curse: ["%", "XXX"],
   coffee: ["c", "coffee"],
@@ -97,7 +99,8 @@ export function renderPanel(el: HTMLElement, game: Game): void {
   const held = [
     p.potions.length ? h("p", { class: "t-good" }, h("kbd", null, "q"), ` ! TODO x${p.potions.length}`) : null,
     p.scrolls.length ? h("p", { class: "t-loot" }, h("kbd", null, "r"), ` ? HACK x${p.scrolls.length}`) : null,
-    p.blade ? h("p", null, h("kbd", null, " "), ` / FIXME +${p.blade} attack`) : null,
+    p.weapon ? h("p", { title: TRAITS[p.weapon.trait].text }, h("kbd", null, " "), ` / ${describe(p.weapon)}`) : null,
+    p.armor ? h("p", null, h("kbd", null, " "), ` [ ${describe(p.armor)}`) : null,
     p.curses ? h("p", { class: "t-bad" }, h("kbd", null, " "), ` % XXX x${p.curses}`) : null,
     p.perks.length ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", ")) : null,
   ];

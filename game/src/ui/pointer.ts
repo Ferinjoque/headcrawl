@@ -4,6 +4,7 @@
 import { ABILITY } from "../game/abilities";
 import { installLine } from "../game/extras";
 import type { Game } from "../game/game";
+import { describe, TRAITS } from "../game/gear";
 import { walkable } from "../map/grid";
 import { h, plural, replace } from "./dom";
 import type { Command } from "./input";
@@ -16,7 +17,7 @@ export interface PointerHost {
   travel(to: [number, number]): void;
 }
 
-const ITEM_NAMES = { potion: "TODO", blade: "FIXME", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
+const ITEM_NAMES = { potion: "TODO", weapon: "weapon", armor: "armor", scroll: "HACK", curse: "XXX", coffee: "coffee" } as const;
 
 /** Fills the tooltip for the cell, or returns false if there is nothing to say. */
 function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
@@ -35,6 +36,19 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
       m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
       m.awake ? null : h("div", { class: "faint" }, "asleep"),
+    );
+    return true;
+  }
+  if (item?.gear) {
+    const g = item.gear;
+    const mine = game.player[g.slot];
+    replace(
+      tip,
+      h("div", { class: "tip-name t-loot" }, g.name),
+      h("div", null, g.slot === "armor" ? `armor, defense ${g.bonus}` : `${g.language} weapon, attack +${g.bonus}`),
+      g.trait !== "plain" ? h("div", { class: "t-lore" }, `${TRAITS[g.trait].name}: ${TRAITS[g.trait].text}`) : null,
+      h("div", { class: "faint" }, mine ? `yours: ${describe(mine)}` : `your ${g.slot} slot is empty`),
+      item.source ? h("div", { class: "faint" }, item.source) : null,
     );
     return true;
   }

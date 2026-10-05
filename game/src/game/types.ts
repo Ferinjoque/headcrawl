@@ -1,4 +1,5 @@
 import type { Boss, Enemy, Loot } from "../spec";
+import type { Gear } from "./gear";
 import type { PerkId } from "./perks";
 
 export type Archetype = Enemy["archetype"];
@@ -31,7 +32,8 @@ export interface Monster {
   split: boolean;
 }
 
-export type ItemKind = Loot["kind"] | "coffee";
+/** FIXMEs from the spec come in as weapons. */
+export type ItemKind = Exclude<Loot["kind"], "blade"> | "coffee" | "weapon" | "armor";
 
 export interface Item {
   id: string;
@@ -39,6 +41,8 @@ export interface Item {
   x: number;
   y: number;
   loot: Loot | null;
+  /** Set for weapons and armor. */
+  gear?: Gear;
   /** Where it was found, for the pickup message. */
   source: string;
 }
@@ -49,7 +53,8 @@ export interface Player {
   hp: number;
   maxHp: number;
   atk: number;
-  blade: number;
+  weapon: Gear | null;
+  armor: Gear | null;
   level: number;
   xp: number;
   nextXp: number;
@@ -75,6 +80,7 @@ export type GameEvent =
   | { t: "pickup"; x: number; y: number; kind: ItemKind }
   | { t: "levelup"; level: number }
   | { t: "perk"; id: PerkId }
+  | { t: "equip"; x: number; y: number; gear: Gear }
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
   | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean }
@@ -95,6 +101,8 @@ export type Action =
   | { type: "read" }
   | { type: "perk"; index: number }
   /** At the vendor: which offer, or -1 to walk away. */
-  | { type: "buy"; index: number };
+  | { type: "buy"; index: number }
+  /** Standing on gear with that slot full: take it (yours drops here) or leave it. */
+  | { type: "gear"; take: boolean };
 
 export type Outcome = "playing" | "dead" | "won";

@@ -19,7 +19,8 @@ import { renderHud } from "./ui/hud";
 import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
-import { bannerCard, bestiaryScreen, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen, perkCard, vendorCard } from "./ui/screens";
+import { bannerCard, bestiaryScreen, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
+import { choiceAction, syncChoice } from "./ui/choices";
 import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordFinished } from "./ui/records";
@@ -530,28 +531,10 @@ export class App {
     return track ? { track, whose: shared ? "a friend's run" : "your best run" } : null;
   }
 
-  private pickPerk(index: number): void {
-    const game = this.game;
-    if (!game?.perkChoice) return;
-    game.act({ type: "perk", index });
-    this.scheduleSave();
-    this.handleEvents(game.drain());
-    replace($("banner"));
-    this.refreshUi();
-  }
-
   private refreshUi(): void {
     this.touch();
     if (!this.game) return;
-    const card = $("banner").querySelector(".choice");
-    const vendor = this.game.vendorChoice;
-    if (this.game.perkChoice && !card) {
-      replace($("banner"), perkCard(this.game.perkChoice, (i) => this.pickPerk(i)));
-    } else if (vendor && !card) {
-      replace($("banner"), vendorCard(vendor, (i) => this.step({ type: "buy", index: i })));
-    } else if (!this.game.perkChoice && !vendor && card) {
-      replace($("banner"));
-    }
+    if (this.mode === "play") syncChoice($("banner"), this.game, (a) => this.step(a));
     if (this.mode !== "watch") for (const tip of this.hints.check(this.game)) this.log.push(tip, "lore");
     renderHud($("hud"), this.game);
     renderPanel($("panel"), this.game);
@@ -561,11 +544,14 @@ export class App {
 
   private command(c: Command): void {
     if (this.mode === "title") return;
-    if (this.game?.vendorChoice && this.mode === "play") {
-      if (c.kind === "perk" && c.index < 2) this.step({ type: "buy", index: c.index });
-      else if (c.kind === "menu") this.step({ type: "buy", index: -1 });
+    const pick = this.mode === "play" && this.game ? choiceAction(this.game, c) : undefined;
+    if (pick) {
+      this.stopAuto();
+      this.step(pick);
       return;
     }
+    // Esc during a level up still pauses; the other cards treat it as walking away.
+    if (pick === null && !this.game?.perkChoice) return;
     if (c.kind === "help") return this.openHelp();
     if (c.kind === "menu") return this.mode === "play" ? this.openPause() : this.closeOverlay();
     if (c.kind === "panel") {
@@ -583,10 +569,7 @@ export class App {
     }
     if (this.mode !== "play" || !this.game) return;
     this.stopAuto();
-    if (this.game.perkChoice) {
-      if (c.kind === "perk") this.pickPerk(c.index);
-      return;
-    }
+    if (this.game.perkChoice) return;
     switch (c.kind) {
       case "move":
         this.step({ type: "move", dx: c.dx, dy: c.dy });

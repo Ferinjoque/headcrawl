@@ -1,14 +1,15 @@
 // Things you pick up and use: TODOs, HACKs, FIXMEs, XXX curses and coffee.
 
 import { Tile } from "../map/grid";
-import { COFFEE_HEAL, bladeBonus, potionHeal } from "./balance";
+import { COFFEE_HEAL, DROPS, potionHeal } from "./balance";
 import { killMonster, bossPhase } from "./combat";
 import { boss, canRewind, npcAt, rewindFloor, timeTravel } from "./extras";
 import type { Game } from "./game";
-import type { Item } from "./types";
+import { armor, armorBonus, describe, guardName, TRAITS, weapon, weaponBonus, type Gear } from "./gear";
+import type { Item, ItemKind, Monster } from "./types";
 
-/** Leave a coffee on the nearest free floor cell. */
-export function drop(g: Game, x: number, y: number, kind: "coffee"): void {
+/** Leave something on the nearest free floor cell. */
+export function drop(g: Game, x: number, y: number, kind: Extract<ItemKind, "coffee" | "weapon" | "armor">, gear?: Gear, source = ""): void {
   const grid = g.floor.map.grid;
   const spots = [
     [x, y],
@@ -21,13 +22,14 @@ export function drop(g: Game, x: number, y: number, kind: "coffee"): void {
   ];
   for (const [sx, sy] of spots) {
     if (grid.get(sx, sy) === Tile.Floor && !g.itemAt(sx, sy) && !npcAt(g.floor, sx, sy) && !(sx === g.player.x && sy === g.player.y)) {
-      g.floor.items.push({ id: `c${g.spawnCount++}`, kind, x: sx, y: sy, loot: null, source: "" });
+      g.floor.items.push({ id: `c${g.spawnCount++}`, kind, x: sx, y: sy, loot: null, source, ...(gear ? { gear } : {}) });
       return;
     }
   }
 }
 
 export function pickUp(g: Game, item: Item): void {
+  if (item.gear) return touchGear(g, item, item.gear);
   const p = g.player;
   g.floor.items = g.floor.items.filter((i) => i !== item);
   g.emit({ t: "pickup", x: item.x, y: item.y, kind: item.kind });
@@ -44,16 +46,6 @@ export function pickUp(g: Game, item: Item): void {
       p.scrolls.push(item);
       g.say(`You find a HACK${since}: ${quote} (${item.source}). Press r to read it.`, "loot");
       break;
-    case "blade": {
-      const bonus = bladeBonus(item.loot?.power ?? 1, g.floor.index);
-      if (bonus > p.blade) {
-        p.blade = bonus;
-        g.say(`You take up the FIXME${since} ${quote}. Attack +${bonus}.`, "loot");
-      } else {
-        g.say(`Another FIXME ${quote}. Your current one is sharper.`, "loot");
-      }
-      break;
-    }
     case "curse":
       p.curses++;
       p.atk += 2;
@@ -117,4 +109,57 @@ export function readScroll(g: Game): boolean {
     g.say("hotfix. Ugly, but you are back on your feet.", "loot");
   }
   return true;
+}
+
+// ---- gear ----------------------------------------------------------------
+
+/** Walking onto a weapon or armor: an empty slot takes it, a full one asks. */
+function touchGear(g: Game, item: Item, gear: Gear): void {
+  const mine = g.player[gear.slot];
+  if (!mine) return equip(g, item, gear);
+  g.gearChoice = item;
+  g.say(`${describe(gear)} lies here. You have ${describe(mine)}.`, "loot", true);
+}
+
+/** Take what lies here. Whatever you had goes down in its place. */
+export function equip(g: Game, item: Item, gear: Gear): void {
+  const p = g.player;
+  const old = p[gear.slot];
+  g.floor.items = g.floor.items.filter((i) => i !== item);
+  p[gear.slot] = gear;
+  if (old) {
+    const id = `g${g.spawnCount++}`;
+    g.floor.items.push({ id, kind: old.slot, x: item.x, y: item.y, loot: null, source: "you left it here", gear: old });
+    g.declined.add(id);
+  }
+  g.emit({ t: "equip", x: item.x, y: item.y, gear });
+  if (gear.slot === "armor") g.say(`You put on ${gear.name}. Defense ${gear.bonus}.`, "loot");
+  else {
+    const t = gear.trait === "plain" ? "" : ` ${TRAITS[gear.trait].name}: ${TRAITS[gear.trait].text}.`;
+    g.say(`You take up ${gear.name}. Attack +${gear.bonus}.${t}`, "loot");
+  }
+}
+
+/** Every finished function might leave something behind, named after itself. */
+export function dropGear(g: Game, m: Monster): void {
+  const e = m.enemy;
+  if (!e) return;
+  const room = g.floor.map.rooms[m.room]?.spec;
+  if (!room) return;
+  const depth = g.floor.index;
+  const tests = room.kind === "shrine";
+  if (!g.rng.chance(tests ? DROPS.testArmor : DROPS.gear)) return;
+  const asArmor = tests || g.rng.chance(DROPS.armorShare);
+  const gear = asArmor
+    ? armor(guardName(e.name, room.language), room.language, armorBonus(Math.min(8, e.nesting * 2), depth))
+    : weapon(e.name, room.language, weaponBonus(Math.min(9, Math.ceil(e.ccn / 3)), depth));
+  drop(g, m.x, m.y, gear.slot, gear, `${room.path}:${e.line}`);
+}
+
+/** A beaten boss leaves its own function behind, the best weapon on the floor. */
+export function dropBossWeapon(g: Game, m: Monster): void {
+  const room = g.floor.map.rooms[m.room]?.spec;
+  if (!m.boss || !room) return;
+  const gear = weapon(m.name, room.language, weaponBonus(6, g.floor.index + 1));
+  drop(g, m.x, m.y, "weapon", gear, `${room.path}:${m.boss.line}`);
 }

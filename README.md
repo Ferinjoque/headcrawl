@@ -53,7 +53,9 @@ npm run py           # builds the analyzer and fetches Python for the browser (a
 | complexity / nesting / params | HP / damage / speed |
 | test file | shrine, heals you once |
 | `TODO` | `!` potion |
-| `FIXME` | `/` weapon |
+| `FIXME` | `/` weapon that fights like the file's language |
+| a test file's suite, or the error handling around a function | `[` armor |
+| a beaten boss | drops its own function as a weapon |
 | `HACK` | `?` scroll with a random effect |
 | `XXX` | `%` cursed: more attack, less max HP |
 | churn x complexity | the boss of the floor |

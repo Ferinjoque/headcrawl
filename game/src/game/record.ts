@@ -18,11 +18,14 @@ const MOVES: Record<string, [number, number]> = {
  * Bumped whenever the same log would play out differently (new mechanics,
  * new rolls). Saves and links carry it so old ones can be spotted.
  */
-export const RULES = 3;
+export const RULES = 4;
 
 const PERKS = "ABC";
 // Vendor: first offer, second offer, walk away.
 const BUYS = "VWX";
+// Gear on the floor with that slot full: take it or leave it.
+const TAKE = "T";
+const LEAVE = "D";
 
 export function actionCode(a: Action): string {
   switch (a.type) {
@@ -43,6 +46,8 @@ export function actionCode(a: Action): string {
       return PERKS[a.index] ?? "A";
     case "buy":
       return a.index < 0 ? "X" : (BUYS[a.index] ?? "X");
+    case "gear":
+      return a.take ? TAKE : LEAVE;
   }
 }
 
@@ -53,6 +58,7 @@ export function codeAction(c: string): Action | null {
   if (c === ">") return { type: "descend" };
   if (c === "q") return { type: "quaff" };
   if (c === "r") return { type: "read" };
+  if (c === TAKE || c === LEAVE) return { type: "gear", take: c === TAKE };
   const buy = BUYS.indexOf(c);
   if (buy >= 0) return { type: "buy", index: buy === 2 ? -1 : buy };
   const perk = PERKS.indexOf(c);
@@ -75,7 +81,7 @@ const MAX_ACTIONS = 200_000;
 /** Null if the text isn't a valid log. */
 export function decodeLog(text: string): Action[] | null {
   const out: Action[] = [];
-  const re = /([hjklyubn.>qrABCVWX])(\d{0,6})/gy;
+  const re = /([hjklyubn.>qrABCVWXTD])(\d{0,6})/gy;
   let m: RegExpExecArray | null;
   let at = 0;
   while (at < text.length && (m = re.exec(text))) {

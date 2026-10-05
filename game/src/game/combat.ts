@@ -1,17 +1,24 @@
 // The player's side of a fight: hitting, killing, and what a kill sets off.
 
 import { Tile } from "../map/grid";
-import { BOSS, DROPS, HIT } from "./balance";
+import { BOSS, DROPS, HIT, TRAIT } from "./balance";
 import { TUNING } from "./abilities";
+import { npcAt } from "./extras";
 import type { Game } from "./game";
-import { drop } from "./items";
+import { drop, dropBossWeapon, dropGear } from "./items";
 import type { Monster } from "./types";
 
 export function playerAttack(g: Game, m: Monster): void {
   const p = g.player;
-  if (!g.rng.chance(HIT.player)) {
+  const trait = p.weapon?.trait ?? "plain";
+  if (trait !== "steady" && !g.rng.chance(HIT.player)) {
     g.emit({ t: "miss", x: m.x, y: m.y });
     g.say(`You miss ${m.name}.`);
+    if (trait === "unsafe" && p.hp > 1) {
+      p.hp--;
+      g.emit({ t: "hit", x: p.x, y: p.y, amount: 1, crit: false, onPlayer: true });
+      g.say("Undefined behavior. It nicks you.", "bad", true);
+    }
     return;
   }
   m.awake = true;
@@ -20,24 +27,57 @@ export function playerAttack(g: Game, m: Monster): void {
     g.say(`${m.name} dodges. Can't reproduce.`);
     return;
   }
-  const crit = g.rng.chance(g.has("debugger") ? HIT.crit * 2 : HIT.crit);
-  let dmg = p.atk + p.blade + g.rng.int(0, 1 + Math.floor(p.level / 2));
-  if (crit) dmg *= 2;
-  dmg += perkBonus(g, m);
-  if (m.archetype === "wall" && !g.has("typechecker")) dmg = Math.max(1, dmg - TUNING.wallArmor);
-  if (g.has("pairing") && g.rng.chance(0.2)) {
-    g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-    m.hp -= dmg;
-    if (m.hp <= 0) {
-      killMonster(g, m);
-      return;
-    }
-  }
+  const crit = g.rng.chance(critChance(g));
+  let dmg = p.atk + (p.weapon?.bonus ?? 0) + g.rng.int(0, 1 + Math.floor(p.level / 2));
+  if (trait === "loose") dmg = Math.max(1, Math.round((dmg * g.rng.int(50, 200)) / 100));
+  if (crit) dmg *= trait === "unsafe" ? 3 : 2;
+  dmg += perkBonus(g, m) + (trait === "heavy" ? 1 : 0);
+  if (m.archetype === "wall" && !g.has("typechecker") && trait !== "pierce") dmg = Math.max(1, dmg - TUNING.wallArmor);
+  if (g.has("pairing") && g.rng.chance(0.2) && strike(g, m, dmg, crit)) return;
+  if (strike(g, m, dmg, crit)) return;
+  if (trait === "heavy") knockBack(g, m);
+  if (trait === "cleave") cleave(g, m, Math.ceil(dmg / 2));
+  if (trait === "async" && g.rng.chance(TRAIT.asyncFree)) g.freeTurn = true;
+}
+
+export function critChance(g: Game): number {
+  const base = g.has("debugger") ? HIT.crit * 2 : HIT.crit;
+  return base + (g.player.weapon?.trait === "unsafe" ? TRAIT.unsafeCrit : 0);
+}
+
+/** One hit landing. True if it killed. */
+function strike(g: Game, m: Monster, dmg: number, crit: boolean): boolean {
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  if (m.hp <= 0) killMonster(g, m);
-  else if (m.boss) bossPhase(g, m);
+  if (m.hp <= 0) {
+    killMonster(g, m);
+    return true;
+  }
+  if (m.boss) bossPhase(g, m);
   else if (m.archetype === "hydra" && !m.split && !g.has("di")) splitHydra(g, m);
+  return false;
+}
+
+/** Duck typing: if it stands next to you, it gets hit too. */
+function cleave(g: Game, target: Monster, dmg: number): void {
+  const p = g.player;
+  const near = g.floor.monsters.filter((o) => o !== target && Math.abs(o.x - p.x) <= 1 && Math.abs(o.y - p.y) <= 1);
+  for (const o of near) {
+    o.awake = true;
+    strike(g, o, dmg, false);
+    if (g.outcome !== "playing") return;
+  }
+}
+
+/** Enterprise weight: the target staggers one cell back if there is room. */
+function knockBack(g: Game, m: Monster): void {
+  if (m.boss) return;
+  const p = g.player;
+  const x = m.x + Math.sign(m.x - p.x);
+  const y = m.y + Math.sign(m.y - p.y);
+  if (g.floor.map.grid.get(x, y) !== Tile.Floor || g.monsterAt(x, y) || npcAt(g.floor, x, y)) return;
+  m.x = x;
+  m.y = y;
 }
 
 /** Extra damage from perks against this kind of monster. */
@@ -71,10 +111,13 @@ export function killMonster(g: Game, m: Monster): void {
     g.floor.map.grid.set(sx, sy, Tile.StairsDown);
     g.emit({ t: "reveal" });
     for (let i = 0; i < DROPS.bossCoffee; i++) drop(g, m.x, m.y, "coffee");
+    dropBossWeapon(g, m);
   } else {
     g.say(`${KILL_VERB[m.archetype] ?? "You fix"} ${m.name}.`);
     if (g.rng.chance(DROPS.coffee)) drop(g, m.x, m.y, "coffee");
+    dropGear(g, m);
   }
+  if (g.player.weapon?.trait === "arc") g.heal(TRAIT.arcHeal);
   g.gainXp(m.xp);
 }
 

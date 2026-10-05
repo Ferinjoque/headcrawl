@@ -4,6 +4,7 @@
 import type { Game } from "../game/game";
 import { PERKS } from "../game/perks";
 import { floorRow } from "./share";
+import { describe } from "../game/gear";
 
 const KIND_NAMES: Record<string, string> = {
   tangle: "tangles",
@@ -39,7 +40,9 @@ export function runLog(game: Game, link: string): string {
     "",
     outcome,
     `floors   ${floorRow(game)}`,
-    `level    ${p.level}, ${p.maxHp} max HP, attack ${p.atk + p.blade}`,
+    `level    ${p.level}, ${p.maxHp} max HP, attack ${p.atk + (p.weapon?.bonus ?? 0)}`,
+    `weapon   ${p.weapon ? describe(p.weapon) : "bare hands"}`,
+    `armor    ${p.armor ? describe(p.armor) : "none"}`,
     `turns    ${p.turns}`,
     `cursed   ${p.curses}`,
     `tools    ${p.perks.map((id) => PERKS[id].name).join(", ") || "none"}`,

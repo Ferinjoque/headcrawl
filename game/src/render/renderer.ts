@@ -29,7 +29,8 @@ export const FONT = "VT323";
 
 const ITEM_GLYPH: Record<Item["kind"], [string, RGB]> = {
   potion: ["!", C.hp],
-  blade: ["/", C.steel],
+  weapon: ["/", C.steel],
+  armor: ["[", C.steel],
   scroll: ["?", C.gold],
   curse: ["%", C.violet],
   coffee: ["c", C.coffee],

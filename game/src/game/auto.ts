@@ -65,7 +65,7 @@ function frontier(game: Game): [number, number] | null {
 }
 
 export function autoAction(game: Game, mode: AutoMode): Action | null {
-  if (game.outcome !== "playing" || game.perkChoice) return null;
+  if (game.outcome !== "playing" || game.perkChoice || game.gearChoice || game.vendorChoice) return null;
   const p = game.player;
   switch (mode.kind) {
     case "rest":
@@ -76,7 +76,7 @@ export function autoAction(game: Game, mode: AutoMode): Action | null {
       return stepTo(game, mode.to);
     case "explore": {
       if (danger(game)) return null;
-      const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y));
+      const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y) && !game.declined.has(i.id));
       if (items.length) {
         const near = items.sort((a, b) => Math.abs(a.x - p.x) + Math.abs(a.y - p.y) - (Math.abs(b.x - p.x) + Math.abs(b.y - p.y)))[0];
         const step = stepTo(game, [near.x, near.y]);

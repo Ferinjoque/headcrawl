@@ -19,6 +19,18 @@ export const HIT = {
 export const DROPS = {
   coffee: 0.2,
   bossCoffee: 2,
+  /** A weapon or armor from an ordinary kill. */
+  gear: 0.04,
+  /** Of those, how many are armor. */
+  armorShare: 0.3,
+  /** Test functions guard things: armor from a kill in a test file. */
+  testArmor: 0.12,
+};
+
+export const TRAIT = {
+  asyncFree: 0.25,
+  unsafeCrit: 0.05,
+  arcHeal: 2,
 };
 
 export const BOSS = {
@@ -37,10 +49,6 @@ export function potionHeal(power: number): number {
 }
 
 export const COFFEE_HEAL = 6;
-
-export function bladeBonus(power: number, floor: number): number {
-  return 1 + Math.ceil(power / 3) + Math.floor(floor / 2);
-}
 
 export const WAKE_RANGE = 5;
 

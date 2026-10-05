@@ -5,6 +5,7 @@ import type { Boss, Enemy, Floor } from "../spec";
 import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
 import { TUNING } from "./abilities";
 import { capsFor, depthScale, softCap } from "./balance";
+import { fromFixme, fromTests } from "./gear";
 import type { Item, Monster } from "./types";
 import type { KeeperNpc, Vendor } from "./extras";
 
@@ -107,6 +108,9 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
   const rng = new Rng(`${seed}/spawn/${floor.index}`);
   const monsters: Monster[] = [];
   const items: Item[] = [];
+  // The biggest test file on the floor leaves its suite lying around as armor.
+  const shrines = map.rooms.filter((r) => r.spec.kind === "shrine");
+  const suite = shrines.sort((a, b) => b.spec.functions - a.spec.functions || a.index - b.index)[0] ?? null;
 
   for (const rect of map.rooms) {
     let cells = rng.shuffle(roomCells(map, rect));
@@ -129,7 +133,14 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     }
     for (const l of room.loot) {
       const c = cells.pop();
-      if (c) items.push({ id: l.id, kind: l.kind, x: c[0], y: c[1], loot: l, source: `${room.path}:${l.line}` });
+      if (!c) continue;
+      const source = `${room.path}:${l.line}`;
+      if (l.kind === "blade") items.push({ id: l.id, kind: "weapon", x: c[0], y: c[1], loot: l, source, gear: fromFixme(l, room, floor.index) });
+      else items.push({ id: l.id, kind: l.kind, x: c[0], y: c[1], loot: l, source });
+    }
+    if (rect === suite) {
+      const c = cells.pop();
+      if (c) items.push({ id: `suite-${room.id}`, kind: "armor", x: c[0], y: c[1], loot: null, source: room.path, gear: fromTests(room, floor.index) });
     }
   }
   const size = map.grid.width * map.grid.height;

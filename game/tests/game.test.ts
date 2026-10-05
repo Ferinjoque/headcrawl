@@ -133,7 +133,7 @@ describe("rules", () => {
     }
     expect(game.player.potions).toHaveLength(1);
     expect(game.player.scrolls).toHaveLength(1);
-    expect(game.player.blade).toBeGreaterThan(0);
+    expect(game.player.weapon?.bonus).toBeGreaterThan(0);
     expect(game.player.curses).toBe(1);
     expect(game.player.maxHp).toBe(before.maxHp - 5);
     game.player.hp = 1;

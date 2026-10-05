@@ -14,7 +14,7 @@ import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, plac
 import type { LoopTrap } from "../map/layout";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
-import { pickUp, quaff, readScroll } from "./items";
+import { equip, pickUp, quaff, readScroll } from "./items";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
 
 export interface GameOptions {
@@ -40,6 +40,12 @@ export class Game {
   perkChoice: PerkId[] | null = null;
   /** What the vendor you just bumped into is selling, or null. */
   vendorChoice: Offer[] | null = null;
+  /** Gear you are standing on while that slot is full: take it or leave it. */
+  gearChoice: Item | null = null;
+  /** Gear you looked at and left lying. Auto-explore stops walking you back to it. */
+  readonly declined = new Set<string>();
+  /** Set by an async weapon: the monsters skip this turn. */
+  freeTurn = false;
   readonly mods: ModId[];
   private lastRoom = -1;
   private perksOwed = 0;
@@ -61,7 +67,8 @@ export class Game {
       hp: PLAYER.hp,
       maxHp: PLAYER.hp,
       atk: PLAYER.atk,
-      blade: 0,
+      weapon: null,
+      armor: null,
       level: 1,
       xp: 0,
       nextXp: xpForLevel(1),
@@ -168,6 +175,16 @@ export class Game {
       }
       return false;
     }
+    if (this.gearChoice) {
+      if (action.type === "gear") {
+        this.log.push(actionCode(action));
+        const item = this.gearChoice;
+        this.gearChoice = null;
+        if (action.take && item.gear) equip(this, item, item.gear);
+        else this.declined.add(item.id);
+      }
+      return false;
+    }
     let took = false;
     switch (action.type) {
       case "move":
@@ -187,6 +204,7 @@ export class Game {
         break;
       case "perk":
       case "buy":
+      case "gear":
         break;
     }
     if (took) this.log.push(actionCode(action));
@@ -197,7 +215,10 @@ export class Game {
     if (p.turns % regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
     // Sight first, so monsters wake on what the player can see right now.
     this.updateSight();
-    monstersAct(this);
+    if (this.freeTurn) {
+      this.freeTurn = false;
+      this.say("async. You swing again before anything answers.", "good", true);
+    } else monstersAct(this);
     this.updateSight();
     return true;
   }

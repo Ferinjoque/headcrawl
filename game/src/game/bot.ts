@@ -6,11 +6,13 @@ import { findPath } from "../map/astar";
 import { npcAt } from "./extras";
 import { Tile, walkable } from "../map/grid";
 import type { Game } from "./game";
+import { score } from "./gear";
 import type { Action } from "./types";
 
 export function botAction(game: Game): Action {
   if (game.perkChoice) return { type: "perk", index: 0 };
   if (game.vendorChoice) return { type: "buy", index: 0 };
+  if (game.gearChoice?.gear) return { type: "gear", take: score(game.gearChoice.gear) > score(game.player[game.gearChoice.gear.slot]) };
   const p = game.player;
   const grid = game.floor.map.grid;
 
@@ -57,7 +59,9 @@ function pickTarget(game: Game): [number, number] | null {
   const awake = game.floor.monsters.filter((m) => m.awake && !m.boss).map((m) => [m.x, m.y] as [number, number]);
   if (awake.length) return awake.sort((a, b) => near(a) - near(b))[0];
   if (game.floor.items.length) {
-    const items = game.floor.items.map((i) => [i.x, i.y] as [number, number]).filter((c) => game.floor.seen[map.grid.idx(c[0], c[1])]);
+    const items = game.floor.items
+      .filter((i) => !game.declined.has(i.id) && game.floor.seen[map.grid.idx(i.x, i.y)])
+      .map((i) => [i.x, i.y] as [number, number]);
     if (items.length) return items.sort((a, b) => near(a) - near(b))[0];
   }
   // Fixed order, not nearest: "nearest unseen room" flips back and forth as

@@ -97,6 +97,7 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   const roll = g.rng.int(Math.max(1, Math.ceil(m.damage / 2)), m.damage);
   let dmg = Math.max(1, Math.round(roll * mult * (m.archetype === "ghost" ? GHOST_DAMAGE : 1)));
   if (g.has("rubberduck") && p.hp < p.maxHp / 3) dmg = Math.max(1, dmg - 2);
+  if (p.armor) dmg = Math.max(1, dmg - p.armor.bonus);
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
   if (p.hp <= 0) {

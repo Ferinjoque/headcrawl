@@ -1,6 +1,4 @@
 import type { Game } from "../game/game";
-import { PERKS, type PerkId } from "../game/perks";
-import type { Offer } from "../game/extras";
 import { ABILITY } from "../game/abilities";
 import { topDeaths, type Codex } from "./codex";
 import { h, plural } from "./dom";
@@ -270,7 +268,8 @@ export function helpScreen(close: () => void) {
     row("boss", "the hotspot: most churn times complexity. The red cells are where it lands."),
     h("h2", null, "loot"),
     row("! TODO", "heals when you finally do it"),
-    row("/ FIXME", "a weapon, more attack"),
+    row("/ weapon", "a FIXME, or a function a monster or boss dropped. Fights like its language: Rust pierces, Go never misses, Python cleaves"),
+    row("[ armor", "a test suite, or the error handling around a function. Takes defense off every hit"),
     row("? HACK", "a random trick. Sometimes git checkout: the floor as it was a year ago"),
     row("% XXX", "cursed: attack up, max HP down"),
     row("c coffee", "dropped by monsters, heals a little"),
@@ -358,41 +357,6 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
           btn("s", "save run log", on.save),
         )
       : null,
-  );
-}
-
-export function perkCard(ids: PerkId[], pick: (index: number) => void) {
-  return h(
-    "div",
-    { class: "card choice", role: "dialog", "aria-label": "Pick a tool" },
-    h("div", { class: "card-kicker" }, "level up. pick a tool"),
-    ...ids.map((id, i) =>
-      h(
-        "button",
-        { class: "perk", type: "button", onclick: () => pick(i) },
-        h("kbd", null, `[${i + 1}]`),
-        h("span", { class: "perk-name" }, PERKS[id].name),
-        h("span", { class: "perk-text" }, PERKS[id].text),
-      ),
-    ),
-  );
-}
-
-export function vendorCard(offers: Offer[], pick: (index: number) => void) {
-  return h(
-    "div",
-    { class: "card choice", role: "dialog", "aria-label": "The vendor" },
-    h("div", { class: "card-kicker" }, "a vendor. one dependency per floor"),
-    ...offers.map((o, i) =>
-      h(
-        "button",
-        { class: "perk", type: "button", onclick: () => pick(i) },
-        h("kbd", null, `[${i + 1}]`),
-        h("span", { class: "perk-name" }, o.dep.name),
-        h("span", { class: "perk-text" }, o.deal.text),
-      ),
-    ),
-    h("button", { class: "perk", type: "button", onclick: () => pick(-1) }, h("kbd", null, "[esc]"), h("span", { class: "perk-name" }, "walk away"), h("span")),
   );
 }
 
