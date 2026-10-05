@@ -15,6 +15,7 @@ import type { LoopTrap } from "../map/layout";
 import type { Gear } from "./gear";
 import { styleLine } from "./bossmoves";
 import { branchFloor, placeBranch, type BranchDoor } from "./branches";
+import { gateFor, type Gate } from "./warmup";
 import { playerAttack } from "./combat";
 import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
@@ -62,6 +63,8 @@ export class Game {
   /** Set by an async weapon: the monsters skip this turn. */
   freeTurn = false;
   readonly mods: ModId[];
+  /** Which systems each floor has; see warmup.ts. */
+  readonly gate: Gate;
   private lastRoom = -1;
   private perksOwed = 0;
   /** Every action that changed the game, as codes from record.ts. */
@@ -73,6 +76,7 @@ export class Game {
     this.spec = spec;
     this.run = opts.run ?? 0;
     this.mods = opts.mods ?? [];
+    this.gate = gateFor(spec.floors.length, this.mods.includes("hard") || spec.generator === "lab");
     this.rng = new Rng(`${spec.seed}/run/${this.run}`);
     this.floor = this.makeFloor(0);
     const [x, y] = this.floor.map.start;
@@ -105,11 +109,11 @@ export class Game {
   }
 
   private makeFloor(index: number): FloorState {
-    const floor = buildFloor(this.spec.floors[index], this.spec.seed, this.spec.floors.length);
+    const floor = buildFloor(this.spec.floors[index], this.spec.seed, this.spec.floors.length, this.gate);
     modFloor(floor, this.mods);
-    floor.vendor = placeVendor(floor, this.spec);
-    floor.keeper = placeKeeper(floor, this.spec);
-    floor.branch = placeBranch(floor, this.spec);
+    floor.vendor = this.gate("shop", index) ? placeVendor(floor, this.spec) : null;
+    floor.keeper = this.gate("keeper", index) ? placeKeeper(floor, this.spec) : null;
+    floor.branch = this.gate("branch", index) ? placeBranch(floor, this.spec) : null;
     return floor;
   }
 
@@ -356,7 +360,7 @@ export class Game {
     }
     if (!this.visited.has(room.id)) {
       this.visited.add(room.id);
-      if (room.conflicts) this.say(`${room.path} has two versions of itself in here, and both want you. A merge conflict.`, "bad");
+      if (room.conflicts && this.floor.conflictsOn) this.say(`${room.path} has two versions of itself in here, and both want you. A merge conflict.`, "bad");
       this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info", true);
       if (room.blurb) this.say(`"${room.blurb}"`, "lore", true);
     }

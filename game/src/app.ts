@@ -21,7 +21,7 @@ import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { bestiaryScreen } from "./ui/bestiary";
 import { endKey, type EndHandlers } from "./ui/screens";
-import { bannerCard, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
+import { bannerCard, floorBanner, endScreen, helpScreen, pauseScreen, welcomeScreen } from "./ui/screens";
 import { CompareView } from "./ui/compareview";
 import { choiceAction, syncChoice } from "./ui/choices";
 import { sheetScreen } from "./ui/sheet";
@@ -549,6 +549,7 @@ export class App {
     }
     if (this.race) this.log.push(`Racing ${this.race.whose}. Their @ is the faint violet one.`, "lore");
     this.refreshUi();
+    if (!watching && !this.practice && this.hints.firstVisit()) this.overlay(welcomeScreen);
   }
 
   /** A friend's race link wins over your own best; a fresh dungeon has neither. */
@@ -707,7 +708,7 @@ export class App {
       this.restart();
       return;
     }
-    if ((this.mode === "help" || this.mode === "pause") && (e.key === "Escape" || e.key === "?")) {
+    if ((this.mode === "help" || this.mode === "pause") && (e.key === "Escape" || e.key === "?" || (e.key === "Enter" && this.mode === "help"))) {
       e.preventDefault();
       this.closeOverlay();
       return;

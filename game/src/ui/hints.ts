@@ -27,10 +27,10 @@ export class Hints {
     }
   }
 
-  private once(tip: Tip, out: string[]): void {
+  private once(tip: Tip | "welcome", out: string[]): void {
     if (this.seen.has(tip)) return;
     this.seen.add(tip);
-    out.push(TIPS[tip]);
+    if (tip !== "welcome") out.push(TIPS[tip]);
     try {
       localStorage.setItem(KEY, JSON.stringify([...this.seen]));
     } catch {
@@ -45,6 +45,13 @@ export class Hints {
     } catch {
       // Nothing stored to clear.
     }
+  }
+
+  /** True only the first time it is asked, in this browser: the welcome card. */
+  firstVisit(): boolean {
+    if (this.seen.has("welcome")) return false;
+    this.once("welcome", []);
+    return true;
   }
 
   /** Marks a tip as learned without showing it, e.g. explore once you press x. */

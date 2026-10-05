@@ -250,7 +250,7 @@ export class Renderer {
             ch = horizontal ? ((x - r.x) % 2 === 0 ? "[" : "]") : x === r.x ? "[" : "]";
             col = room && room === map.lair ? mix(C.brick, C.boss, 0.45) : C.brick;
             // Conflict markers for walls: <<<<<<< on top, >>>>>>> below, ======= at the sides.
-            if (r.spec.conflicts) {
+            if (r.spec.conflicts && scene.floor.conflictsOn) {
               ch = y === r.y ? "<" : y === r.y + r.h - 1 ? ">" : "=";
               col = mix(C.brick, C.danger, 0.6);
             }

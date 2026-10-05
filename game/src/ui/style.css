@@ -1130,6 +1130,7 @@ body.dragging #screen::after {
 .diff-3 { color: oklch(0.74 0.14 50); }
 .diff-4 { color: oklch(0.76 0.18 40); }
 .diff-5 { color: var(--boss); }
+.diff.start { color: var(--lore); }
 
 /* Bestiary rows in each monster's own colour, as on the map. */
 .kind-tangle { color: oklch(0.72 0.24 330); }

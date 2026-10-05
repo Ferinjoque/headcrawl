@@ -6,17 +6,24 @@ product
 
 ## Users
 
-Developers, mostly. Someone who cloned the repo after a friend sent a run
-code ("I died on floor 3 of flask-4821") or wants to see what their own repo
-looks like as a dungeon. There is no hosted site: people run it locally.
-Short sessions, ten to twenty minutes, keyboard on a laptop, often at night.
+Anyone who likes a short roguelike, with or without knowing code. Someone
+who got a run code from a friend ("I died on floor 3 of flask-4821"), and
+programmers who want to see their own repo as a dungeon. There is no hosted
+site: people run it locally. Short sessions, ten to twenty minutes, keyboard
+on a laptop, often at night.
+
+Changed 2026-10-05: it used to say "developers, mostly". The owner found the
+git angle was the hook but not enough on its own, and too much of the game
+only made sense to programmers.
 
 ## Product Purpose
 
-A roguelike where the level is a real git repo. The fun is recognition: the
-monster you just fought is `parse_args`, the potion is a TODO someone left in
-2019, the boss is the file everybody keeps rewriting. Success is people
-playing a repo they know, laughing at what they find, and sharing the run code.
+A roguelike first: descend, fight, loot, one life, a boss per floor. The
+levels are dug out of real code, which gives every dungeon its own shape
+and names. For programmers there is a second layer of fun in recognition:
+the monster you just fought is `parse_args`, the potion is a TODO someone
+left in 2019, the boss is the file everybody keeps rewriting. Success is
+people coming back for one more run, and sharing the run code.
 
 ## Brand Personality
 
@@ -34,14 +41,17 @@ console. Copy is dry and short, like a commit message with a sense of humor.
 
 ## Design Principles
 
-1. The code is the content. Show real names, paths, line numbers and
+1. Game words first. Every thing has a plain name a non-programmer gets
+   (potion, scroll, shop, side door); the code term rides along as flavor
+   or on a faint second line. ui/glossary.ts holds the words.
+2. The code is the content. Show real names, paths, line numbers and
    comments wherever there is room. Never invent filler where repo data
    exists.
-2. Light is information. Brightness says what is visible, heat, danger and
+3. Light is information. Brightness says what is visible, heat, danger and
    value. Decoration that glows has to mean something.
-3. One screen, one terminal. HUD, log and menus belong to the same text
+4. One screen, one terminal. HUD, log and menus belong to the same text
    world as the map, not a web page bolted around it.
-4. Every run is shareable. Run code, link and result text are always one key
+5. Every run is shareable. Run code, link and result text are always one key
    away.
 
 ## Accessibility & Inclusion

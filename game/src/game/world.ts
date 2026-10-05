@@ -10,6 +10,7 @@ import { fromFixme, fromTests } from "./gear";
 import type { Item, Monster } from "./types";
 import type { KeeperNpc, Vendor } from "./extras";
 import type { BranchDoor } from "./branches";
+import { OPEN, type Gate } from "./warmup";
 
 export interface FloorState {
   index: number;
@@ -31,6 +32,8 @@ export interface FloorState {
   xpScale: number;
   /** A door to one of the repo's other branches, or null. */
   branch: BranchDoor | null;
+  /** Rooms with a merge conflict fight as two versions here (see warmup.ts). */
+  conflictsOn: boolean;
 }
 
 /** How many of the other side's functions a conflicted file adds. */
@@ -134,7 +137,8 @@ export function fromBoss(b: Boss, x: number, y: number, room: number, depth: num
   };
 }
 
-export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
+export function buildFloor(floor: Floor, seed: string, floors = 1, gate: Gate = OPEN): FloorState {
+  const conflictsOn = gate("conflicts", floor.index);
   const map = layoutFloor(floor, seed);
   const rng = new Rng(`${seed}/spawn/${floor.index}`);
   const monsters: Monster[] = [];
@@ -159,7 +163,7 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     }
     // You arrive in the entry room. Nobody should be waiting there.
     const enemies = rect === map.entry && map.rooms.length > 1 ? [] : room.enemies;
-    const elite = eliteOf(room);
+    const elite = gate("elites", floor.index) ? eliteOf(room) : null;
     for (const e of enemies) {
       if (!roster.keep.has(e)) continue;
       const c = cells.pop();
@@ -167,10 +171,11 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
       const m = fromEnemy(e, c[0], c[1], rect.index, floor.index, floors);
       m.xp = Math.round(m.xp * roster.xpScale);
       if (e === elite) makeElite(m, affixFor(e, room)!);
+      if (e.deprecated && !gate("deprecated", floor.index)) m.enemy = { ...e, deprecated: false };
       monsters.push(m);
     }
     // A merge conflict left in the file: their version of it fights too.
-    if (room.conflicts && enemies.length) {
+    if (room.conflicts && conflictsOn && enemies.length) {
       const theirs = (room.past?.enemies.length ? room.past.enemies : enemies).slice(0, CONFLICT_COPIES);
       theirs.forEach((e, i) => {
         const c = cells.pop();
@@ -211,5 +216,6 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     rewound: false,
     xpScale: roster.xpScale,
     branch: null,
+    conflictsOn,
   };
 }

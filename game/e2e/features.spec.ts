@@ -24,3 +24,17 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("heading", { name: "paused" })).toBeVisible();
   });
 });
+
+test.describe("first visit", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("the welcome card shows once and enter closes it", async ({ page }) => {
+    await page.goto("./#/play/itsdangerous?run=7");
+    await expect(page.locator("#screen")).toContainText("welcome down");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#screen")).toBeHidden();
+    await page.reload();
+    await expect(page.locator("#hud")).toContainText("floor 1/");
+    await expect(page.locator("#screen")).toBeHidden();
+  });
+});

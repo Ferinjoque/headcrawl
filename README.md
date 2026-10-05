@@ -1,18 +1,22 @@
 # HEADCRAWL
 
-A roguelike where the dungeon is a git repo.
+A roguelike dug out of real code.
 
 ![Title screen](docs/img/title.png)
 
-Every file is a room. Every function is a monster, and the code sets its
-stats: cyclomatic complexity is its HP, nesting depth is how hard it hits,
-parameter count is how fast it moves. TODO, FIXME and HACK comments are
-loot. The file that changes most and is hardest to read is the boss of its
-floor. Imports are the corridors, and the deeper you go the closer you get
-to the code everything else depends on.
+You go down a dungeon one floor at a time. Each floor has a boss, and the
+stairs only open once it's dead. You get one life. Monsters wind up big hits
+you can see coming, potions and scrolls are scattered around, and every few
+levels you pick a new trick.
 
-Same commit, same dungeon. The seed is the HEAD hash, so a run code like
-`flask-4821` gives anyone the same map and the same rolls.
+The twist is where the dungeons come from. Each one is built from the
+source code of a real program: folders become floors, files become rooms,
+and every monster is a function from that code, named after it. The
+tangled, hard-to-follow ones are the tough ones. You don't need to know any
+code to play. If you do, you'll recognise a few faces.
+
+Same code, same dungeon. A run code like `flask-4821` gives a friend your
+exact game, down to every roll.
 
 ![A boss shows up](docs/img/boss.png)
 
@@ -20,8 +24,7 @@ Same commit, same dungeon. The seed is the HEAD hash, so a run code like
 
 The quickest way: grab the zip from the latest release, unzip it, and run
 `python play.py` inside the folder. It serves the game on 127.0.0.1 and
-opens your browser. Everything works from the zip, building any GitHub
-repo included.
+opens your browser.
 
 From source you need Node 20 or newer.
 
@@ -32,64 +35,63 @@ npm ci
 npm run dev          # then open http://localhost:5173
 ```
 
-That's enough for the gallery, daily runs and run codes. To build any
-GitHub repo from the title screen you also need
+That's enough for the twenty bundled dungeons, daily runs and run codes. To
+build a dungeon from any GitHub repo on the title screen you also need
 [uv](https://docs.astral.sh/uv/), once:
 
 ```
 npm run py           # builds the analyzer and fetches Python for the browser (about 30 MB)
 ```
 
-## What maps to what
+## Playing
 
-| In the repo | In the dungeon |
-|---|---|
-| folder | floor, ordered so the most imported code is at the bottom |
-| file | room, sized by lines of code |
-| import between files | `~` corridor |
-| an import cycle | `o~` loop corridor that walks you back once |
-| neighbours in the folder tree | `#` passage |
-| function | monster named after it |
-| complexity / nesting / params | HP / damage / speed |
-| test file | shrine, heals you once |
-| `TODO` | `!` potion |
-| `FIXME` | `/` weapon that fights like the file's language |
-| a test file's suite, or the error handling around a function | `[` armor |
-| a beaten boss | drops its own function as a weapon |
-| `HACK` | `?` scroll with a random effect |
-| `XXX` | `%` cursed: more attack, less max HP |
-| churn x complexity | the boss of the floor |
-| the floor a year ago | what a `git checkout` HACK turns it back into, boss included |
-| whoever committed most to a folder | the `&` keeper on that floor: say hi once for a coffee |
-| dependencies in the root manifest | the `$` vendor in each entry room |
-| who last touched a TODO line | written on the loot ("a FIXME from 2012 by alice") |
-| a function marked deprecated | struck through; its hits slow you for 3 turns |
-| a merge conflict committed into a file | a room walled in `<<<` and `>>>` where both versions fight |
-| the repo's other branches (command line builds) | `Y` side doors: the same folder laid out the way that branch has it |
+Pick a dungeon from the list (the one marked "start here" is small and
+gentle). Behind the menu a bot plays a random one, so you can see what
+you're in for.
 
-The rock between rooms is filled with the floor's own identifiers.
+Arrows, `hjkl` or `yubn` move, and walking into a monster attacks it. `x`
+explores until something shows up, `z` rests, `>` takes the stairs once the
+boss is dead, `f` shoots a monster up to 5 cells away for half a hit, `c`
+shows your stats and gear, `?` explains everything else. Red cells on the
+floor are where a hit is about to land: step out.
 
-Monsters play differently depending on what kind of code they are:
-
-| Kind | Comes from | What it does |
+| You see | It is | It does |
 |---|---|---|
-| tangle (capital letter) | lots of branches | regrows HP every turn |
-| nest | deep nesting | winds up a heavy hit, red cells show where |
-| hydra | many parameters | splits in two the first time it's hurt |
-| wall (capital letter) | very long function | armored and slow |
-| imp | tiny function | fast |
-| bug | everything else | dodges now and then |
-| ghost | nothing mentions it, tests included | drifts through walls, hits softly |
-| remote | a small function that talks to the network (`fetch`, `send`, `emit`...) | lines up a shot from 4 cells away, step off the red line |
-| boss | the floor's hotspot | winds up area attacks; deeply nested ones sweep wider, ones with many parameters call helpers, long ones heal out of reach, hot paths speed up |
+| `!` | potion | heals, `q` drinks one |
+| `?` | scroll | a random trick, `r` reads one |
+| `%` | curse | attack up, max HP down |
+| `/` | weapon | adds to your attack and fights like its language |
+| `[` | armor | takes some damage off every hit |
+| `*` | shrine | heals you once |
+| `$` | shop | one buy per floor; every deal helps and every one costs |
+| `&` | keeper | say hi once for a coffee |
+| `Y` | side door | another version of the floor: no boss, a weapon by the stairs |
+| `>` | stairs | open once the boss is dead |
 
-One monster in a busy room can be an elite, drawn bold on a faint tile: a
-god function (60+ lines, more HP), deeply nested (armored) or a hot path
-(in a file that keeps changing, faster). Elites are worth more and drop gear
-more often. Big floors keep their 30 most complex functions; the rest pass
-part of their XP on.
+The first floor is just fights and loot. The shop, elite monsters and
+outdated code that slows you come in on the second floor, keepers and side
+doors on the third. Hard runs and the last floor have everything.
 
-## Gear
+Monsters come in kinds, and each has a tell:
+
+| Kind | What it does |
+|---|---|
+| tangle | regrows HP every turn, finish it fast |
+| nest | winds up a heavy hit, step out of the red |
+| hydra | splits in two the first time it's hurt |
+| wall | armored and slow |
+| imp | fast |
+| bug | dodges now and then |
+| ghost | drifts through walls, hits softly |
+| remote | shoots along a red line from 4 cells away |
+| boss | area attacks; each one has a style: deep ones sweep wider, crowded ones call helpers, huge ones heal out of reach, hot ones speed up |
+
+One monster in a busy room can be an elite, drawn bold on a faint tile:
+tougher, worth more, and more likely to drop gear.
+
+![A boss winding up](docs/img/telegraph.png)
+
+### Gear and tools
 
 You carry one weapon and one armor. A weapon fights the way the language of
 its file does:
@@ -105,60 +107,69 @@ its file does:
 | Swift | ref counted | every kill heals 2 |
 | PHP | loosely typed | hits for half to double |
 
-Weapons are FIXMEs, bosses (which drop their own function) and now and then
-an ordinary kill, named after the function. Armor is the biggest test file's
-suite, or the error handling around a function in its own language
-(`try/except around load_config`, `if err != nil after parse`). Walking
-onto gear with that slot full asks before swapping, and yours stays on the
-floor. `c` (or clicking atk in the top line) shows every number behind a
-fight: damage range, hit and crit chances, how often monsters land, armor.
+Walking onto gear with that slot full asks before swapping. `c` (or
+clicking atk in the top line) shows every number behind a fight.
 
-Level ups offer three of 21 dev tools (linter, feature flag, git stash,
-fuzzing...); the rare ones come up a third as often.
+Level ups offer three of 21 tools named after things programmers use
+(linter, rubber duck, feature flag...); each card says what it does in the
+game and, in small print, what the real thing is. The rare ones come up a
+third as often.
 
-![A boss winding up](docs/img/telegraph.png)
+### Daily runs, saves and sharing
 
-## Playing
-
-Pick a repo from the gallery, or bring your own (below). Behind the menu
-the bot plays a random gallery dungeon, so you can see what you're in for.
-Arrows, `hjkl` or `yubn` move and attack. `x` explores until something
-shows up, `z` rests, `>` takes the stairs once the boss is dead, `f`
-leaves a review comment on a monster up to 5 cells away (half a hit, then
-a few turns to recharge), `c` shows your stats and gear, `?` shows
-everything else. Health is the first thing on the top line.
-
-The vendor (`$`) in each entry room sells two of the repo's real
-dependencies, one per floor. Every deal helps and every one costs
-something: a framework hits hard and weighs a ton, the package itself can
-become your weapon, its `@types` your armor.
-
-There is a daily run (`d`): same repo, same rolls and the same twist for
-everyone that day (friday deploy on Fridays, otherwise legacy code,
-hotfix, code review or lights out). Only your first start of the day
-counts; later ones say "practice" in the share text.
-
-The music is made live in WebAudio and seeded by the repo's HEAD, so every
-repo has its own theme. It gets darker the deeper you go, drums come in when
-something wants you dead, and bosses get a motif made from their name.
-Each language has its own instruments, the vendor plays lounge music, a
-ghost in sight hums, and daily runs ring a bell. `m`
-mutes everything; `,` opens settings (music on its own, difficulty, text size,
-colorblind friendly or high contrast colors, calm motion). On a phone, tap
-a monster to see what it is. `b` on the title opens the bestiary: every kind
-of monster, elite and weapon you've met, the gnarliest one of each you
-finished, the bosses you beat and what keeps getting you. The ones you
-haven't met yet say what code makes them.
+There is a daily run (`d`): same dungeon, same rolls and the same twist for
+everyone that day. Only your first start of the day counts.
 
 Runs save themselves in the browser; close the tab and pick it up later
-under "continue". Every run has a code like `flask-4821`: give it to a
-friend and they get the same dungeon with the same rolls. When a run ends
-you can copy a spoiler-free result, and under `tab`: a race link (your
-run plays as a faint @ next to theirs), a replay link, a GIF or an
-asciinema cast of the last turns, or the whole run log as text. Your own
-best run on each dungeon comes back as that ghost too. Links point at your
-own copy, so a friend pastes them into the run code box on theirs; only the
-part after `#` matters.
+under "continue". When a run ends you can copy a spoiler-free result, and
+under `tab`: a race link (your run plays as a faint @ next to theirs), a
+replay link, a GIF or an asciinema cast of the last turns, or the whole
+run log as text. Your own best run on each dungeon comes back as a ghost to
+race. Links point at your own copy, so a friend pastes them into the run
+code box on theirs.
+
+`b` on the title opens the bestiary: every kind of monster, elite and
+weapon you've met, and what keeps getting you.
+
+The music is made live in the browser and is different for every dungeon.
+It gets darker the deeper you go and drums come in when something wants
+you dead. `m` mutes; `,` opens settings (music on its own, difficulty,
+text size, colorblind friendly or high contrast colors, calm motion). On a
+phone, tap a monster to see what it is.
+
+## How code becomes a dungeon
+
+For the curious. Every number in the game comes from the code:
+
+| In the code | In the dungeon |
+|---|---|
+| folder | floor, ordered so the code everything else relies on is at the bottom |
+| file | room, sized by lines of code |
+| one file importing another | `~` corridor |
+| an import cycle | `o~` loop corridor that walks you back once |
+| neighbours in the folder tree | `#` passage |
+| function | monster named after it |
+| complexity (paths through it) / nesting / parameters | HP / damage / speed |
+| test file | shrine |
+| `TODO` | potion |
+| `FIXME` | weapon |
+| a test file's suite, or the error handling around a function | armor |
+| a beaten boss | drops its own function as a weapon |
+| `HACK` | scroll |
+| `XXX` | curse |
+| most changed x most complex | the boss of the floor |
+| the floor a year ago | what a "time slips" scroll turns it back into |
+| whoever committed most to a folder | the keeper on that floor |
+| dependencies in the root manifest | what the shop sells |
+| who last touched a TODO line | written on the loot ("a TODO from 2012 by alice") |
+| a function marked deprecated | outdated, struck through; its hits slow you |
+| a merge conflict committed into a file | a room walled in `<<<` and `>>>` where both versions fight |
+| the repo's other branches (command line builds) | side doors |
+| god function / deeply nested / hot path | huge / deep / hot elites and boss styles |
+| a function nothing mentions, tests included | ghost |
+| a small function that calls the network | remote |
+
+The rock between rooms is filled with the floor's own identifiers.
 
 ## Your own repo
 
@@ -176,7 +187,7 @@ access to public repos is enough. It stays in your browser, for the tab
 unless you tick "remember", and is only ever sent to api.github.com. Dates
 are text only, so a link builds the same dungeon with or without a token.
 
-Or pick a folder on your own disk (title screen, `tab`, `f`): the same
+Or pick a folder on your own disk (title screen, files tab): the same
 analyzer reads it in the tab, and nothing is uploaded.
 
 Give a repo and an old tag instead and you get **then vs now**: both
@@ -184,8 +195,9 @@ versions built and compared, which functions grew, which got simpler, which
 notes appeared, and you can play either one.
 
 The command line version reads the full git history, so every TODO also
-knows how old it is. `headcrawl play` builds a dungeon and opens it in the
-game in one go (from source, run `npm run build` in `game/` once):
+knows how old it is, and other branches become side doors. `headcrawl play`
+builds a dungeon and opens it in the game in one go (from source, run
+`npm run build` in `game/` once):
 
 ```
 cd analyzer
@@ -214,12 +226,12 @@ lines otherwise. Off by default, and the game never needs it.
 ## The lab, practice runs and the sim
 
 `l` on the title opens the lab: a small two-floor dungeon with a tools
-panel over the map. Spawn any monster kind, as an elite or deprecated, a
+panel over the map. Spawn any monster kind, as an elite or outdated, a
 boss of each style, hand yourself any weapon, armor or tool, turn on god
 mode, freeze the floor, reveal it, open the stairs. `` ` `` hides the panel.
-`p` on a repo (or `?practice=1` on any link) starts a practice run with the
-same tools: it never saves and never counts toward records, the bestiary
-or the daily.
+`p` on a dungeon (or `?practice=1` on any link) starts a practice run with
+the same tools: it never saves and never counts toward records, the
+bestiary or the daily.
 
 For balance work, `npm run sim` in `game/` plays the gallery with two bots
 (one takes whatever comes first, one chooses like a person would) and
@@ -234,7 +246,8 @@ prints wins, floors, levels, kills, turns and killers per dungeon.
   partial, https only, with hooks and every config-driven command turned off.
 - `game/` TypeScript, Vite and rot-js. Canvas renderer with bloom, seeded
   layout that places files next to the files they import, a bot that plays
-  every gallery dungeon in the tests.
+  every gallery dungeon in the tests. Everything the game calls things, in
+  plain words, is in `game/src/ui/glossary.ts`.
 - `schema/` the JSON contract between the two, generated from the Pydantic
   models. The game's types and validator are generated from it.
 - `docs/` plan, research notes and progress.

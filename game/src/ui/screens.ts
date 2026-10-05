@@ -92,6 +92,19 @@ export function helpScreen(close: () => void) {
   );
 }
 
+/** Once, before the first run in this browser. */
+export function welcomeScreen(close: () => void) {
+  return h(
+    "div",
+    { class: "page welcome" },
+    h("h1", { class: "t-boss" }, "welcome down"),
+    h("p", null, "This dungeon was dug out of a real program. Folders are floors, files are rooms, and every monster is a piece of the code, named after it."),
+    h("p", null, "You don't need to know any code. Walk into monsters to fight them, walk over things to pick them up, and take the stairs once the floor's boss is down. You get one life."),
+    h("p", { class: "dim" }, "Arrows or hjkl move, x explores for you, ? explains everything."),
+    h("div", { class: "actions" }, primary(btn("enter", "let's go", close))),
+  );
+}
+
 export interface EndHandlers {
   again(): void;
   copy(): void;

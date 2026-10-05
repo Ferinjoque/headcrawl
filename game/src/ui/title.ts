@@ -83,7 +83,11 @@ function field(name: string, placeholder: string, label: string) {
 
 const value = (f: HTMLFormElement, name: string) => (f.elements.namedItem(name) as HTMLInputElement).value;
 
+/** The first gentle dungeon in the list: where a new player should go first. */
+export const startHere = (entries: GalleryEntry[]) => entries.findIndex((e) => e.difficulty === 1);
+
 function repoList(s: TitleState, on: TitleHandlers) {
+  const start = startHere(s.entries);
   return h(
     "ul",
     { class: "repos", role: "listbox", "aria-label": "Repos" },
@@ -105,7 +109,11 @@ function repoList(s: TitleState, on: TitleHandlers) {
           h("span", { class: "mark" }, ">"),
           h("span", { class: "name" }, e.repo),
           h("span", { class: "lang" }, e.language),
-          e.difficulty ? h("span", { class: `diff ${DIFF[e.difficulty]?.[1] ?? "dim"}` }, DIFF[e.difficulty]?.[0] ?? "") : h("span"),
+          i === start
+            ? h("span", { class: "diff start" }, "start here")
+            : e.difficulty
+              ? h("span", { class: `diff ${DIFF[e.difficulty]?.[1] ?? "dim"}` }, DIFF[e.difficulty]?.[0] ?? "")
+              : h("span"),
         ),
       ),
     ),
@@ -138,6 +146,7 @@ function detail(s: TitleState, on: TitleHandlers) {
       h("dd", { class: best ? "t-loot" : "faint" }, best || "not played yet"),
     ),
     isDaily ? h("p", { class: "t-lore" }, "Today's daily dungeon.") : null,
+    s.selected === startHere(s.entries) ? h("p", { class: "t-lore" }, "Small and gentle. A good first run.") : null,
     h(
       "div",
       { class: "keys" },
