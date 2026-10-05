@@ -53,7 +53,8 @@ Arrows, `hjkl` or `yubn` move, and walking into a monster attacks it. `x`
 explores until something shows up, `z` rests, `>` takes the stairs once the
 boss is dead, `f` shoots a monster up to 5 cells away for half a hit, `c`
 shows your stats and gear, `?` explains everything else. Red cells on the
-floor are where a hit is about to land: step out.
+floor are where a hit is about to land: step out. A gamepad works too:
+d-pad or stick moves, A confirms, B backs out, Back lists the rest.
 
 | You see | It is | It does |
 |---|---|---|
@@ -87,7 +88,10 @@ Monsters come in kinds, and each has a tell:
 | boss | area attacks; each one has a style: deep ones sweep wider, crowded ones call helpers, huge ones heal out of reach, hot ones speed up |
 
 One monster in a busy room can be an elite, drawn bold on a faint tile:
-tougher, worth more, and more likely to drop gear.
+tougher, worth more, and more likely to drop gear. A struck-through monster
+is outdated and its hits slow you. One with a small mark at its top right
+has been reverted before: the first time it dies, it comes back at half HP.
+Hover a boss (or meet it) to see the first lines of its actual code.
 
 ![A boss winding up](docs/img/telegraph.png)
 
@@ -129,7 +133,14 @@ race. Links point at your own copy, so a friend pastes them into the run
 code box on theirs.
 
 `b` on the title opens the bestiary: every kind of monster, elite and
-weapon you've met, and what keeps getting you.
+weapon you've met, what keeps getting you, and twelve trophies (clear a
+dungeon bare-handed, carry three curses to the bottom, beat 100 monsters in
+a run...) with what each one takes.
+
+Difficulty is in settings: story, normal or hard. Clearing a dungeon on
+hard unlocks hard 2 (potions heal half), then hard 3 (bosses tougher and
+faster), then hard 4 (you heal half as fast), each on top of the last. The
+level is part of the run code: `flask-4821-hard3`.
 
 The music is made live in the browser and is different for every dungeon.
 It gets darker the deeper you go and drums come in when something wants
@@ -164,6 +175,8 @@ For the curious. Every number in the game comes from the code:
 | who last touched a TODO line | written on the loot ("a TODO from 2012 by alice") |
 | a function marked deprecated | outdated, struck through; its hits slow you |
 | a merge conflict committed into a file | a room walled in `<<<` and `>>>` where both versions fight |
+| commits titled "Revert ..." that touched a file | its toughest monster comes back once |
+| the boss function's first lines | shown on its card |
 | the repo's other branches (command line builds) | side doors |
 | god function / deeply nested / hot path | huge / deep / hot elites and boss styles |
 | a function nothing mentions, tests included | ghost |

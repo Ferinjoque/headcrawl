@@ -63,25 +63,36 @@ Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
 - Side panel on wide screens, in fixed regions that never move (Brogue's
   rule): a focus box with the nearest thing's stats, then up to six rows in
   the order things came into view (not re-sorted by distance), then the
-  pack, which always shows both gear slots and the TODO/HACK counts, the
-  minimap, and the file you stand in. Regions keep their height when empty.
+  pack, which always shows both gear slots and the potion/scroll counts, the
+  minimap, and the file you stand in. Regions keep their height when empty;
+  with nothing in sight the rows say who to hunt and that x explores.
   On short screens they tighten; on narrow screens the panel slides in.
 - The top line always shows the same fields; def reads 0 without armor.
 - Title: wordmark, one line, a continue button when a run is waiting, then
-  one framed window with tabs on its top edge: repos (a list with the
-  picked repo's details beside it, descend or practice), any GitHub repo,
+  one framed window with tabs on its top edge: dungeons (a list with the
+  picked one's details beside it: floors top to bottom, the last boss and
+  its line, descend or practice; the first gentle one says start here),
+  any GitHub repo,
   run code, files. Daily, bestiary, the lab, settings and help are key
   buttons below it. 1 to 4 or tab switch tabs. Behind it all the bot plays a
   gallery dungeon (attract mode).
 - Overlays (pause, help, settings, the sheet, the bestiary, the end screen)
   are framed windows over a dimmed map, the heading set into the top border
   like an old TUI. Long ones (help, bestiary) have tabs; number keys switch.
-  Choice cards (level up, vendor, gear swap) sit at the bottom of the stage.
+  Choice cards (level up, shop, gear swap) sit at the bottom of the stage.
+  Tool cards carry a small third line saying what the real tool is.
+- A welcome card before the first run in a browser, once.
+- Words: the game word first (potion, scroll, curse, shop, side door,
+  outdated), the code word after it or on a faint second line. The words
+  live in game/src/ui/glossary.ts.
   The gear card names both items and says how much better or worse the new
   one is; the one you keep is dimmed.
 - The character sheet (`c`, or atk/def in the top line) and the bestiary
   use the same rows as help: label column, value column, a quieter second
-  line under an entry. On phones entries stack.
+  line under an entry. On phones entries and help rows stack, and tab
+  strips scroll sideways instead of wrapping.
+- Boss cards and boss hover tips show the first lines of the boss's code,
+  left aligned with a thin rule, so the indentation reads.
 - Green means health and nothing else.
 
 ## Motion

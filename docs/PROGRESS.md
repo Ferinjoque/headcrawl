@@ -3,7 +3,7 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-05, round 9): M0-M5 done, plus a UI redesign, music and a
+Status (2026-10-05, round 10): M0-M5 done, plus a UI redesign, music and a
 lot of mechanics on top. Playable and tested. Shipped as a private GitHub
 repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
 with play.py; no hosted site (owner's call, 2026-10-03).
@@ -190,7 +190,7 @@ redraws the whole view at 20 fps when idle.
     game/lab.ts tools + ui/labpanel.ts. npm run sim (sim/balance.sim.ts).
   - Boss styles from the boss's own code (game/bossmoves.ts); the analyzer
     writes boss nesting, params and nloc.
-  - Review comments (f): game/ranged.ts, ui/aim.ts. Rules 5.
+  - Review comments (f): game/ranged.ts, ui/aim.ts. Rules 5 (now 7).
   - Analyzer: deprecated functions and conflict hunks (markers.py), up to 8
     branches from command line builds. Game: deprecated hits slow you,
     conflict rooms add "theirs", Y doors check out a branch floor.
@@ -200,13 +200,42 @@ redraws the whole view at 20 fps when idle.
     help and bestiary, and a side panel in fixed regions. Critique 29 to 32.
   - Bots: plain 39 of 60, careful 50 of 60 on the rebuilt gallery.
 
+- Round 10 (owner: the git angle was the hook, but too much only makes sense
+  to programmers; keep the soul, widen it; check for AI text; do all of it):
+  - PRODUCT.md now says anyone who likes a short roguelike. New principle:
+    game words first, code words second.
+  - ui/glossary.ts holds what every thing is (potion, scroll, curse, shop,
+    side door, keeper, outdated...) with the code it came from on a faint
+    line. Help, bestiary, panel and hover tips read from it; a test keeps
+    code words out of what things do. Messages reworded the same way; tools
+    get a line about the real thing. Elites and boss styles are huge, deep,
+    hot and crowded.
+  - Warm-up (game/warmup.ts): floor 1 is fights and loot, the shop, elites,
+    outdated and reverted code come on floor 2, keepers, side doors and
+    two-version rooms on floor 3. Last floor, hard and the lab have it all.
+  - Welcome card once per browser, a start-here dungeon, the title's detail
+    pane lists floors and the last boss's line, an idle side panel says who
+    to hunt, tabs scroll on phones, help rows stack, log lines go to a
+    screen reader live region.
+  - Bosses carry the first lines of their own code (analyzer code_excerpt).
+  - Gamepads (ui/gamepad.ts), trophies (game/trophies.ts, 12 of them),
+    reverted files (a monster that comes back once at half HP), heat levels
+    hard 2 to 4, unlocked by clearing the one before.
+  - Balance: bosses grow 15% a floor and the last ones can get bigger. Bots:
+    plain 34 of 60, careful 47 of 60.
+  - No AI-sounding words, em dashes or emojis found in the repo.
+  - Dropped from next ideas: side branches in browser builds. Nothing that
+    is both token-free and pinned to a commit lists them.
+
 ## Next ideas
 
 - Balance: npm run sim gives both bots on the whole gallery. Still worth a
   real playtest before retuning; the lab makes any fight easy to set up.
-- Side branches only come from command line builds; the browser could get
-  them from a token-free source pinned to the commit, if one exists.
-- Critique leftovers: the empty "in sight" block, tabs wrapping on phones.
+- A playtest by someone who doesn't code: does the welcome card and help
+  get them through floor 1 without asking anything?
+- Gallery dungeons got boss code and revert counts patched in place
+  (work/ scripts, not kept); the next full gallery rebuild makes them
+  natively.
 - Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
   itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
   more lines past the filter. qwen2.5:7b stays the default.
