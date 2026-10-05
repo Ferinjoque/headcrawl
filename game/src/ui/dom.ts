@@ -2,7 +2,7 @@
 // comments from a repo can never turn into markup. Nothing in src parses
 // strings as HTML, and tests/ui.test.ts checks that it stays that way.
 
-type Child = Node | string | number | null | undefined | false;
+export type Child = Node | string | number | null | undefined | false;
 type Attrs = Record<string, string | number | boolean | ((e: Event) => void) | undefined>;
 
 export function h(tag: string, attrs: Attrs | null = null, ...children: Child[]): HTMLElement {

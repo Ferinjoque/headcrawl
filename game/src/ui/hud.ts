@@ -35,7 +35,7 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onS
       "button",
       { class: "hud-stats", type: "button", title: statsTitle(game), "aria-label": `${statsTitle(game)}. Opens your stats.`, onclick: onSheet },
       h("span", { class: "hud-stat" }, h("small", null, "atk "), `${p.atk + (p.weapon?.bonus ?? 0)}`),
-      p.armor ? h("span", { class: "hud-stat" }, h("small", null, "def "), `${p.armor.bonus}`) : null,
+      h("span", { class: p.armor ? "hud-stat" : "hud-stat faint" }, h("small", null, "def "), `${p.armor?.bonus ?? 0}`),
     ),
     h(
       "span",

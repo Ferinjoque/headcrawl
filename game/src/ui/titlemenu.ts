@@ -1,12 +1,13 @@
-// The title screen: the repo list, its keys, and what is folded away behind tab.
+// The title screen's state and keys: which tab is open, which repo is
+// picked, and the shortcuts. Moving and picking tick, like a real menu.
 
 import { dailyPick, dailyStarts } from "./daily";
 import type { GalleryEntry } from "./gallery";
 import { parseCode } from "./codes";
 import { recentBuilds } from "./recent";
 import { listSaves } from "./save";
-import { titleScreen, type TitleView } from "./screens";
 import { parseRoute, type Route } from "./share";
+import { TITLE_TABS, titleScreen, type TitleTab } from "./title";
 import type { Level } from "../game/extras";
 
 export interface TitleHost {
@@ -26,13 +27,15 @@ export interface TitleHost {
   bestiary(): void;
   lab(): void;
   caption(): string;
+  /** Menu feedback: a tick for moving, a click for picking. */
+  tick(kind: "move" | "pick"): void;
 }
 
 export class TitleMenu {
   selected = 0;
   /** Shown once, after a link or file failed to open. */
   error: string | null = null;
-  private view: TitleView = { more: false, code: false };
+  private tab: TitleTab = "repos";
   private host: TitleHost;
 
   constructor(host: TitleHost) {
@@ -44,14 +47,19 @@ export class TitleMenu {
     return level ? { level } : {};
   }
 
-  /** Back to the plain list: nothing unfolded. */
+  /** Back to the repo list. */
   reset(): void {
-    this.view = { more: false, code: false };
+    this.tab = "repos";
   }
 
   playDaily(): void {
     const daily = dailyPick(this.host.gallery(), new Date());
     if (daily) this.host.navigate({ kind: "gallery", slug: daily.entry.slug, run: daily.run });
+  }
+
+  private play(slug: string, practice = false): void {
+    this.host.tick("pick");
+    this.host.navigate({ kind: "gallery", slug, run: this.host.freshRun(), ...this.level(), ...(practice ? { practice: true } : {}) });
   }
 
   render(): void {
@@ -60,12 +68,17 @@ export class TitleMenu {
     const daily = dailyPick(gallery, new Date());
     h.show(
       titleScreen(
-        gallery,
-        this.selected,
-        this.error,
-        daily && { repo: daily.entry.repo, label: daily.label, played: dailyStarts(daily.label) > 0 },
         {
-          play: (slug) => h.navigate({ kind: "gallery", slug, run: h.freshRun(), ...this.level() }),
+          entries: gallery,
+          selected: this.selected,
+          tab: this.tab,
+          error: this.error,
+          daily: daily && { repo: daily.entry.repo, label: daily.label, played: dailyStarts(daily.label) > 0 },
+          recent: recentBuilds(),
+          saves: listSaves(),
+        },
+        {
+          play: (slug, practice) => this.play(slug, practice),
           daily: () => this.playDaily(),
           build: (target) => h.build(target),
           reopen: (r) => h.navigate({ kind: "github", owner: r.owner, repo: r.repo, sha: r.sha, run: 0 }),
@@ -77,20 +90,32 @@ export class TitleMenu {
           open: () => h.openFile(),
           help: () => h.help(),
           settings: () => h.settings(),
-          toggleMore: () => this.toggleMore(),
+          tab: (id) => this.openTab(id),
+          select: (i) => this.select(i),
           bestiary: () => h.bestiary(),
           lab: () => h.lab(),
           folder: () => h.openFolder(),
-          showCode: () => this.showCode(),
         },
-        recentBuilds(),
-        listSaves(),
-        this.view,
       ),
     );
     document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`)?.scrollIntoView({ block: "nearest" });
     const caption = document.getElementById("attract");
     if (caption) caption.textContent = h.caption();
+  }
+
+  private select(i: number): void {
+    if (i === this.selected) return;
+    this.selected = i;
+    this.host.tick("move");
+    this.render();
+  }
+
+  /** Open a tab, and put the cursor in its first box if it has one. */
+  openTab(id: TitleTab): void {
+    if (id !== this.tab) this.host.tick("move");
+    this.tab = id;
+    this.render();
+    document.querySelector<HTMLInputElement>(".title-main input")?.focus();
   }
 
   private code(text: string): void {
@@ -109,16 +134,9 @@ export class TitleMenu {
     }
   }
 
-  toggleMore(): void {
-    this.view = { ...this.view, more: !this.view.more };
-    this.render();
-    if (this.view.more) document.querySelector<HTMLInputElement>('input[name="repo"]')?.focus();
-  }
-
-  showCode(): void {
-    this.view = { ...this.view, code: true };
-    this.render();
-    document.querySelector<HTMLInputElement>('input[name="code"]')?.focus();
+  private cycleTab(step: number): void {
+    const i = TITLE_TABS.findIndex((t) => t.id === this.tab);
+    this.openTab(TITLE_TABS[(i + step + TITLE_TABS.length) % TITLE_TABS.length].id);
   }
 
   key(e: KeyboardEvent): void {
@@ -126,16 +144,13 @@ export class TitleMenu {
     // Tab and space only mean something when nothing has focus, so keyboard
     // users can still tab through the buttons.
     const idle = e.target === document.body || e.target === document.documentElement;
-    if (e.key === "Tab" && !e.shiftKey && idle) {
+    if (e.key === "Tab" && idle) {
       e.preventDefault();
-      return this.toggleMore();
+      return this.cycleTab(e.shiftKey ? -1 : 1);
     }
-    // Typing a repo name must not trigger the list shortcuts.
+    // Typing a repo name must not trigger the shortcuts.
     if (e.target instanceof HTMLInputElement) {
-      if (e.key === "Escape") {
-        this.reset();
-        this.render();
-      }
+      if (e.key === "Escape") this.openTab("repos");
       return;
     }
     const n = h.gallery().length;
@@ -148,31 +163,35 @@ export class TitleMenu {
       }
       return;
     }
-    if (key === "ArrowDown" || key === "j" || key === "ArrowUp" || key === "k") {
+    const tab = TITLE_TABS.find((t) => t.cap === key);
+    if (tab) return this.openTab(tab.id);
+    if (key === "Escape" && this.tab !== "repos") return this.openTab("repos");
+    if (this.tab === "repos" && (key === "ArrowDown" || key === "j" || key === "ArrowUp" || key === "k")) {
       const down = key === "ArrowDown" || key === "j";
-      this.selected = n ? (this.selected + (down ? 1 : n - 1)) % n : 0;
       e.preventDefault();
-      return this.render();
+      return this.select(n ? (this.selected + (down ? 1 : n - 1)) % n : 0);
     }
-    if (key === "Enter") {
+    if (this.tab === "repos" && (key === "Enter" || key === "p")) {
       // Let a focused button handle its own Enter.
-      if (document.activeElement instanceof HTMLButtonElement) return;
+      if (key === "Enter" && document.activeElement instanceof HTMLButtonElement) return;
       const entry = h.gallery()[this.selected];
-      if (entry) h.navigate({ kind: "gallery", slug: entry.slug, run: h.freshRun(), ...this.level() });
+      if (entry) this.play(entry.slug, key === "p");
       return;
     }
     const actions: Record<string, () => void> = {
-      c: () => this.showCode(),
+      c: () => this.openTab("code"),
+      g: () => this.openTab("github"),
       o: () => h.openFile(),
+      f: () => h.openFolder(),
       d: () => this.playDaily(),
       "?": () => h.help(),
       b: () => h.bestiary(),
       l: () => h.lab(),
-      ...(this.view.more ? { f: () => h.openFolder() } : {}),
     };
     const act = actions[key];
     if (act) {
       e.preventDefault();
+      h.tick("pick");
       act();
     }
   }

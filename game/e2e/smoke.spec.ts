@@ -71,7 +71,7 @@ test("the character sheet opens from c and from the HUD", async ({ page }) => {
   await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
   await page.keyboard.press("c");
   await expect(page.getByRole("heading", { name: "@ level 1" })).toBeVisible();
-  await expect(page.getByText("bare hands")).toBeVisible();
+  await expect(page.locator("#screen").getByText("bare hands")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("heading", { name: "@ level 1" })).toBeHidden();
   await page.locator(".hud-stats").click();

@@ -154,6 +154,7 @@ export class App {
       settings: () => this.openSettings(),
       bestiary: () => this.overlay((close) => bestiaryScreen(loadCodex(), close)),
       lab: () => this.navigate({ kind: "lab", run: 0, practice: true }),
+      tick: (kind) => this.sound.ui(kind),
       caption: () => this.attract.caption(),
     });
     this.watcher = new Watcher({

@@ -1,10 +1,6 @@
 import type { Game } from "../game/game";
 import { h, plural } from "./dom";
-import { bestFor, bestLabel } from "./best";
-import type { GalleryEntry } from "./gallery";
 import type { Change, Comparison } from "../lite/compare";
-import type { Recent } from "./recent";
-import type { SavedRun } from "./save";
 import type { Settings } from "./settings";
 import type { TokenPlace } from "./token";
 
@@ -29,202 +25,15 @@ export function wordmark(word = "HEADCRAWL"): string {
   return rows.map((r) => r.trimEnd()).join("\n");
 }
 
+/** The one button a screen is mostly there for. */
+function primary(b: HTMLElement): HTMLElement {
+  b.classList.add("primary");
+  return b;
+}
+
+/** A key button: the key in a cap, then what it does. Every menu uses these. */
 export function btn(key: string, label: string, onclick: () => void) {
-  return h("button", { class: "btn", type: "button", onclick }, h("kbd", null, `[${key}]`), ` ${label}`);
-}
-
-// Difficulty as a word, not another row of # marks.
-// Brighter ember is harder; never green, which means health.
-const DIFF: Record<number, [string, string]> = {
-  1: ["gentle", "diff-1"],
-  2: ["mild", "diff-2"],
-  3: ["fair", "diff-3"],
-  4: ["tough", "diff-4"],
-  5: ["brutal", "diff-5"],
-};
-
-export interface TitleHandlers {
-  play(slug: string): void;
-  daily(): void;
-  build(target: string): void;
-  reopen(r: Recent): void;
-  resume(s: SavedRun): void;
-  code(text: string): void;
-  compare(repo: string, ref: string): void;
-  settings(): void;
-  open(): void;
-  help(): void;
-  toggleMore(): void;
-  showCode(): void;
-  bestiary(): void;
-  lab(): void;
-  folder(): void;
-}
-
-export interface Daily {
-  repo: string;
-  label: string;
-  /** Today's ranked try is used up; later runs are practice. */
-  played?: boolean;
-}
-
-/** What is unfolded on the title screen right now. */
-export interface TitleView {
-  more: boolean;
-  code: boolean;
-}
-
-function form(onsubmit: (f: HTMLFormElement) => void, ...children: (HTMLElement | null)[]) {
-  return h(
-    "form",
-    {
-      class: "build",
-      onsubmit: (e: Event) => {
-        e.preventDefault();
-        onsubmit(e.target as HTMLFormElement);
-      },
-    },
-    ...children,
-  );
-}
-
-function field(name: string, placeholder: string, label: string) {
-  return h("input", { name, type: "text", placeholder, autocomplete: "off", spellcheck: "false", "aria-label": label });
-}
-
-const value = (f: HTMLFormElement, name: string) => (f.elements.namedItem(name) as HTMLInputElement).value;
-
-export function titleScreen(
-  entries: GalleryEntry[],
-  selected: number,
-  error: string | null,
-  daily: Daily | null,
-  on: TitleHandlers,
-  recent: Recent[] = [],
-  saves: SavedRun[] = [],
-  view: TitleView = { more: false, code: false },
-) {
-  const list = h(
-    "ul",
-    { class: "repos", role: "listbox", "aria-label": "Repos" },
-    ...entries.map((e, i) =>
-      h(
-        "li",
-        null,
-        h(
-          "button",
-          {
-            type: "button",
-            role: "option",
-            "aria-current": i === selected ? "true" : "false",
-            "aria-selected": i === selected ? "true" : "false",
-            "data-index": i,
-            onclick: () => on.play(e.slug),
-          },
-          h("span", { class: "mark" }, ">"),
-          h("span", { class: "name" }, e.repo),
-          h("span", { class: "lang" }, e.language),
-          e.difficulty ? h("span", { class: `diff ${DIFF[e.difficulty]?.[1] ?? "dim"}` }, DIFF[e.difficulty]?.[0] ?? "") : h("span"),
-        ),
-      ),
-    ),
-  );
-  const pick = entries[selected];
-  const best = pick ? bestLabel(bestFor(pick.head)) : "";
-  const detail = pick
-    ? h(
-        "p",
-        { class: "detail" },
-        `${plural(pick.floors, "floor")}, ${pick.enemies} monsters. The last boss is `,
-        h("span", { class: "t-boss" }, pick.boss),
-        ".",
-        best ? h("span", { class: "t-loot" }, `  ${best}`) : null,
-      )
-    : null;
-  const save = saves[0];
-
-  const more = view.more
-    ? h(
-        "section",
-        { class: "more", "aria-label": "More ways to play" },
-        h("h2", null, "any public GitHub repo"),
-        form(
-          (f) => on.build(value(f, "repo")),
-          field("repo", "owner/repo or a github.com link", "GitHub repo"),
-          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " build"),
-        ),
-        recent.length
-          ? h(
-              "p",
-              { class: "recent" },
-              h("span", { class: "faint" }, "built before: "),
-              ...recent.map((r) => h("button", { class: "btn", type: "button", onclick: () => on.reopen(r) }, `${r.owner}/${r.repo}`)),
-            )
-          : null,
-        h("h2", null, "then vs now"),
-        form(
-          (f) => on.compare(value(f, "vsrepo"), value(f, "vsref")),
-          field("vsrepo", "owner/repo", "Repo to compare"),
-          field("vsref", "an older tag, like v1.0.0", "Older tag, branch or commit"),
-          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " compare"),
-        ),
-        h("h2", null, "a folder on this computer"),
-        h(
-          "div",
-          { class: "actions" },
-          btn("f", "pick a folder", on.folder),
-          h("span", { class: "faint" }, "  read in this tab, never uploaded"),
-        ),
-        h("p", { id: "build-status", class: "faint", role: "status" }, "Built in your browser. Nothing in the repo runs."),
-        h(
-          "div",
-          { class: "actions" },
-          btn("o", "open a dungeon.json", on.open),
-          btn("b", "bestiary", on.bestiary),
-          btn("l", "the lab: try any monster, weapon or tool", on.lab),
-          btn(",", "settings", on.settings),
-          btn("?", "how it works", on.help),
-        ),
-      )
-    : null;
-
-  return h(
-    "div",
-    { class: "page title" },
-    h("pre", { class: "wordmark", "aria-label": "HEADCRAWL" }, wordmark()),
-    h("p", { class: "tagline" }, "A git repo, played as a dungeon."),
-    save
-      ? h(
-          "button",
-          { class: "continue", type: "button", onclick: () => on.resume(save) },
-          h("kbd", null, "[space]"),
-          " continue ",
-          h("span", { class: "name" }, save.repo),
-          h("span", { class: "dim" }, `, floor ${save.floor} of ${save.floors}`),
-        )
-      : null,
-    entries.length ? list : h("p", { class: "dim" }, "No gallery here. Open a dungeon file instead."),
-    detail,
-    error ? h("p", { class: "error", role: "alert" }, error) : null,
-    h(
-      "div",
-      { class: "actions main" },
-      btn("enter", "descend", () => pick && on.play(pick.slug)),
-      daily ? btn("d", daily.played ? "daily, practice" : `daily: ${daily.repo.split("/").pop()}`, on.daily) : null,
-      btn("c", "run code", on.showCode),
-      btn("tab", view.more ? "less" : "more", on.toggleMore),
-    ),
-    view.code
-      ? form(
-          (f) => on.code(value(f, "code")),
-          field("code", "flask-4821, or a whole link", "Run code or link"),
-          h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " play it"),
-        )
-      : null,
-    h("p", { id: "code-status", class: "dim", role: "status" }),
-    more,
-    h("p", { id: "attract", class: "attract faint", "aria-hidden": "true" }),
-  );
+  return h("button", { class: "key", type: "button", onclick }, h("kbd", null, key), h("span", null, label));
 }
 
 export function helpScreen(close: () => void) {
@@ -325,8 +134,8 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
   return h(
     "div",
     { class: "page" },
-    won ? null : h("pre", { class: "tomb", "aria-hidden": "true" }, TOMB),
     h("h1", { class: won ? "t-loot glow" : "t-bad glow" }, won ? "HEAD reached" : "segfault"),
+    won ? null : h("pre", { class: "tomb", "aria-hidden": "true" }, TOMB),
     won
       ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, and walked out the top of ${game.spec.repo.name}.`)
       : h("p", null, "Killed by ", h("span", { class: "t-bad" }, killer ?? "something"), ` on floor ${f.index + 1} (${f.name}).`),
@@ -340,8 +149,8 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
       "div",
       { class: "actions" },
       watched
-        ? btn("r", "play this run yourself", on.again)
-        : btn("r", won ? "again, new rolls" : "try again, new rolls", on.again),
+        ? primary(btn("r", "play this run yourself", on.again))
+        : primary(btn("r", won ? "again, new rolls" : "try again, new rolls", on.again)),
       btn("c", copied ? "copied" : "copy result", on.copy),
       btn("m", "repo list", on.menu),
       btn("tab", more ? "less" : "more", on.more),
@@ -524,8 +333,8 @@ function tokenSection({ place, note }: TokenView, on: SettingsHandlers): HTMLEle
         "aria-label": "GitHub token",
       }),
       h("label", { class: "dim" }, h("input", { name: "remember", type: "checkbox" }), " remember on this device"),
-      h("button", { class: "btn", type: "submit" }, h("kbd", null, "[enter]"), " save"),
-      place === "none" ? null : h("button", { class: "btn", type: "button", onclick: on.clearToken }, "forget it"),
+      h("button", { class: "key", type: "submit" }, h("kbd", null, "enter"), h("span", null, "save")),
+      place === "none" ? null : h("button", { class: "key", type: "button", onclick: on.clearToken }, h("span", null, "forget it")),
     ),
     note ? h("p", { class: note.ok ? "t-good" : "t-bad", role: "status" }, note.text) : null,
   );
@@ -553,7 +362,7 @@ export function pauseScreen(on: PauseHandlers, code: string | null = null, where
     h(
       "div",
       { class: "actions" },
-      btn("esc", "resume", on.resume),
+      primary(btn("esc", "resume", on.resume)),
       btn("@", "you: stats, gear, tools", on.sheet),
       code ? btn("c", "copy run code", on.copy) : null,
       btn("r", "new run, new rolls", on.restart),

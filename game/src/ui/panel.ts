@@ -68,70 +68,94 @@ function lootNote(i: Game["floor"]["items"][number]): string {
   return `${when}"${i.loot.text}"`;
 }
 
+/**
+ * Order things in sight by when they came into view, not by distance, so a
+ * row stays where it is while you move. Per floor; a WeakMap forgets old ones.
+ */
+const firstSeen = new WeakMap<object, Map<string, number>>();
+
+function seenOrder(floor: object, ids: string[]): Map<string, number> {
+  let order = firstSeen.get(floor);
+  if (!order) firstSeen.set(floor, (order = new Map()));
+  for (const id of ids) if (!order.has(id)) order.set(id, order.size);
+  return order;
+}
+
+function itemRow(i: Game["floor"]["items"][number]) {
+  return h(
+    "div",
+    { class: "foe" },
+    h("span", { class: "t-loot" }, ITEM[i.kind][0]),
+    h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : ITEM[i.kind][1]),
+    h("span", { class: "stats inline" }, lootNote(i)),
+  );
+}
+
 export function renderPanel(el: HTMLElement, game: Game): void {
   const room = game.roomOfPlayer();
   const p = game.player;
 
-  // What is near you comes first. Full stats only for the closest one; the
-  // rest get a name and a health bar, and hovering a monster tells the rest.
-  const visible = game.floor.monsters
-    .filter((m) => game.isVisible(m.x, m.y))
-    .sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p));
-  const seen = visible.slice(0, SIGHT_ROWS);
-  const more = visible.length - seen.length;
-  const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y)).slice(0, 3);
-  const sight =
-    seen.length || items.length
-      ? h(
-          "section",
-          { class: "pane" },
-          h("h2", null, "in sight"),
-          ...seen.map((m, i) => foe(m, i === 0)),
-          more > 0 ? h("p", { class: "faint more" }, `+${more} more in sight`) : null,
-          ...items.map((i) =>
-            h(
-              "div",
-              { class: "foe" },
-              h("span", { class: "t-loot" }, ITEM[i.kind][0]),
-              h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : ITEM[i.kind][1]),
-              h("span", null, ""),
-              h("span", { class: "stats" }, lootNote(i)),
-            ),
-          ),
-        )
-      : null;
+  // Fixed places, like Brogue's sidebar: the nearest thing gets the focus box
+  // with its stats, the rest keep the row they got when they came into view.
+  const visible = game.floor.monsters.filter((m) => game.isVisible(m.x, m.y));
+  const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y));
+  const order = seenOrder(game.floor, [...visible.map((m) => m.id), ...items.map((i) => i.id)]);
+  const nearest = [...visible].sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p))[0];
+  const rest = visible.filter((m) => m !== nearest).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  const rows = [...rest.map((m) => foe(m, false)), ...items.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)).map(itemRow)];
+  const shown = rows.slice(0, SIGHT_ROWS);
+  const more = rows.length - shown.length;
+  const sight = h(
+    "section",
+    { class: "pane sight" },
+    h("h2", null, "in sight"),
+    h("div", { class: "focus" }, nearest ? foe(nearest, true) : h("p", { class: "faint" }, "Nothing. Quiet, for now.")),
+    h("div", { class: "rows" }, ...shown, more > 0 ? h("p", { class: "faint more" }, `+${more} more`) : null),
+  );
 
-  // The pack lists only what you carry, each with the key that uses it.
+  // The pack always shows the same lines, so nothing moves when you pick
+  // something up: the two gear slots, then what you carry, then tools.
+  const slot = (glyph: string, g: typeof p.weapon, stat: string, empty: string) =>
+    h(
+      "p",
+      { class: g ? "" : "faint", title: g ? `${describe(g)}${g.trait !== "plain" ? `. ${TRAITS[g.trait].text}` : ""}` : "" },
+      h("kbd", null, " "),
+      ` ${glyph} `,
+      g ? `${shortName(g.name, 26)} ${stat}` : empty,
+    );
   const held = [
-    p.potions.length ? h("p", { class: "t-good" }, h("kbd", null, "q"), ` ! TODO x${p.potions.length}`) : null,
-    p.scrolls.length ? h("p", { class: "t-loot" }, h("kbd", null, "r"), ` ? HACK x${p.scrolls.length}`) : null,
-    p.weapon ? h("p", { title: `${describe(p.weapon)}. ${TRAITS[p.weapon.trait].text}` }, h("kbd", null, " "), ` / ${shortName(p.weapon.name, 30)} +${p.weapon.bonus}`) : null,
-    p.armor ? h("p", { title: describe(p.armor) }, h("kbd", null, " "), ` [ ${shortName(p.armor.name, 30)} def ${p.armor.bonus}`) : null,
-    p.curses ? h("p", { class: "t-bad" }, h("kbd", null, " "), ` % XXX x${p.curses}`) : null,
-    // A long tool list turns the pack into a paragraph; past three, the sheet has them.
+    slot("/", p.weapon, `+${p.weapon?.bonus ?? 0}`, "bare hands"),
+    slot("[", p.armor, `def ${p.armor?.bonus ?? 0}`, "no armor"),
+    h(
+      "p",
+      { class: "carry" },
+      h("span", { class: p.potions.length ? "t-good" : "faint" }, h("kbd", null, "q"), ` ! TODO ${p.potions.length}`),
+      h("span", { class: p.scrolls.length ? "t-loot" : "faint" }, h("kbd", null, "r"), ` ? HACK ${p.scrolls.length}`),
+      p.curses ? h("span", { class: "t-bad" }, ` % XXX ${p.curses}`) : null,
+    ),
     p.perks.length > 3
       ? h("p", { class: "faint tools" }, `${plural(p.perks.length, "tool")}, `, h("kbd", null, "c"), " lists them")
-      : p.perks.length
-        ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", "))
-        : null,
+      : h("p", { class: "faint tools" }, p.perks.length ? p.perks.map((id) => PERKS[id].name).join(", ") : "no tools yet"),
   ];
-  const pack = held.some(Boolean) ? h("section", { class: "pane pack" }, h("h2", null, "pack"), ...held) : null;
+  const pack = h("section", { class: "pane pack" }, h("h2", null, "pack"), ...held);
 
   const canvas = h("canvas", { class: "minimap", "aria-label": "Map of what you have seen" }) as HTMLCanvasElement;
   drawMinimap(canvas, game);
   const map = h("section", { class: "pane" }, canvas);
 
-  const here = room
-    ? h(
-        "section",
-        { class: "pane here" },
+  const here = h(
+    "section",
+    { class: "pane here" },
+    ...(room
+      ? [
         h("p", { class: "path" }, room.spec.path),
         h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, ${plural(room.spec.churn, "commit")}`),
         room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
         room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
         room.spec.last_commit ? h("p", { class: "faint" }, "last commit ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
-      )
-    : null;
+        ]
+      : [h("p", { class: "faint" }, "In a corridor between files.")]),
+  );
 
   replace(el, sight, pack, map, here);
 }

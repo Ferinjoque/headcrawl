@@ -90,6 +90,16 @@ export class Sound {
     src.start(t);
   }
 
+  /** Menus: a soft tick when the selection moves, a click when something is picked. */
+  ui(kind: "move" | "pick" | "back"): void {
+    if (!this.enabled || !this.ctx) return;
+    if (kind === "move") this.tone(1800, 0.025, "triangle", 0.18);
+    else if (kind === "pick") {
+      this.tone(900, 0.04, "square", 0.22);
+      this.tone(1350, 0.05, "triangle", 0.2, undefined, 0.035);
+    } else this.tone(700, 0.05, "triangle", 0.18, 500);
+  }
+
   play(e: GameEvent): void {
     if (!this.enabled || !this.ctx) return;
     switch (e.t) {

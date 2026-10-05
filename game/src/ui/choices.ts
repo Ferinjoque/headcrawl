@@ -14,7 +14,7 @@ function option(key: string, name: string, text: string, pick: () => void, cls =
   return h(
     "button",
     { class: `perk ${cls}`.trim(), type: "button", onclick: pick },
-    h("kbd", null, `[${key}]`),
+    h("kbd", null, key),
     h("span", { class: "perk-name" }, name),
     h("span", { class: "perk-text" }, text),
   );
