@@ -7,6 +7,7 @@ test("a hard run code plays on hard", async ({ page }) => {
   await page.getByRole("textbox", { name: "Run code or link" }).fill("itsdangerous-12-hard");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/run=12&level=hard/);
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
   await page.keyboard.press("Escape");
   await expect(page.getByText("itsdangerous-12-hard")).toBeVisible();
 });
