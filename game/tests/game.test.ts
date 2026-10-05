@@ -174,6 +174,9 @@ describe("balance report", () => {
       const r = playOut(new Game(s, { run }));
       lines.push(`${name.padEnd(18)} run ${run}: ${r.outcome.padEnd(7)} floor ${r.floor + 1}/${s.floors.length} lv ${r.level} kills ${r.kills} turns ${r.turns}`);
       expect(r.turns, `${name} run ${run} stalled`).toBeLessThan(20000);
+      const c = playOut(new Game(s, { run }), 20000, { careful: true });
+      lines.push(`${name.padEnd(18)} run ${run}: ${c.outcome.padEnd(7)} floor ${c.floor + 1}/${s.floors.length} lv ${c.level} kills ${c.kills} turns ${c.turns} careful`);
+      expect(c.turns, `${name} run ${run} stalled, careful`).toBeLessThan(20000);
     }
   }, 120_000);
 });

@@ -175,13 +175,20 @@ redraws the whole view at 20 fps when idle.
   - Design pass 27 to 29/40 (.impeccable/critique): faint text contrast,
     gear card deltas, weapon swing effect, HUD stats open the sheet.
 
+- After round 8 (owner: do all the next ideas): the @ carries a bar in its
+  weapon's language color and a steel line with armor on; the side panel
+  lists six monsters and folds the rest, marks elites, and folds a long tool
+  list into "12 tools, c lists them"; the bestiary lists met entries first;
+  elite tiles keep a floor of brightness. A careful bot style (best perk,
+  only worthwhile deals, rests to full, drinks early when surrounded) runs
+  next to the plain one in the balance report.
+
 ## Next ideas
 
-- Balance: the bot wins 45 of 60 gallery runs with gear and perks. It
-  always takes the first perk and the first vendor offer, so humans who
-  choose should do better. Check against human play before retuning.
-- Side panel gets dense once elites, gear and perks stack (critique P2).
-- Gear on the map: the @ could carry a tint of its weapon's trait.
+- Balance: plain bot 45 of 60 gallery runs, careful bot 50 of 60 (deaths on
+  jsoup and mediatr bosses). People can also retreat into corridors, so
+  normal should feel fair and hard is there for more. Still worth a real
+  playtest before retuning.
 - Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
   itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
   more lines past the filter. qwen2.5:7b stays the default.
@@ -191,7 +198,7 @@ redraws the whole view at 20 fps when idle.
 - Analyzer coverage 94%, game logic coverage 93% of lines (2026-10-05).
 - Loot is rare in clean repos (flask and express have no tags), so monsters
   drop coffee and shrines heal.
-- Balance targets: bot wins small repos sometimes, dies to final bosses on
-  bigger ones. Humans can retreat into corridors and use items, the bot can't.
+- Balance targets: the plain bot wins small repos sometimes and dies to final
+  bosses on bigger ones; the careful bot wins a bit more. Humans can retreat into corridors and use items, the bot can't.
 - `work/` is gitignored scratch space.
 - PRODUCT.md and DESIGN.md approved by the owner (2026-10-02).

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { botAction } from "../src/game/bot";
 import { Game } from "../src/game/game";
 import { ALL_PERKS, PERKS, available, offer } from "../src/game/perks";
 import { enemy, floor, room, spec } from "./fixtures";
@@ -113,5 +114,14 @@ describe("round 8 perks", () => {
     levelUp(b);
     const total = (g: Game) => g.player.xp + Array.from({ length: g.player.level - 1 }, (_, i) => Math.round(14 * (i + 1) ** 1.45)).reduce((x, y) => x + y, 0);
     expect(total(b)).toBeGreaterThan(total(a));
+  });
+});
+
+describe("careful bot", () => {
+  it("takes the best tool on offer, not the first", () => {
+    const g = game();
+    g.perkChoice = ["gc", "flag", "ci"];
+    expect(botAction(g, { careful: true })).toEqual({ type: "perk", index: 1 });
+    expect(botAction(g)).toEqual({ type: "perk", index: 0 });
   });
 });
