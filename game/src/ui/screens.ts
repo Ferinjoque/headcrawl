@@ -2,6 +2,7 @@ import type { Game } from "../game/game";
 import { h, plural } from "./dom";
 import { paneTabs } from "./win";
 import { BEHIND, LOOT, MONSTERS, PLACES, type Term } from "./glossary";
+import { TROPHIES } from "../game/trophies";
 import type { Change, Comparison } from "../lite/compare";
 import type { Settings } from "./settings";
 import type { TokenPlace } from "./token";
@@ -140,7 +141,7 @@ export function endKey(e: KeyboardEvent, on: EndHandlers | null): void {
 
 const TOMB = ["    _______", "   /       \\", "  /  R.I.P  \\", "  |         |", "  |  HEAD~1 |", "  |         |", "__|_________|__"].join("\n");
 
-export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers, watched = false, more = false) {
+export function endScreen(game: Game, share: string, copied: boolean, on: EndHandlers, watched = false, more = false, trophies: string[] = []) {
   const p = game.player;
   const won = game.outcome === "won";
   const f = game.floorSpec;
@@ -148,16 +149,17 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
   return h(
     "div",
     { class: "page" },
-    h("h1", { class: won ? "t-loot glow" : "t-bad glow" }, won ? "HEAD reached" : "segfault"),
+    h("h1", { class: won ? "t-loot glow" : "t-bad glow" }, won ? "cleared" : "you died"),
     won ? null : h("pre", { class: "tomb", "aria-hidden": "true" }, TOMB),
     won
-      ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, and walked out the top of ${game.spec.repo.name}.`)
+      ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, at the bottom of ${game.spec.repo.name}.`)
       : h("p", null, "Killed by ", h("span", { class: "t-bad" }, killer ?? "something"), ` on floor ${f.index + 1} (${f.name}).`),
     h(
       "p",
       { class: "dim" },
       `Level ${p.level}. ${plural(p.kills, "kill")}. ${p.bosses} of ${game.spec.floors.length} bosses. ${p.turns} turns.`,
     ),
+    ...TROPHIES.filter((t) => trophies.includes(t.id)).map((t) => h("p", { class: "t-loot trophy" }, `new trophy: ${t.name}. `, h("span", { class: "dim" }, t.how))),
     h("pre", { class: "share" }, share),
     h(
       "div",
@@ -166,7 +168,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
         ? primary(btn("r", "play this run yourself", on.again))
         : primary(btn("r", won ? "again, new rolls" : "try again, new rolls", on.again)),
       btn("c", copied ? "copied" : "copy result", on.copy),
-      btn("m", "repo list", on.menu),
+      btn("m", "dungeon list", on.menu),
       btn("tab", more ? "less" : "more", on.more),
     ),
     more
@@ -385,7 +387,7 @@ export function pauseScreen(on: PauseHandlers, code: string | null = null, where
       code ? btn("c", "copy run code", on.copy) : null,
       btn("r", "new run, new rolls", on.restart),
       btn(",", "settings", on.settings),
-      btn("m", "repo list", on.menu),
+      btn("m", "dungeon list", on.menu),
     ),
   );
 }

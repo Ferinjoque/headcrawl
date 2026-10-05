@@ -6,6 +6,8 @@ import { TRAITS, languagesWith, type Trait } from "../game/gear";
 import { topDeaths, type Codex, type Trophy } from "./codex";
 import { h, plural } from "./dom";
 import { MONSTERS } from "./glossary";
+import { TROPHIES } from "../game/trophies";
+import { loadTrophies, type Earned } from "./trophycase";
 import { btn } from "./screens";
 import { paneTabs } from "./win";
 
@@ -34,11 +36,11 @@ const ELITE_HINT: Record<Affix, string> = {
 
 const worstLine = (t: Trophy | undefined) => (t ? `gnarliest: ${t.name}, ${plural(t.ccn, "path")} (${t.repo})` : null);
 
-export function bestiaryScreen(c: Codex, close: () => void) {
+export function bestiaryScreen(c: Codex, close: () => void, earned: Map<string, Earned> = loadTrophies()) {
   const deaths = topDeaths(c);
   const met = KINDS.filter((k) => c.kills[k]).length;
   // Met ones first in every section; what's left to find sits at the bottom.
-  const metFirst = <T extends string>(list: readonly T[], met: (x: T) => boolean) => [...list.filter(met), ...list.filter((x) => !met(x))];
+  const metFirst = <T,>(list: readonly T[], met: (x: T) => boolean) => [...list.filter(met), ...list.filter((x) => !met(x))];
   const kinds = metFirst(KINDS, (k) => !!c.kills[k]).map((k) =>
     c.kills[k]
       ? entry(`${MONSTERS[k].name} x${c.kills[k]}`, `kind-${k}`, [MONSTERS[k].does, MONSTERS[k].real, worstLine(c.worst[k]), c.first[k] ? `first met in ${c.first[k]}` : null])
@@ -70,6 +72,13 @@ export function bestiaryScreen(c: Codex, close: () => void) {
           ...weapons,
           c.best ? entry("best ever", "t-loot", [`${c.best.name} +${c.best.bonus}, ${TRAITS[c.best.trait as Trait]?.name ?? c.best.trait} (${c.best.repo})`]) : null,
         ],
+      },
+      {
+        label: `trophies ${earned.size}/${TROPHIES.length}`,
+        body: metFirst(TROPHIES, (t) => earned.has(t.id)).map((t) => {
+          const e = earned.get(t.id);
+          return e ? entry(t.name, "t-loot", [t.how, `first in ${e.repo}`]) : h("div", { class: "row entry faint" }, h("span", null, t.name), h("span", null, t.how));
+        }),
       },
       {
         label: "bosses",

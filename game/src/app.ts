@@ -79,6 +79,8 @@ export class App {
   });
   /** The finished run went into the bestiary, ghosts and bests already. */
   private recorded = false;
+  /** Trophies the run that just ended earned for the first time. */
+  private newTrophies: string[] = [];
   private hints = new Hints();
   private pads = new Pads((text) => {
     if (this.mode !== "play") return false;
@@ -460,7 +462,7 @@ export class App {
     if (!game || game.outcome === "playing") return;
     if (!this.recorded) {
       this.recorded = true;
-      if (!this.practice) recordFinished(game, this.saveKey(), this.route.kind !== "title" && !!this.route.watch);
+      if (!this.practice) this.newTrophies = recordFinished(game, this.saveKey(), this.route.kind !== "title" && !!this.route.watch);
     }
     this.mode = "end";
     this.stopAuto();
@@ -480,7 +482,7 @@ export class App {
           this.endMore = !this.endMore;
           this.showEnd();
         },
-      }), this.route.kind !== "title" && !!this.route.watch, this.endMore),
+      }), this.route.kind !== "title" && !!this.route.watch, this.endMore, this.newTrophies),
     );
   }
 
@@ -538,6 +540,7 @@ export class App {
     this.dailyMod = mod;
     this.director.reset();
     this.recorded = false;
+    this.newTrophies = [];
     const resumed = resume ? Game.replay(spec, run, resume, mods) : null;
     this.game = resumed ?? new Game(spec, { run, mods });
     this.dailyTry = !daily ? 0 : watching ? 1 : resumed ? Math.max(1, dailyStarts(daily.label)) : startDaily(daily.label);
