@@ -6,7 +6,7 @@ import { Tile, walkable } from "../src/map/grid";
 import { enemy, floor, room, spec } from "./fixtures";
 
 /** A game with one monster of the given kind standing right next to the player. */
-function duel(archetype: Exclude<Monster["archetype"], "boss" | "spawn">, over: Partial<Monster> = {}): { game: Game; m: Monster } {
+function duel(archetype: Exclude<Monster["archetype"], "boss" | "spawn" | "remote">, over: Partial<Monster> = {}): { game: Game; m: Monster } {
   const rooms = [room({ size: 4 }), room({ enemies: [enemy({ archetype, hp: 60 })], size: 4 }), room({ kind: "lair" })];
   const game = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]), { run: 7 });
   const m = game.floor.monsters.find((x) => !x.boss)!;

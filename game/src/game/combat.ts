@@ -5,6 +5,7 @@ import { BOSS, DROPS, HIT, TRAIT } from "./balance";
 import { TUNING } from "./abilities";
 import { npcAt } from "./extras";
 import type { Game } from "./game";
+import { ELITE } from "./elites";
 import { drop, dropBossWeapon, dropGear } from "./items";
 import type { Monster } from "./types";
 
@@ -40,6 +41,7 @@ export function playerAttack(g: Game, m: Monster): void {
   dmg += perkBonus(g, m) + (trait === "heavy" ? 1 : 0);
   if (g.has("gc") && (m.archetype === "ghost" || m.archetype === "spawn")) dmg *= 2;
   if (m.archetype === "wall" && !g.has("typechecker") && trait !== "pierce") dmg = Math.max(1, dmg - TUNING.wallArmor);
+  if (m.affix === "deep" && trait !== "pierce") dmg = Math.max(1, dmg - ELITE.deepArmor);
   if (g.has("pairing") && g.rng.chance(0.2) && strike(g, m, dmg, crit)) return;
   if (strike(g, m, dmg, crit)) return;
   if (trait === "heavy") knockBack(g, m);
@@ -175,6 +177,7 @@ function spawnHelper(g: Game, boss: Monster, x: number, y: number): Monster {
     name,
     glyph: "_",
     archetype: "spawn",
+    affix: null,
     x,
     y,
     hp: 6 + depth * 2,
@@ -215,5 +218,6 @@ const KILL_VERB: Record<string, string> = {
   imp: "You inline",
   bug: "You fix",
   ghost: "You garbage-collect",
+  remote: "You mock out",
   spawn: "You delete",
 };

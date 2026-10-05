@@ -5,6 +5,7 @@ import { COFFEE_HEAL, DROPS, potionHeal } from "./balance";
 import { killMonster, bossPhase } from "./combat";
 import { boss, canRewind, npcAt, rewindFloor, timeTravel } from "./extras";
 import type { Game } from "./game";
+import { ELITE } from "./elites";
 import { armor, armorBonus, describe, guardName, TRAITS, weapon, weaponBonus, type Gear } from "./gear";
 import type { Item, ItemKind, Monster } from "./types";
 
@@ -148,7 +149,7 @@ export function dropGear(g: Game, m: Monster): void {
   if (!room) return;
   const depth = g.floor.index;
   const tests = room.kind === "shrine";
-  if (!g.rng.chance(tests ? DROPS.testArmor : DROPS.gear)) return;
+  if (!g.rng.chance(m.affix ? ELITE.gear : tests ? DROPS.testArmor : DROPS.gear)) return;
   const asArmor = tests || g.rng.chance(DROPS.armorShare);
   const gear = asArmor
     ? armor(guardName(e.name, room.language), room.language, armorBonus(Math.min(8, e.nesting * 2), depth))

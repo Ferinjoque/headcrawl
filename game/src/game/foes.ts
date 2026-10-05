@@ -5,6 +5,7 @@ import { BOSS, HIT, WAKE_RANGE } from "./balance";
 import { TUNING } from "./abilities";
 import { chaseMap, stepToward } from "./chase";
 import { GHOST_DAMAGE, ghostStep } from "./extras";
+import { REMOTE, lineCells } from "./elites";
 import type { Game } from "./game";
 import type { Monster } from "./types";
 
@@ -42,6 +43,7 @@ function monsterTurn(g: Game, m: Monster, chase: Int16Array, taken: Uint8Array):
       return;
     }
   }
+  if (m.archetype === "remote" && m.cooldown === 0 && aim(g, m)) return;
   if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
     if (m.archetype === "nest" && m.cooldown === 0) {
       windUp(g, m, 1, `${m.name} digs in for a heavy hit.`);
@@ -73,6 +75,21 @@ function windUp(g: Game, m: Monster, radius: number, message: string): void {
   g.say(message, "bad");
 }
 
+/** A remote call in range lines up a shot. False if it has no clear line to you. */
+function aim(g: Game, m: Monster): boolean {
+  const p = g.player;
+  const d = dist(m, p);
+  if (d < 2 || d > REMOTE.range || !g.isVisible(m.x, m.y)) return false;
+  const grid = g.floor.map.grid;
+  const line = lineCells(m, p, (x, y) => walkable(grid.get(x, y)));
+  const end = line.at(-1);
+  if (!end || end[0] !== p.x || end[1] !== p.y) return false;
+  m.threat = line;
+  g.emit({ t: "telegraph", x: m.x, y: m.y });
+  g.say(`${m.name} opens a connection. Get off the red line.`, "bad");
+  return true;
+}
+
 function releaseWindup(g: Game, m: Monster): void {
   const p = g.player;
   const hit = m.threat.some(([x, y]) => x === p.x && y === p.y);
@@ -84,7 +101,7 @@ function releaseWindup(g: Game, m: Monster): void {
     g.say(`${m.name} hits nothing but air.`);
     return;
   }
-  const mult = m.boss ? TUNING.bossSweepMultiplier : TUNING.nestWindupMultiplier;
+  const mult = m.boss ? TUNING.bossSweepMultiplier : m.archetype === "nest" ? TUNING.nestWindupMultiplier : 1;
   monsterAttack(g, m, mult, true);
 }
 

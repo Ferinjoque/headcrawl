@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { AFFIX } from "../game/elites";
 import { describe, TRAITS } from "../game/gear";
 import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
@@ -13,6 +14,7 @@ const ARCH_NAME: Record<string, string> = {
   imp: "imp: fast",
   bug: "bug: dodgy",
   ghost: "ghost: dead code, walks through walls",
+  remote: "remote: shoots from a distance",
   spawn: "helper",
   boss: "boss",
 };
@@ -44,7 +46,7 @@ function foe(m: Monster, detail: boolean) {
   const stats = m.boss
     ? `${m.boss.title}. ${plural(m.boss.ccn, "branch")}, changed ${plural(m.boss.churn, "time")}`
     : e
-      ? `${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
+      ? `${m.affix ? `${AFFIX[m.affix].name} ` : ""}${ARCH_NAME[m.archetype]}. ${plural(e.ccn, "branch")}, depth ${e.nesting}, ${e.params} args, line ${e.line}`
       : ARCH_NAME[m.archetype];
   return h(
     "div",

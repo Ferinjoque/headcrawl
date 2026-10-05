@@ -16,7 +16,7 @@ const ESC = "\x1b[";
 const fg = (n: number, bold = false) => `${ESC}${bold ? "1;" : ""}38;5;${n}m`;
 const RESET = `${ESC}0m`;
 
-const MONSTER: Record<string, number> = { tangle: 170, nest: 202, hydra: 87, wall: 111, imp: 227, bug: 154, ghost: 189, spawn: 175 };
+const MONSTER: Record<string, number> = { tangle: 170, nest: 202, hydra: 87, wall: 111, imp: 227, bug: 154, ghost: 189, spawn: 175, remote: 177 };
 const ITEM: Record<string, string> = { potion: "!", weapon: "/", armor: "[", scroll: "?", curse: "%", coffee: "c" };
 
 function cell(game: Game, x: number, y: number): [string, number] {

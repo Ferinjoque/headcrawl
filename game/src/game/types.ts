@@ -1,4 +1,5 @@
 import type { Boss, Enemy, Loot } from "../spec";
+import type { Affix } from "./elites";
 import type { Gear } from "./gear";
 import type { PerkId } from "./perks";
 
@@ -8,7 +9,9 @@ export interface Monster {
   id: string;
   name: string;
   glyph: string;
-  archetype: Archetype | "boss" | "spawn";
+  archetype: Archetype | "boss" | "spawn" | "remote";
+  /** What makes it an elite, or null for an ordinary one. */
+  affix: Affix | null;
   x: number;
   y: number;
   hp: number;

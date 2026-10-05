@@ -5,6 +5,7 @@ import type { Boss, Enemy, Floor } from "../spec";
 import { layoutFloor, roomCells, type FloorMap } from "../map/layout";
 import { TUNING } from "./abilities";
 import { capsFor, depthScale, softCap } from "./balance";
+import { affixFor, eliteOf, isRemote, makeElite } from "./elites";
 import { fromFixme, fromTests } from "./gear";
 import type { Item, Monster } from "./types";
 import type { KeeperNpc, Vendor } from "./extras";
@@ -47,7 +48,8 @@ export function fromEnemy(e: Enemy, x: number, y: number, room: number, depth: n
     id: e.id,
     name: e.name,
     glyph: tough ? g.toUpperCase() : g.toLowerCase(),
-    archetype: e.archetype,
+    archetype: isRemote(e) ? "remote" : e.archetype,
+    affix: null,
     x,
     y,
     hp,
@@ -82,6 +84,7 @@ function fromBoss(b: Boss, x: number, y: number, room: number, depth: number, fl
     name: b.name,
     glyph: glyphFor(b.name).toUpperCase(),
     archetype: "boss",
+    affix: null,
     x,
     y,
     hp,
@@ -127,9 +130,13 @@ export function buildFloor(floor: Floor, seed: string, floors = 1): FloorState {
     }
     // You arrive in the entry room. Nobody should be waiting there.
     const enemies = rect === map.entry && map.rooms.length > 1 ? [] : room.enemies;
+    const elite = eliteOf(room);
     for (const e of enemies) {
       const c = cells.pop();
-      if (c) monsters.push(fromEnemy(e, c[0], c[1], rect.index, floor.index, floors));
+      if (!c) continue;
+      const m = fromEnemy(e, c[0], c[1], rect.index, floor.index, floors);
+      if (e === elite) makeElite(m, affixFor(e, room)!);
+      monsters.push(m);
     }
     for (const l of room.loot) {
       const c = cells.pop();

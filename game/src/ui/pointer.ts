@@ -2,6 +2,7 @@
 // first tap on a monster or item shows what it is; tapping again walks there.
 
 import { ABILITY } from "../game/abilities";
+import { AFFIX } from "../game/elites";
 import { installLine } from "../game/extras";
 import type { Game } from "../game/game";
 import { describe, TRAITS } from "../game/gear";
@@ -33,6 +34,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
       h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
       h("div", { class: "t-lore" }, ABILITY[m.archetype]),
+      m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
       e ? h("div", { class: "faint" }, `${plural(e.ccn, "branch")}, depth ${e.nesting}, ${plural(e.params, "arg")}, ${plural(e.nloc, "line")}, line ${e.line}`) : null,
       m.boss ? h("div", { class: "faint" }, `${m.boss.title}. changed in ${m.boss.churn} commits`) : null,
       m.awake ? null : h("div", { class: "faint" }, "asleep"),

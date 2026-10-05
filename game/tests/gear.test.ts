@@ -6,7 +6,7 @@ import type { Monster } from "../src/game/types";
 import { enemy, floor, room, spec } from "./fixtures";
 
 /** The player next to one monster, holding `gear`. */
-function duel(archetype: Exclude<Monster["archetype"], "boss" | "spawn"> = "bug", hp = 60): { game: Game; m: Monster } {
+function duel(archetype: Exclude<Monster["archetype"], "boss" | "spawn" | "remote"> = "bug", hp = 60): { game: Game; m: Monster } {
   const rooms = [room({ size: 4 }), room({ enemies: [enemy({ archetype, hp })], size: 4 }), room({ kind: "lair" })];
   const game = new Game(spec([floor(rooms, [[0, 1], [1, 2]])]), { run: 3 });
   const m = game.floor.monsters.find((x) => !x.boss)!;

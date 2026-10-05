@@ -62,6 +62,7 @@ const GLOW_ARCHETYPE: Record<string, RGB> = {
   bug: oklch(0.8, 0.14, 225),
   ghost: oklch(0.86, 0.05, 280),
   spawn: oklch(0.75, 0.15, 340),
+  remote: oklch(0.8, 0.16, 300),
   boss: GLOW.boss,
 };
 
@@ -92,6 +93,7 @@ const PALETTES: Record<string, { roles: Partial<Record<ColorRole, RGB>>; archety
       bug: CB.green,
       ghost: [200, 200, 220],
       spawn: [200, 160, 190],
+      remote: CB.orange,
       boss: CB.purple,
     },
   },

@@ -385,8 +385,16 @@ export class Renderer {
       return;
     }
     const fade = m.archetype === "ghost" ? 0.6 : 1;
+    // Elites sit on a faint tile of their own color and in bold, so they
+    // stand out by shape as well as by light.
+    if (m.affix) {
+      ctx.fillStyle = rgba(col, 0.16 * Math.max(light, 0.4));
+      ctx.fillRect(px, py, cellW, cellH);
+      lctx.font = `bold ${this.fontPx}px ${FONT}`;
+    }
     lctx.fillStyle = rgba(col, (m.awake ? Math.min(1, light + 0.2) : light * 0.75) * fade);
     lctx.fillText(m.glyph, px + cellW / 2, py + cellH / 2);
+    if (m.affix) lctx.font = `${this.fontPx}px ${FONT}`;
     if (m.hp < m.maxHp) {
       const w = Math.max(1, Math.round((cellW - 2) * (m.hp / m.maxHp)));
       lctx.fillStyle = rgba(C.danger, 0.9);

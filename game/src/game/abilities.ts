@@ -12,6 +12,7 @@ export const ABILITY: Record<Monster["archetype"], string> = {
   imp: "small and fast",
   bug: "dodges one hit in five. Can't reproduce.",
   ghost: "dead code: drifts through walls, hits softly",
+  remote: "a network call: shoots along a line from up to 4 cells, step off the red",
   spawn: "a helper its boss called in",
   boss: "winds up an area attack, get out of the red",
 };

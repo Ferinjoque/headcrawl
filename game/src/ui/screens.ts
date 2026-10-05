@@ -282,7 +282,7 @@ export function helpScreen(close: () => void) {
   );
 }
 
-const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "spawn"] as const;
+const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "remote", "spawn"] as const;
 
 export function bestiaryScreen(c: Codex, close: () => void) {
   const row = (a: string, b: string, cls = "t-loot") => h("p", { class: "row" }, h("span", { class: cls }, a), h("span", null, b));
