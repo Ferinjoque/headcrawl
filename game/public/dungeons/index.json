@@ -167,7 +167,7 @@
   {
     "slug": "click",
     "repo": "pallets/click",
-    "head": "06b2a678741131fd577ce170e23e5ca0aeba0309",
+    "head": "2247b35ea1c47c727d7a06e51fa280e12a863ff6",
     "language": "python",
     "floors": 3,
     "rooms": 38,
@@ -189,7 +189,7 @@
   {
     "slug": "axum",
     "repo": "tokio-rs/axum",
-    "head": "f8b02f22cf10bee707bda19b58265b9e33677535",
+    "head": "90f299cb721bf930ba26c0f373b8b3d2e8295ec7",
     "language": "rust",
     "floors": 8,
     "rooms": 102,
@@ -211,11 +211,11 @@
   {
     "slug": "headcrawl",
     "repo": "headcrawl (this game)",
-    "head": "b094ef76f30d6f2a1c0dcb7df5c4d7ebbbb084b0",
+    "head": "c230363889340c8910a477896f55e2d7207feb9c",
     "language": "typescript",
     "floors": 8,
-    "rooms": 88,
-    "enemies": 423,
+    "rooms": 97,
+    "enemies": 484,
     "boss": "act",
     "difficulty": 5
   }

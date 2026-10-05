@@ -15,7 +15,7 @@ export const BOSS_STYLE: Record<BossStyle, { name: string; text: string }> = {
 };
 
 export const BOSS_MOVES = {
-  deepNesting: 5,
+  deepNesting: 6,
   sprawlParams: 4,
   longLines: 100,
   /** Older dungeons have no length for bosses; branches stand in for it. */
