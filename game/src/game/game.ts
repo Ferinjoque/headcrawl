@@ -10,7 +10,7 @@ import { PLAYER, xpForLevel } from "./balance";
 import { PERKS, offer, type PerkId } from "./perks";
 import { actionCode, decodeLog, encodeLog } from "./record";
 import { buildFloor, type FloorState } from "./world";
-import { KEEPER_HEAL, placeKeeper, installLine, npcAt, modFloor, modPlayer, placeVendor, type ModId, type Offer } from "./extras";
+import { KEEPER_HEAL, heat, placeKeeper, installLine, npcAt, modFloor, modPlayer, placeVendor, type ModId, type Offer } from "./extras";
 import type { LoopTrap } from "../map/layout";
 import type { Gear } from "./gear";
 import { styleLine } from "./bossmoves";
@@ -76,7 +76,7 @@ export class Game {
     this.spec = spec;
     this.run = opts.run ?? 0;
     this.mods = opts.mods ?? [];
-    this.gate = gateFor(spec.floors.length, this.mods.includes("hard") || spec.generator === "lab");
+    this.gate = gateFor(spec.floors.length, heat(this.mods) >= 1 || spec.generator === "lab");
     this.rng = new Rng(`${spec.seed}/run/${this.run}`);
     this.floor = this.makeFloor(0);
     const [x, y] = this.floor.map.start;
@@ -238,7 +238,7 @@ export class Game {
     const p = this.player;
     if (p.review > 0) p.review--;
     if (p.slowed > 0) p.slowed--;
-    const regenEvery = this.has("caffeine") ? PLAYER.regenEvery - 1 : PLAYER.regenEvery;
+    const regenEvery = (this.has("caffeine") ? PLAYER.regenEvery - 1 : PLAYER.regenEvery) * (heat(this.mods) >= 4 ? 2 : 1);
     if (p.turns % regenEvery === 0) p.hp = Math.min(p.maxHp, p.hp + 1 + Math.floor(p.level / 4));
     // Sight first, so monsters wake on what the player can see right now.
     this.updateSight();

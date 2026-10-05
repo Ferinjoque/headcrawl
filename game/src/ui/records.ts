@@ -8,6 +8,8 @@ import { keepGhost } from "./ghostrun";
 import { RULES } from "../game/record";
 import { earnedBy } from "../game/trophies";
 import { award } from "./trophycase";
+import { heat } from "../game/extras";
+import { clearHeat } from "./settings";
 
 /**
  * `route` is the run's save key; empty for a dungeon with no route. Watched
@@ -27,5 +29,6 @@ export function recordFinished(game: Game, route: string, watched: boolean): str
     keepGhost(route, { ...result, log: game.record(), rules: RULES, head: game.spec.repo.head });
   }
   recordRun(game.spec.repo.head, result);
+  if (result.won) clearHeat(heat(game.mods));
   return award(earnedBy(game), game.spec.repo.name);
 }

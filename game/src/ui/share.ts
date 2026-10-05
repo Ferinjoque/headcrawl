@@ -8,7 +8,7 @@
 
 import { Inflate, deflateSync, strFromU8, strToU8 } from "fflate";
 import type { Game } from "../game/game";
-import type { Level } from "../game/extras";
+import { isLevel, type Level } from "../game/extras";
 
 const MAX_INFLATED = 4 * 1024 * 1024;
 const MAX_LINK = 1024 * 1024;
@@ -48,7 +48,7 @@ function parseExtra(query: string): Extra | null {
   if (watch !== null && !log.test(watch)) return null;
   if (race !== null && !log.test(race)) return null;
   const level = params.get("level");
-  const lv = level === "story" || level === "hard" ? { level: level as Level } : {};
+  const lv = isLevel(level) ? { level } : {};
   if (level !== null && !("level" in lv)) return null;
   const practice = params.get("practice");
   if (practice !== null && practice !== "1") return null;

@@ -3,6 +3,7 @@ import { h, plural } from "./dom";
 import { paneTabs } from "./win";
 import { BEHIND, LOOT, MONSTERS, PLACES, type Term } from "./glossary";
 import { TROPHIES } from "../game/trophies";
+import { MODS } from "../game/extras";
 import type { Change, Comparison } from "../lite/compare";
 import type { Settings } from "./settings";
 import type { TokenPlace } from "./token";
@@ -278,11 +279,8 @@ const TOKEN_PLACES: Record<TokenPlace, string> = {
   device: "Token remembered on this device.",
 };
 
-const LEVEL_NAMES = {
-  story: "story: monsters hit for half",
-  normal: "normal",
-  hard: "hard: tougher monsters that hit harder",
-} as const;
+const levelLabel = (level: Settings["level"]) =>
+  level === "normal" ? "normal" : level === "story" ? "story: monsters hit for half" : level === "hard" ? "hard: tougher monsters that hit harder" : `${MODS[level].name}: ${MODS[level].text.toLowerCase()}`;
 
 const COLOR_NAMES = { glow: "glow (default)", colorblind: "colorblind friendly", contrast: "high contrast" } as const;
 
@@ -310,7 +308,7 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", tok
     row("3", "text size", s.text, on.text),
     row("4", "colors", COLOR_NAMES[s.colors], on.colors),
     row("5", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
-    row("6", "difficulty", LEVEL_NAMES[s.level], on.level),
+    row("6", "difficulty", levelLabel(s.level), on.level),
     row("7", "tips", "show them again", on.tips),
     note ? h("p", { class: "t-good", role: "status" }, note) : null,
     tokenSection(token, on),

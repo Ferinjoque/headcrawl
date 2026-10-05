@@ -1,6 +1,7 @@
 // Trophies: small goals checked when a run ends. Each says how to get it, so
 // the list doubles as a set of ideas for the next run.
 
+import { heat } from "./extras";
 import type { Game } from "./game";
 
 export interface Trophy {
@@ -17,7 +18,8 @@ export const TROPHIES: Trophy[] = [
   { id: "boss", name: "first boss", how: "beat a boss", earned: (g) => g.player.bosses >= 1 },
   { id: "bottom", name: "all the way down", how: "clear a dungeon", earned: won },
   { id: "deep", name: "eight floors deep", how: "clear a dungeon with 8 floors", earned: (g) => won(g) && g.spec.floors.length >= 8 },
-  { id: "hard", name: "the hard way", how: "clear a dungeon on hard", earned: (g) => won(g) && g.mods.includes("hard") },
+  { id: "hard", name: "the hard way", how: "clear a dungeon on hard", earned: (g) => won(g) && heat(g.mods) >= 1 },
+  { id: "hard4", name: "on call", how: "clear a dungeon on hard 4", earned: (g) => won(g) && heat(g.mods) >= 4 },
   { id: "bare", name: "bare hands", how: "clear a dungeon with no weapon in hand", earned: (g) => won(g) && !g.player.weapon },
   { id: "cursed", name: "works on my machine", how: "clear a dungeon carrying 3 curses", earned: (g) => won(g) && g.player.curses >= 3 },
   { id: "quick", name: "ship it", how: "clear a dungeon in under 300 turns a floor", earned: (g) => won(g) && g.player.turns < 300 * g.spec.floors.length },

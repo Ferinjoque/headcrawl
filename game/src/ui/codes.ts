@@ -1,14 +1,14 @@
 // Run codes: a dungeon and its rolls in a form you can say out loud.
 //   flask-4821                     gallery dungeon, run 4821
 //   pallets/flask@672971d-4821     any GitHub repo at that commit
-//   flask-4821-hard                the same, on hard (or -story)
+//   flask-4821-hard                the same, on hard (or -story, -hard2 to -hard4)
 // Dungeons opened from a file have no code; their link is the only way back.
 
 import type { Level } from "../game/extras";
 import type { PlayRoute } from "./share";
 
-const GALLERY = /^([a-z0-9._-]{1,60})-(\d{1,9})(?:-(story|hard))?$/;
-const GITHUB = /^([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})-(\d{1,9})(?:-(story|hard))?$/i;
+const GALLERY = /^([a-z0-9._-]{1,60})-(\d{1,9})(?:-(story|hard[2-4]?))?$/;
+const GITHUB = /^([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})-(\d{1,9})(?:-(story|hard[2-4]?))?$/i;
 
 export function runCode(route: PlayRoute, head?: string): string | null {
   if (route.practice) return null;

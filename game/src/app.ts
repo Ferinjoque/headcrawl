@@ -33,7 +33,7 @@ import { LabPanel } from "./ui/labpanel";
 import { Aim } from "./ui/aim";
 import { tabKey } from "./ui/win";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
-import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
+import { MODS, dailyMod, levelName, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
 import { dropSave, findSave, putSave } from "./ui/save";
 import { RULES, decodeLog } from "./game/record";
@@ -466,7 +466,7 @@ export class App {
     }
     this.mode = "end";
     this.stopAuto();
-    const level = this.route.kind !== "title" && this.route.level && !this.dailyMod ? this.route.level : "";
+    const level = this.route.kind !== "title" && this.route.level && !this.dailyMod ? levelName(this.route.level) : "";
     const share = resultText(game, shareLink(location.href), [this.dailyLabel(), level].filter(Boolean).join(" "), this.code());
     this.showScreen(
       endScreen(game, share, this.copied, (this.endOn = {

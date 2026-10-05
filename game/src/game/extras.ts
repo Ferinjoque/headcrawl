@@ -235,8 +235,25 @@ export const GHOST_DAMAGE = 0.5;
 
 export type ModId = "friday" | "legacy" | "hotfix" | "review" | "lightsout" | Level;
 
-/** Difficulty, picked in settings. Normal has no mod; dailies are always normal. */
-export type Level = "story" | "hard";
+/**
+ * Difficulty, picked in settings. Normal has no mod; dailies are always normal.
+ * Past hard come three more heat levels, each on top of the one before and
+ * unlocked by clearing it, like ascensions.
+ */
+export type Level = "story" | Heat;
+
+export const HEATS = ["hard", "hard2", "hard3", "hard4"] as const;
+export type Heat = (typeof HEATS)[number];
+
+export const isLevel = (s: unknown): s is Level => s === "story" || HEATS.includes(s as Heat);
+
+/** 0 below hard, 1 on hard, up to 4. */
+export function heat(mods: readonly ModId[]): number {
+  return Math.max(0, ...HEATS.map((h, i) => (mods.includes(h) ? i + 1 : 0)));
+}
+
+/** "hard 3" for hard3. */
+export const levelName = (level: Level) => level.replace(/(\d)$/, " $1");
 
 export const MODS: Record<ModId, { name: string; text: string }> = {
   friday: { name: "friday deploy", text: "Bosses move faster. Nobody deploys on a Friday, and yet." },
@@ -246,6 +263,9 @@ export const MODS: Record<ModId, { name: string; text: string }> = {
   lightsout: { name: "lights out", text: "You see two cells less. The office turned the lights off." },
   story: { name: "story", text: "Monsters hit for half. For reading the code, not fighting it." },
   hard: { name: "hard", text: "Monsters have half again as much HP and hit a quarter harder." },
+  hard2: { name: "hard 2, tight budget", text: "Hard, and potions heal half as much." },
+  hard3: { name: "hard 3, crunch", text: "Hard 2, and bosses have a quarter more HP and move faster." },
+  hard4: { name: "hard 4, on call", text: "Hard 3, and you heal half as fast on your own." },
 };
 
 const ROTATION: ModId[] = ["legacy", "hotfix", "review", "lightsout"];
@@ -280,10 +300,16 @@ export function modMonster(m: Monster, mods: readonly ModId[]): void {
   }
   if (mods.includes("friday") && m.boss) m.speed += 30;
   if (mods.includes("story")) m.damage = Math.max(1, Math.round(m.damage * 0.5));
-  if (mods.includes("hard")) {
+  const h = heat(mods);
+  if (h >= 1) {
     m.maxHp = Math.round(m.maxHp * 1.5);
     m.hp = m.maxHp;
     m.damage = Math.max(1, Math.round(m.damage * 1.25));
+  }
+  if (h >= 3 && m.boss) {
+    m.maxHp = Math.round(m.maxHp * 1.25);
+    m.hp = m.maxHp;
+    m.speed += 10;
   }
 }
 

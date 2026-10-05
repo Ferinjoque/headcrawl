@@ -1,9 +1,11 @@
 // Player settings, remembered in this browser.
 
+import { HEATS, isLevel, type Level } from "../game/extras";
+
 export type TextSize = "small" | "normal" | "large";
 export type Colors = "glow" | "colorblind" | "contrast";
 export type Motion = "full" | "calm";
-export type Difficulty = "story" | "normal" | "hard";
+export type Difficulty = "normal" | Level;
 
 export interface Settings {
   sound: boolean;
@@ -36,7 +38,7 @@ export function loadSettings(reducedMotion: boolean): Settings {
       text: r.text === "small" || r.text === "large" || r.text === "normal" ? r.text : base.text,
       colors: r.colors === "colorblind" || r.colors === "contrast" || r.colors === "glow" ? r.colors : base.colors,
       motion: r.motion === "calm" || r.motion === "full" ? r.motion : base.motion,
-      level: r.level === "story" || r.level === "hard" || r.level === "normal" ? r.level : base.level,
+      level: r.level === "normal" || isLevel(r.level) ? r.level : base.level,
     };
   } catch {
     return base;
@@ -49,6 +51,32 @@ export function saveSettings(s: Settings): void {
   } catch {
     // Blocked storage: settings last until the tab closes.
   }
+}
+
+const HEAT_KEY = "headcrawl.heat.v1";
+
+/** The hardest heat cleared in this browser, 0 for none. */
+export function heatCleared(): number {
+  try {
+    const n = Number(localStorage.getItem(HEAT_KEY) ?? 0);
+    return Number.isInteger(n) && n >= 0 && n <= HEATS.length ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function clearHeat(h: number): void {
+  if (h <= heatCleared()) return;
+  try {
+    localStorage.setItem(HEAT_KEY, String(Math.min(h, HEATS.length)));
+  } catch {
+    // Blocked storage: the next heat stays locked.
+  }
+}
+
+/** Normal, hard and every heat unlocked by clearing the one before, then story. */
+export function difficulties(cleared: number): Difficulty[] {
+  return ["normal", ...HEATS.slice(0, Math.max(1, cleared + 1)), "story"];
 }
 
 export function cycle<T>(options: readonly T[], current: T): T {

@@ -1,7 +1,7 @@
 // The settings screen and its keys. Each change saves at once.
 
 import { settingsScreen, type TokenView } from "./screens";
-import { cycle, type Settings } from "./settings";
+import { cycle, difficulties, heatCleared, type Settings } from "./settings";
 import { clearToken, saveToken, tokenPlace } from "./token";
 
 export type SettingKey = "sound" | "music" | "text" | "colors" | "motion" | "level" | "tips";
@@ -9,7 +9,7 @@ export type SettingKey = "sound" | "music" | "text" | "colors" | "motion" | "lev
 const KEYS: Record<string, SettingKey> = { "1": "sound", "2": "music", "3": "text", "4": "colors", "5": "motion", "6": "level", "7": "tips" };
 
 /** The next value of one setting. Pure, so a test can walk through them. */
-export function nextSettings(s: Settings, which: SettingKey): Settings {
+export function nextSettings(s: Settings, which: SettingKey, cleared = heatCleared()): Settings {
   switch (which) {
     case "music":
       return { ...s, music: !s.music };
@@ -20,7 +20,7 @@ export function nextSettings(s: Settings, which: SettingKey): Settings {
     case "motion":
       return { ...s, motion: cycle(["full", "calm"] as const, s.motion) };
     case "level":
-      return { ...s, level: cycle(["normal", "hard", "story"] as const, s.level) };
+      return { ...s, level: cycle(difficulties(cleared), s.level) };
     default:
       return s;
   }

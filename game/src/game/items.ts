@@ -3,7 +3,7 @@
 import { Tile } from "../map/grid";
 import { COFFEE_HEAL, DROPS, potionHeal } from "./balance";
 import { killMonster, bossPhase } from "./combat";
-import { boss, canRewind, npcAt, rewindFloor, timeTravel } from "./extras";
+import { boss, canRewind, heat, npcAt, rewindFloor, timeTravel } from "./extras";
 import type { Game } from "./game";
 import { ELITE } from "./elites";
 import { armor, armorBonus, describe, guardName, TRAITS, weapon, weaponBonus, type Gear } from "./gear";
@@ -67,7 +67,8 @@ export function quaff(g: Game): boolean {
     g.say("No potions left.");
     return false;
   }
-  g.heal(potionHeal(item.loot?.power ?? 1));
+  const heal = potionHeal(item.loot?.power ?? 1);
+  g.heal(heat(g.mods) >= 2 ? Math.ceil(heal / 2) : heal);
   g.say(`You finally do the TODO. You feel better.`, "good");
   return true;
 }
