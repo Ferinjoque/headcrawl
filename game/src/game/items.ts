@@ -84,7 +84,7 @@ export function readScroll(g: Game): boolean {
   const roll = g.rng.int(0, canRewind(g.floor) ? 3 : 2);
   if (roll === 3) {
     const t = target ? timeTravel(target) : null;
-    const floor = rewindFloor(g.floor, g.rng, g.spec.floors.length, g.player, g.mods);
+    const floor = rewindFloor(g.floor, g.rng, g.spec.floors.length, g.player, g.mods, g.gate("deprecated", g.floor.index));
     const year = t?.year ?? floor?.year ?? 0;
     g.say(`Time slips. The floor is the way it was in ${year}${floor?.swapped ? `, ${floor.swapped} monsters with it` : ""}. git checkout.`, "loot");
     if (t && target) g.say(`${target.name} goes back to ${t.after} paths from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`, "loot");

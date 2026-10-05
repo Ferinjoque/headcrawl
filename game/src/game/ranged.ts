@@ -67,7 +67,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   if (crit) dmg *= critMultiplier(g);
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  g.say(`nit: ${m.name} takes ${dmg}.`, "good", true);
+  g.say(`Your shot hits ${m.name} for ${dmg}. nit.`, "good", true);
   if (m.hp <= 0) killMonster(g, m);
   else if (m.boss) bossPhase(g, m);
   return true;

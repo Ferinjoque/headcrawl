@@ -162,7 +162,7 @@ def test_reverts_counts_revert_commits_per_file(make_repo: MakeRepo) -> None:
     write_files(root, {"a.py": "x = 1\n"})
     _git(root, "commit", "-qam", 'Revert "c1: touch things"')
     assert gitio.reverts(root) == {"a.py": 1}
-    assert gitio.is_revert('Revert "x"') and not gitio.is_revert("Reverting the flux capacitor")
+    assert gitio.is_revert('Revert "x"') and not gitio.is_revert("Revert to the old parser")
 
 
 def test_browser_builds_count_reverts_from_commit_lists() -> None:

@@ -113,7 +113,8 @@ export class Game {
     modFloor(floor, this.mods);
     floor.vendor = this.gate("shop", index) ? placeVendor(floor, this.spec) : null;
     floor.keeper = this.gate("keeper", index) ? placeKeeper(floor, this.spec) : null;
-    floor.branch = this.gate("branch", index) ? placeBranch(floor, this.spec) : null;
+    const from = this.spec.floors.findIndex((_, i) => this.gate("branch", i));
+    floor.branch = this.gate("branch", index) ? placeBranch(floor, this.spec, Math.max(0, from)) : null;
     return floor;
   }
 
@@ -316,7 +317,7 @@ export class Game {
   private meetKeeper(k: NonNullable<FloorState["keeper"]>): void {
     if (k.met) return this.say(`${k.name} is busy. Something about a release.`);
     k.met = true;
-    const quote = k.subject ? ` Their last commit here: "${k.subject}".` : "";
+    const quote = k.subject ? ` Their last change here: "${k.subject}".` : "";
     this.say(`${k.name} wrote most of this floor.${quote} They hand you a coffee.`, "lore");
     this.heal(Math.max(1, Math.round(this.player.maxHp * KEEPER_HEAL)));
   }
@@ -464,7 +465,7 @@ export class Game {
     this.emit({ t: "descend", floor: next });
     if (this.has("stash")) {
       p.potions.push({ id: `stash${next}`, kind: "potion", x: p.x, y: p.y, loot: null, source: "git stash" });
-      this.say("git stash pop. A potion you set aside is back in your pack.", "good", true);
+      this.say("A potion you set aside is back in your pack. git stash pop.", "good", true);
     }
     this.enterFloorMessages();
     return true;

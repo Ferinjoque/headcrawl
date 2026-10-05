@@ -292,8 +292,8 @@ def churn(path: Path, limits: Limits = DEFAULT) -> Counter[str]:
 
 
 def is_revert(subject: str) -> bool:
-    """`git revert` titles its commits 'Revert "..."'."""
-    return subject.startswith("Revert ")
+    """`git revert` titles its commits 'Revert "..."'; a hand-written "Revert to ..." doesn't count."""
+    return subject.startswith('Revert "')
 
 
 def reverts(path: Path, limits: Limits = DEFAULT) -> Counter[str]:

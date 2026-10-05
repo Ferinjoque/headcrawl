@@ -225,7 +225,7 @@ function delta(a: number, b: number): string {
 export function compareScreen(repo: string, c: Comparison, on: CompareHandlers) {
   const row = (label: string, value: string) => h("p", { class: "row" }, h("span", { class: "t-loot" }, label), h("span", null, value));
   const change = (x: Change) =>
-    h("p", { class: "row" }, h("span", { class: "name" }, x.name), h("span", { class: "dim" }, `${x.before} -> ${x.after} branches, ${x.path}`));
+    h("p", { class: "row" }, h("span", { class: "name" }, x.name), h("span", { class: "dim" }, `${x.before} -> ${x.after} paths, ${x.path}`));
   return h(
     "div",
     { class: "page" },
@@ -242,7 +242,7 @@ export function compareScreen(repo: string, c: Comparison, on: CompareHandlers) 
     h("h2", null, "final boss"),
     row("then", c.bossThen),
     row("now", c.bossNow),
-    c.grew.length ? h("h2", null, "grew more branches") : null,
+    c.grew.length ? h("h2", null, "grew more tangled") : null,
     ...c.grew.map(change),
     c.shrank.length ? h("h2", null, "got simpler") : null,
     ...c.shrank.map(change),
@@ -255,7 +255,7 @@ export function compareScreen(repo: string, c: Comparison, on: CompareHandlers) 
       { class: "actions" },
       btn("1", "play then", on.playThen),
       btn("2", "play now", on.playNow),
-      btn("esc", "repo list", on.menu),
+      btn("esc", "dungeon list", on.menu),
     ),
   );
 }

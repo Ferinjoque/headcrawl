@@ -67,15 +67,26 @@ function onCard(key: string): boolean {
 export class Pads {
   private held = new Map<string, number>();
   private connected = false;
+  /** Some devices rest with an axis pushed (pedals, wheels): the stick counts only once it has been centred. */
+  private centred = false;
+  /** Keys the current screen takes from a pad; on the title only menu keys, so a stray button can't open things. */
+  private allow: (key: string) => boolean;
   /** Says hi in the log; false when there is no log on screen yet, to try again later. */
   private hello: (text: string) => boolean;
 
-  constructor(hello: (text: string) => boolean) {
+  constructor(hello: (text: string) => boolean, allow: (key: string) => boolean = () => true) {
     this.hello = hello;
+    this.allow = allow;
   }
 
   poll(now: number): void {
-    const pads = navigator.getGamepads?.() ?? [];
+    let pads: readonly (Gamepad | null)[] = [];
+    try {
+      pads = navigator.getGamepads?.() ?? [];
+    } catch {
+      // Blocked by a permissions policy, e.g. inside an embed: no pads.
+      return;
+    }
     const pad = [...pads].find((p): p is Gamepad => !!p && p.connected);
     if (!pad) return;
     if (!this.connected) {
@@ -87,7 +98,8 @@ export class Pads {
       if (key && b.pressed) down.add(key);
     });
     const stick = stickKey(pad);
-    if (stick) down.add(stick);
+    if (!stick) this.centred = true;
+    else if (this.centred) down.add(stick);
     for (const key of [...this.held.keys()]) if (!down.has(key)) this.held.delete(key);
     for (const key of down) {
       const next = this.held.get(key);
@@ -102,6 +114,7 @@ export class Pads {
   }
 
   private press(key: string): void {
+    if (!this.allow(key)) return;
     if (onCard(key)) return;
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
   }

@@ -21,8 +21,9 @@ export interface BranchDoor {
 }
 
 /** One branch per floor, in order, for as long as the list lasts. */
-export function placeBranch(state: FloorState, spec: DungeonSpec): BranchDoor | null {
-  const branch = spec.repo.branches?.[state.index];
+/** `from` is the first floor with side doors, so the first branch goes there. */
+export function placeBranch(state: FloorState, spec: DungeonSpec, from = 0): BranchDoor | null {
+  const branch = spec.repo.branches?.[state.index - from];
   if (!branch) return null;
   const { map } = state;
   const rooms = map.rooms.filter((r) => r !== map.entry && r !== map.lair && r.spec.kind !== "shrine");

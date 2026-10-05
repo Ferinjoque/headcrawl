@@ -5,7 +5,7 @@
 import type { Boss, DungeonSpec, Enemy, Floor, Loot, Room } from "../spec";
 import { BOSS_STYLE, type BossStyle } from "./bossmoves";
 import { Tile } from "../map/grid";
-import { makeElite, type Affix } from "./elites";
+import { AFFIX, makeElite, type Affix } from "./elites";
 import { armor, armorBonus, weapon, weaponBonus } from "./gear";
 import type { Game } from "./game";
 import type { PerkId } from "./perks";
@@ -175,7 +175,7 @@ export function spawn(g: Game, kind: LabKind, affix: Affix | null = null, deprec
   if (reverted) m.undo = 1;
   m.awake = true;
   g.floor.monsters.push(m);
-  g.say(`lab: ${m.name}${affix ? ` (elite, ${affix})` : ""} appears.`, "lore");
+  g.say(`lab: ${m.name}${affix ? ` (elite, ${AFFIX[affix].name})` : ""} appears.`, "lore");
   return m;
 }
 

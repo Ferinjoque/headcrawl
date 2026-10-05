@@ -14,6 +14,12 @@ describe("reverted files", () => {
     expect(make(0).floor.monsters.some((m) => m.undo)).toBe(false);
   });
 
+  it("never mark the boss, even in its own reverted file", () => {
+    const game = new Game(spec([floor([room(), room({ kind: "lair", reverts: 3, enemies: [enemy({ hp: 5 })] })], [[0, 1]])]));
+    expect(game.floor.monsters.find((m) => m.boss)?.undo).toBe(0);
+    expect(game.floor.monsters.filter((m) => m.undo)).toHaveLength(1);
+  });
+
   it("bring it back once at half HP, then let it die", () => {
     const game = make(1);
     const m = game.floor.monsters.find((x) => x.undo)!;

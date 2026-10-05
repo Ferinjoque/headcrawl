@@ -4,7 +4,7 @@
 //   SIM_DUNGEONS=flask,axum   only these (default: the whole gallery)
 //   SIM_RUNS=5                runs per dungeon (default 3)
 //   SIM_STYLE=careful         plain, careful or both (default both)
-//   SIM_LEVEL=hard            story, normal or hard (default normal)
+//   SIM_LEVEL=hard            story, normal, hard or hard2 to hard4 (default normal)
 //
 // npm run sim, or with variables: SIM_RUNS=10 npm run sim
 
@@ -12,7 +12,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { it } from "vitest";
 import { playOut, type BotStyle } from "../src/game/bot";
 import { Game } from "../src/game/game";
-import type { ModId } from "../src/game/extras";
+import { isLevel, type ModId } from "../src/game/extras";
 import { loadSpec, type DungeonSpec } from "../src/spec";
 
 const DIR = new URL("../public/dungeons/", import.meta.url);
@@ -21,7 +21,7 @@ const only = (env.SIM_DUNGEONS ?? "").split(",").map((s) => s.trim()).filter(Boo
 const runs = Math.max(1, Number(env.SIM_RUNS ?? 3));
 const styles: [string, BotStyle][] =
   env.SIM_STYLE === "plain" ? [["plain", {}]] : env.SIM_STYLE === "careful" ? [["careful", { careful: true }]] : [["plain", {}], ["careful", { careful: true }]];
-const level = env.SIM_LEVEL === "hard" || env.SIM_LEVEL === "story" ? [env.SIM_LEVEL as ModId] : [];
+const level: ModId[] = isLevel(env.SIM_LEVEL) ? [env.SIM_LEVEL] : [];
 
 function dungeons(): [string, DungeonSpec][] {
   return readdirSync(DIR)

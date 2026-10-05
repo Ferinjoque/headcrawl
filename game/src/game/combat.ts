@@ -106,7 +106,7 @@ export function killMonster(g: Game, m: Monster): boolean {
   if (m.undo > 0) {
     m.undo--;
     m.hp = Math.max(1, Math.ceil(m.maxHp / 2));
-    g.say(`${m.name} gets reverted. It's back, at half HP.`, "bad");
+    g.say(`${m.name} was reverted once before, and comes back at half HP.`, "bad");
     return false;
   }
   const p = g.player;

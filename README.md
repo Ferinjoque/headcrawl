@@ -203,6 +203,10 @@ are text only, so a link builds the same dungeon with or without a token.
 Or pick a folder on your own disk (title screen, files tab): the same
 analyzer reads it in the tab, and nothing is uploaded.
 
+A dungeon carries names from the code, its notes and the first few lines of
+each boss function, and links to a dungeon opened from a file carry the
+whole dungeon. Think twice before sharing one of those from a private repo.
+
 Give a repo and an old tag instead and you get **then vs now**: both
 versions built and compared, which functions grew, which got simpler, which
 notes appeared, and you can play either one.

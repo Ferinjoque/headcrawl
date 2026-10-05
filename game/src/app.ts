@@ -54,6 +54,9 @@ const $ = (id: string) => document.getElementById(id)!;
 /** A new run number for a fresh game. Shown to the player as part of the run code. */
 const freshRun = () => 1 + Math.floor(Math.random() * 9999);
 
+/** On the title a pad only moves, picks, backs out and switches tabs. */
+const TITLE_PAD_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape", "Tab", "?"]);
+
 /** Frames per second when nothing is happening but the light still flickers. */
 const IDLE_FPS = 12;
 
@@ -87,7 +90,7 @@ export class App {
     this.log.push(text, "info");
     this.log.render();
     return true;
-  });
+  }, (key) => this.mode !== "title" || TITLE_PAD_KEYS.has(key));
   private log: Log;
   private mode: Mode = "loading";
   private returnMode: Mode = "title";
@@ -718,7 +721,7 @@ export class App {
       this.restart();
       return;
     }
-    if ((this.mode === "help" || this.mode === "pause") && (e.key === "Escape" || e.key === "?" || (e.key === "Enter" && this.mode === "help"))) {
+    if ((this.mode === "help" || this.mode === "pause") && (e.key === "Escape" || e.key === "?" || (e.key === "Enter" && this.mode === "help" && !(e.target instanceof HTMLButtonElement)))) {
       e.preventDefault();
       this.closeOverlay();
       return;

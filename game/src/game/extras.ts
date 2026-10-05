@@ -334,6 +334,7 @@ export function rewindFloor(
   floors: number,
   player: { x: number; y: number },
   mods: readonly ModId[] = [],
+  outdated = true,
 ): { swapped: number; year: number } | null {
   let swapped = 0;
   let year = 0;
@@ -349,7 +350,7 @@ export function rewindFloor(
     roster.forEach((e, i) => {
       const [x, y] = spots[i];
       if (x === player.x && y === player.y) return;
-      const m = fromEnemy(e, x, y, rect.index, state.index, floors);
+      const m = fromEnemy(outdated || !e.deprecated ? e : { ...e, deprecated: false }, x, y, rect.index, state.index, floors);
       m.xp = Math.round(m.xp * state.xpScale);
       modMonster(m, mods);
       // A rewind changes the code, not how beaten up it already is.

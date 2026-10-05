@@ -178,7 +178,7 @@ export function buildFloor(floor: Floor, seed: string, floors = 1, gate: Gate = 
     }
     // A file someone reverted: its toughest monster has been undone before.
     if (room.reverts && gate("reverts", floor.index)) {
-      const here = monsters.filter((m) => m.room === rect.index);
+      const here = monsters.filter((m) => m.room === rect.index && !m.boss);
       const toughest = here.sort((a, b) => b.maxHp - a.maxHp || a.id.localeCompare(b.id))[0];
       if (toughest) toughest.undo = 1;
     }

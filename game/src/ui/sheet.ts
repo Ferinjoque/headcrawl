@@ -38,7 +38,7 @@ export function sheetScreen(game: Game, close: () => void) {
     h("h2", null, "pack"),
     row("! potion", p.potions.length ? `${p.potions.length}, q drinks one` : "none"),
     row("? scroll", p.scrolls.length ? `${p.scrolls.length}, r reads one` : "none"),
-    s.curses ? row("% XXX", `${plural(s.curses, "curse")} on you`, "t-bad") : null,
+    s.curses ? row("% curse", `${plural(s.curses, "curse")} on you`, "t-bad") : null,
     h("div", { class: "actions" }, btn("esc", "back", close)),
   );
 }
