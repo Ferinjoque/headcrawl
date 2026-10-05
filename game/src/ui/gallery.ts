@@ -7,6 +7,10 @@ export interface GalleryEntry {
   rooms: number;
   enemies: number;
   boss: string;
+  bossTitle?: string;
+  taunt?: string;
+  /** Top to bottom, for the title's detail pane. */
+  floorNames?: string[];
   difficulty?: number;
   blurb?: string;
 }

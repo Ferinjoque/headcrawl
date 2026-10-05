@@ -29,6 +29,9 @@ const entries = readdirSync(dir)
       rooms: spec.totals.rooms,
       enemies: spec.totals.enemies,
       boss: spec.floors.at(-1).boss.name,
+      bossTitle: spec.floors.at(-1).boss.title,
+      taunt: spec.floors.at(-1).boss.taunts[0] ?? "",
+      floorNames: spec.floors.map((f) => f.name),
       threat: threat(spec),
     };
   })

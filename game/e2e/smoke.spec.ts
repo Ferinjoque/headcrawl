@@ -86,6 +86,8 @@ test("the lab opens with its tools and spawns what you ask for", async ({ page }
   await expect(page.getByRole("button", { name: "tangle" })).toBeVisible();
   await page.getByRole("button", { name: "tangle" }).click();
   await expect(page.locator("#panel")).toContainText("route_request");
+  // The map is a canvas, so what happens is also read out from a live region.
+  await expect(page.locator("#sr-log")).toContainText("lab: route_request");
   await page.keyboard.press("`");
   await expect(page.getByRole("button", { name: "tangle" })).toBeHidden();
   expect(errors).toEqual([]);

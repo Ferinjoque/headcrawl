@@ -8,15 +8,21 @@ interface Line {
 }
 
 const KEEP = 60;
+/** Lines kept in the screen reader's copy of the log. */
+const SPOKEN = 20;
 
 export class Log {
   private lines: Line[] = [];
   private el: HTMLElement;
   private visible: number;
+  /** The canvas says nothing to a screen reader, so new lines go to a live region one by one. */
+  private spoken: HTMLElement | null;
+  private pending: string[] = [];
 
-  constructor(el: HTMLElement, visible = 5) {
+  constructor(el: HTMLElement, visible = 5, spoken: HTMLElement | null = null) {
     this.el = el;
     this.visible = visible;
+    this.spoken = spoken;
   }
 
   push(text: string, tone: Tone = "info"): void {
@@ -24,10 +30,13 @@ export class Log {
     if (last && last.text === text) last.count++;
     else this.lines.push({ text, tone, count: 1 });
     if (this.lines.length > KEEP) this.lines.splice(0, this.lines.length - KEEP);
+    this.pending.push(text);
   }
 
   clear(): void {
     this.lines = [];
+    this.pending = [];
+    this.spoken?.replaceChildren();
     this.render();
   }
 
@@ -36,6 +45,11 @@ export class Log {
   }
 
   render(): void {
+    if (this.spoken) {
+      for (const text of this.pending) this.spoken.append(h("p", null, text));
+      while (this.spoken.childElementCount > SPOKEN) this.spoken.firstElementChild?.remove();
+    }
+    this.pending = [];
     const shown = this.lines.slice(-this.visible);
     replace(
       this.el,

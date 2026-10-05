@@ -8,6 +8,12 @@
     "rooms": 13,
     "enemies": 56,
     "boss": "__init__",
+    "bossTitle": "the Secret Keeper",
+    "taunt": "Signature changes in serializer.py make you look like a chameleon.",
+    "floorNames": [
+      "tests",
+      "itsdangerous"
+    ],
     "difficulty": 1
   },
   {
@@ -19,6 +25,15 @@
     "rooms": 43,
     "enemies": 192,
     "boss": "run",
+    "bossTitle": "the Server Sentinel",
+    "taunt": "run with any host, port, or debug, and I still get the last say.",
+    "floorNames": [
+      "tests",
+      "sansio",
+      "examples",
+      "json",
+      "flask"
+    ],
     "difficulty": 3
   },
   {
@@ -30,6 +45,12 @@
     "rooms": 27,
     "enemies": 107,
     "boss": "should_bypass_proxies",
+    "bossTitle": "the Proxy Judge",
+    "taunt": "Every URL passes through should_bypass_proxies, even if the answer is no.",
+    "floorNames": [
+      "tests",
+      "(root) + src"
+    ],
     "difficulty": 2
   },
   {
@@ -41,6 +62,13 @@
     "rooms": 34,
     "enemies": 176,
     "boss": "send",
+    "bossTitle": "the Network Warden",
+    "taunt": "send has seen 43 changes. It's only sending one more.",
+    "floorNames": [
+      "tests",
+      "examples",
+      "(root) + lib"
+    ],
     "difficulty": 1
   },
   {
@@ -52,6 +80,16 @@
     "rooms": 58,
     "enemies": 123,
     "boss": "options",
+    "bossTitle": "the Configuration Manager",
+    "taunt": "options has 59 ways to keep you waiting, and none of them are good.",
+    "floorNames": [
+      "tests",
+      "source + source/core",
+      "source/utils",
+      "test-d",
+      "source/errors",
+      "source/types"
+    ],
     "difficulty": 2
   },
   {
@@ -63,6 +101,16 @@
     "rooms": 66,
     "enemies": 266,
     "boss": "Handle",
+    "bossTitle": "the Middleware Master",
+    "taunt": "Handle all the paths, but in one branch you falter.",
+    "floorNames": [
+      "tests",
+      "(root)",
+      "render",
+      "binding",
+      "codec",
+      "ginS + internal"
+    ],
     "difficulty": 3
   },
   {
@@ -74,6 +122,13 @@
     "rooms": 45,
     "enemies": 230,
     "boss": "Update",
+    "bossTitle": "the Keybound Guardian",
+    "taunt": "Update has seen 30 branches, but none of them escape its grip.",
+    "floorNames": [
+      "tests",
+      "(root) + tutorials",
+      "examples"
+    ],
     "difficulty": 2
   },
   {
@@ -85,6 +140,18 @@
     "rooms": 98,
     "enemies": 433,
     "boss": "main",
+    "bossTitle": "the Root Call",
+    "taunt": "main is where every journey begins. Or ends.",
+    "floorNames": [
+      "tests",
+      "(root) + 4 more",
+      "crates/core",
+      "crates/globset + 2 more",
+      "crates/ignore + crates/regex",
+      "crates/printer",
+      "crates/searcher",
+      "examples"
+    ],
     "difficulty": 4
   },
   {
@@ -96,6 +163,12 @@
     "rooms": 26,
     "enemies": 108,
     "boss": "f_format",
+    "bossTitle": "the Format Master",
+    "taunt": "With 57 branches, f_format keeps you guessing. Or crashing.",
+    "floorNames": [
+      "tests",
+      "scripts + src"
+    ],
     "difficulty": 5
   },
   {
@@ -107,6 +180,14 @@
     "rooms": 34,
     "enemies": 181,
     "boss": "HtmlTreeBuilderState::inBodyStartTag",
+    "bossTitle": "the Tag Tyrant",
+    "taunt": "Every start tag is a battle for you. 123 ways to lose, and only one way out.",
+    "floorNames": [
+      "tests",
+      "examples",
+      "java11",
+      "java"
+    ],
     "difficulty": 5
   },
   {
@@ -118,6 +199,18 @@
     "rooms": 70,
     "enemies": 189,
     "boss": "Runner::Run",
+    "bossTitle": "the Build Executor",
+    "taunt": "With 19 branches, Runner::Run decides your fate. Or does it?",
+    "floorNames": [
+      "tests",
+      "MediatR",
+      "MediatR.Contracts + MediatR/Wrappers",
+      "MediatR/Entities + 2 more",
+      "MediatR/Licensing",
+      "MediatR/MicrosoftExtensionsDI + 1 more",
+      "MediatR/Pipeline",
+      "examples"
+    ],
     "difficulty": 4
   },
   {
@@ -129,6 +222,17 @@
     "rooms": 64,
     "enemies": 273,
     "boss": "refresh",
+    "bossTitle": "the Update Enforcer",
+    "taunt": "refresh is called 11 times. And every time, it's on you.",
+    "floorNames": [
+      "tests",
+      "(root)",
+      "Source + watchOS Example",
+      "Source/Core",
+      "Source/Extensions",
+      "Source/Features",
+      "examples"
+    ],
     "difficulty": 3
   },
   {
@@ -140,6 +244,18 @@
     "rooms": 81,
     "enemies": 212,
     "boss": "CallableResolver::assertCallable",
+    "bossTitle": "the Resolver King",
+    "taunt": "24 commits can't break me, not even with a hint of doubt.",
+    "floorNames": [
+      "tests",
+      "Error + Handlers",
+      "Exception",
+      "Factory",
+      "Interfaces",
+      "Middleware",
+      "Routing",
+      "Slim"
+    ],
     "difficulty": 4
   },
   {
@@ -151,6 +267,15 @@
     "rooms": 58,
     "enemies": 218,
     "boss": "attachment",
+    "bossTitle": "the File Fetcher",
+    "taunt": "94 commits and still attaching. When will you let go?",
+    "floorNames": [
+      "tests",
+      "examples",
+      "sinatra-contrib",
+      "rack-protection",
+      "lib"
+    ],
     "difficulty": 2
   },
   {
@@ -162,6 +287,18 @@
     "rooms": 88,
     "enemies": 314,
     "boss": "peekNumber",
+    "bossTitle": "the Peek Keeper",
+    "taunt": "With 31 branches, you thought it was a forest? It's just a codebase.",
+    "floorNames": [
+      "tests",
+      "examples",
+      "(root) + 2 more",
+      "moshi-kotlin",
+      "moshi-kotlin-codegen/src",
+      "moshi-kotlin-tests + 2 more",
+      "moshi-adapters",
+      "moshi/src"
+    ],
     "difficulty": 5
   },
   {
@@ -173,6 +310,13 @@
     "rooms": 38,
     "enemies": 192,
     "boss": "get_help_extra",
+    "bossTitle": "the Documentation Demigod",
+    "taunt": "get_help_extra has 36 ways to make you squirm. Or maybe just one.",
+    "floorNames": [
+      "tests",
+      "examples",
+      "click"
+    ],
     "difficulty": 3
   },
   {
@@ -184,6 +328,12 @@
     "rooms": 23,
     "enemies": 114,
     "boss": "execute",
+    "bossTitle": "the Legacy Executor",
+    "taunt": "execute has 37 paths, but Gt is just for the past.",
+    "floorNames": [
+      "tests",
+      "(root)"
+    ],
     "difficulty": 1
   },
   {
@@ -195,6 +345,18 @@
     "rooms": 102,
     "enemies": 518,
     "boss": "typed_get",
+    "bossTitle": "the Type Enforcer",
+    "taunt": "typed_get handles types, not your pride.",
+    "floorNames": [
+      "tests",
+      "axum-extra/src/extract",
+      "axum-macros",
+      "axum-extra/src + axum-extra/src/response",
+      "axum-core",
+      "examples",
+      "axum",
+      "axum-extra/src/body + 3 more"
+    ],
     "difficulty": 4
   },
   {
@@ -206,6 +368,12 @@
     "rooms": 13,
     "enemies": 44,
     "boss": "applyStyle",
+    "bossTitle": "the Style Enforcer",
+    "taunt": "applyStyle has 8 ways to make your code look right. Or wrong.",
+    "floorNames": [
+      "tests",
+      "(root) + 2 more"
+    ],
     "difficulty": 1
   },
   {
@@ -217,6 +385,18 @@
     "rooms": 97,
     "enemies": 484,
     "boss": "act",
+    "bossTitle": "the Executor",
+    "taunt": "act on 29 branches, and only then can the game proceed.",
+    "floorNames": [
+      "tests",
+      "game/src + game/src/map",
+      "game/src/ui",
+      "examples",
+      "game + 3 more",
+      "game/src/lite + game/src/render",
+      "analyzer",
+      "game/src/game"
+    ],
     "difficulty": 5
   }
 ]

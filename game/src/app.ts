@@ -108,7 +108,7 @@ export class App {
     this.renderer = new Renderer($("view") as HTMLCanvasElement);
     this.renderer.reduced = this.reduced;
     this.fx.reduced = this.reduced;
-    this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 3);
+    this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 3, $("sr-log"));
     this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
     this.applySettings();
     this.labPanel = new LabPanel($("lab"), {

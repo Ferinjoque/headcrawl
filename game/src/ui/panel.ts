@@ -92,7 +92,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     { class: "pane sight" },
     h("h2", null, "in sight"),
     h("div", { class: "focus" }, nearest ? foe(nearest, true) : h("p", { class: "faint" }, "Nothing. Quiet, for now.")),
-    h("div", { class: "rows" }, ...shown, more > 0 ? h("p", { class: "faint more" }, `+${more} more`) : null),
+    h("div", { class: "rows" }, ...(rows.length ? shown : idleLines(game)), more > 0 ? h("p", { class: "faint more" }, `+${more} more`) : null),
   );
 
   // The pack always shows the same lines, so nothing moves when you pick
@@ -140,6 +140,14 @@ export function renderPanel(el: HTMLElement, game: Game): void {
   );
 
   replace(el, sight, pack, map, here);
+}
+
+/** With nothing in sight the rows say what's next, so the space isn't blank. */
+function idleLines(game: Game) {
+  const lines = game.floor.bossDead
+    ? ["The stairs are open. > takes them."]
+    : [`${game.floorSpec.boss.name} is somewhere on this floor.`, "x explores until something shows up."];
+  return lines.map((l) => h("p", { class: "faint idle" }, l));
 }
 
 /** Monsters listed under "in sight" before the rest are folded into a count. */
