@@ -38,8 +38,11 @@ Full palette, each role fixed. OKLCH, neutrals tinted toward the ink hue.
 | player | @ | oklch(0.97 0.03 90) |
 
 Enemy archetypes each get a hue: tangle magenta, nest red-orange, hydra cyan,
-wall slate blue, imp yellow, bug lime. The glyph is the first letter of the
-function name, so color is never the only cue.
+wall slate blue, imp yellow, bug lime, remote violet. The glyph is the first
+letter of the function name, so color is never the only cue. Elites are drawn
+bold on a faint tile of their own color, so they read by shape too.
+
+Gear sits on the steel role: `/` weapons, `[` armor.
 
 ## Typography
 
@@ -64,13 +67,20 @@ Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
   else (GitHub build, then vs now, folder, file, settings, bestiary) is
   behind tab. Behind it the bot plays a gallery dungeon (attract mode).
 - Menus and end screens render as text blocks over a dimmed map, no cards.
-  Choice cards (level up, vendor) sit at the bottom of the stage.
+  Choice cards (level up, vendor, gear swap) sit at the bottom of the stage.
+  The gear card names both items and says how much better or worse the new
+  one is; the one you keep is dimmed.
+- The character sheet (`c`, or atk/def in the top line) and the bestiary
+  are the same text pages as help: label column, value column, a quieter
+  second line under an entry. On phones entries stack.
 - Green means health and nothing else.
 
 ## Motion
 
 - Hits: one-frame flash on the target glyph, floating number that rises and
-  fades over 600 ms.
+  fades over 600 ms. With a weapon in hand, a swing glyph (- | / \) cuts from
+  the @ into the target for about 190 ms, gold on a crit. Off with calm motion.
+- Taking gear floats its name up from the @.
 - Boss hits and death: short camera shake (off for reduced motion).
 - Light: torches and the boss glow breathe slowly (off for reduced motion).
 - UI transitions 150 to 200 ms, ease-out.

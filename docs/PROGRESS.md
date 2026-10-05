@@ -3,8 +3,8 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-03, round 5): M0-M5 done, plus a UI redesign, music and a
-batch of new mechanics. Playable and tested. Shipped as a private GitHub
+Status (2026-10-05, round 8): M0-M5 done, plus a UI redesign, music and a
+lot of mechanics on top. Playable and tested. Shipped as a private GitHub
 repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
 with play.py; no hosted site (owner's call, 2026-10-03).
 
@@ -151,17 +151,44 @@ redraws the whole view at 20 fps when idle.
   one difficulty vocabulary, quieter title demo, cropped minimap),
   e2e for hard codes and phone pause, gemma4 vs qwen2.5 flavor check.
 
+- Round 8 (owner: keep building, find what's thin; bestiary, stats, bonuses,
+  weapons):
+  - game.ts split into combat.ts, foes.ts and items.ts (813 to 448 lines,
+    same rolls, bot results identical before and after).
+  - Gear (game/gear.ts): one weapon, one armor. Weapon trait from the file's
+    language (Rust pierces, Go never misses, Python cleaves, JS async, C
+    unsafe, Java knocks back, Swift heals on kills, PHP loose). Armor is the
+    biggest test file's suite or a language-flavoured guard around a
+    function. Sources: FIXMEs, boss drops (their own function), 3% of kills,
+    vendor deals. Swap card with T/D codes in the run log. RULES 4.
+  - Character sheet (c, @, pause menu, or click atk/def) from game/stats.ts.
+  - 10 more perks (21 in all), rare ones weighted 1 against 3; 4 more vendor
+    deals (sdk weapon, @types armor, abandoned, fork); code owners buys both.
+  - Elites (game/elites.ts): one per room of 3+, god function / deeply
+    nested / hot path. Remote calls: network-named small functions shoot
+    along a telegraphed line.
+  - Bestiary fills in per kind, elite and weapon trait, with hints for
+    unmet ones; codex keeps old data.
+  - Balance: 30 monsters a floor (60% of the rest's XP passed on), bosses
+    grow 10% a floor, smaller gear curve. Bot 45 of 60 again; axum kills
+    450 to about 220. The bot now walks to the nearest unseen room.
+  - Design pass 27 to 29/40 (.impeccable/critique): faint text contrast,
+    gear card deltas, weapon swing effect, HUD stats open the sheet.
+
 ## Next ideas
 
-- Balance: with the vendor the bot wins about 3 in 4 gallery runs. Check
-  against human play before retuning.
+- Balance: the bot wins 45 of 60 gallery runs with gear and perks. It
+  always takes the first perk and the first vendor offer, so humans who
+  choose should do better. Check against human play before retuning.
+- Side panel gets dense once elites, gear and perks stack (critique P2).
+- Gear on the map: the @ could carry a tint of its weapon's trait.
 - Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
   itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
   more lines past the filter. qwen2.5:7b stays the default.
 
 ## Notes
 
-- Analyzer coverage 94%, game logic coverage 93%.
+- Analyzer coverage 94%, game logic coverage 93% of lines (2026-10-05).
 - Loot is rare in clean repos (flask and express have no tags), so monsters
   drop coffee and shrines heal.
 - Balance targets: bot wins small repos sometimes, dies to final bosses on

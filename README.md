@@ -77,7 +77,41 @@ Monsters play differently depending on what kind of code they are:
 | imp | tiny function | fast |
 | bug | everything else | dodges now and then |
 | ghost | nothing mentions it, tests included | drifts through walls, hits softly |
+| remote | a small function that talks to the network (`fetch`, `send`, `emit`...) | lines up a shot from 4 cells away, step off the red line |
 | boss | the floor's hotspot | winds up area attacks |
+
+One monster in a busy room can be an elite, drawn bold on a faint tile: a
+god function (60+ lines, more HP), deeply nested (armored) or a hot path
+(in a file that keeps changing, faster). Elites are worth more and drop gear
+more often. Big floors keep their 30 most complex functions; the rest pass
+part of their XP on.
+
+## Gear
+
+You carry one weapon and one armor. A weapon fights the way the language of
+its file does:
+
+| Language | Trait | |
+|---|---|---|
+| Rust | borrow checked | ignores armor |
+| Go | boring | never misses |
+| Python, Ruby, Lua | duck typed | half damage to everything else next to you |
+| JavaScript, TypeScript | async | one swing in four takes no time |
+| C, C++ | unsafe | crits hit three times as hard, a miss costs 1 HP |
+| Java, Kotlin, C#, Scala | enterprise | +1 damage and knocks back |
+| Swift | ref counted | every kill heals 2 |
+| PHP | loosely typed | hits for half to double |
+
+Weapons are FIXMEs, bosses (which drop their own function) and now and then
+an ordinary kill, named after the function. Armor is the biggest test file's
+suite, or the error handling around a function in its own language
+(`try/except around load_config`, `if err != nil after parse`). Walking
+onto gear with that slot full asks before swapping, and yours stays on the
+floor. `c` (or clicking atk in the top line) shows every number behind a
+fight: damage range, hit and crit chances, how often monsters land, armor.
+
+Level ups offer three of 21 dev tools (linter, feature flag, git stash,
+fuzzing...); the rare ones come up a third as often.
 
 ![A boss winding up](docs/img/telegraph.png)
 
@@ -86,12 +120,13 @@ Monsters play differently depending on what kind of code they are:
 Pick a repo from the gallery, or bring your own (below). Behind the menu
 the bot plays a random gallery dungeon, so you can see what you're in for.
 Arrows, `hjkl` or `yubn` move and attack. `x` explores until something
-shows up, `z` rests, `>` takes the stairs once the boss is dead, `?` shows
-everything else. Health is the first thing on the top line.
+shows up, `z` rests, `>` takes the stairs once the boss is dead, `c` shows
+your stats and gear, `?` shows everything else. Health is the first thing on the top line.
 
 The vendor (`$`) in each entry room sells two of the repo's real
 dependencies, one per floor. Every deal helps and every one costs
-something: a framework hits hard and weighs a ton.
+something: a framework hits hard and weighs a ton, the package itself can
+become your weapon, its `@types` your armor.
 
 There is a daily run (`d`): same repo, same rolls and the same twist for
 everyone that day (friday deploy on Fridays, otherwise legacy code,
@@ -105,8 +140,10 @@ Each language has its own instruments, the vendor plays lounge music, a
 ghost in sight hums, and daily runs ring a bell. `m`
 mutes everything; `,` opens settings (music on its own, difficulty, text size,
 colorblind friendly or high contrast colors, calm motion). On a phone, tap
-a monster to see what it is. `b` on the title opens the bestiary: what
-you've refactored, the gnarliest bosses you beat and what keeps getting you.
+a monster to see what it is. `b` on the title opens the bestiary: every kind
+of monster, elite and weapon you've met, the gnarliest one of each you
+finished, the bosses you beat and what keeps getting you. The ones you
+haven't met yet say what code makes them.
 
 Runs save themselves in the browser; close the tab and pick it up later
 under "continue". Every run has a code like `flask-4821`: give it to a
