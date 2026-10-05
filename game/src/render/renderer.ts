@@ -9,11 +9,13 @@ import { Tile } from "../map/grid";
 import type { FloorState } from "../game/world";
 import type { Item, Monster } from "../game/types";
 import type { Effects } from "./effects";
+import type { Gear } from "../game/gear";
 import { ARCHETYPE, C, LANGUAGE, mix, rgba, scale, type RGB } from "./palette";
 
 export interface Scene {
   floor: FloorState;
-  player: { x: number; y: number } | null;
+  /** Where you stand, and what you hold, which marks the @. */
+  player: { x: number; y: number; weapon?: Gear | null; armor?: Gear | null } | null;
   sight: number;
   /** Show the whole map as if explored (title screen). */
   revealAll?: boolean;
@@ -365,6 +367,18 @@ export class Renderer {
       lctx.font = `bold ${this.fontPx}px ${FONT}`;
       lctx.fillText("@", px + cellW / 2, py + cellH / 2);
       lctx.font = `${this.fontPx}px ${FONT}`;
+      // What you hold: a bar under the @ in the weapon's language color, and a
+      // thin steel line over it with armor on. Shape first, color second.
+      const bar = Math.max(2, Math.round(this.dpr * 2));
+      const { weapon, armor } = scene.player;
+      if (weapon) {
+        lctx.fillStyle = rgba(LANGUAGE[weapon.language] ?? C.steel, 0.95);
+        lctx.fillRect(px + 2, py + cellH - bar, cellW - 4, bar);
+      }
+      if (armor) {
+        lctx.fillStyle = rgba(C.steel, 0.85);
+        lctx.fillRect(px + 3, py, cellW - 6, Math.max(1, bar - 1));
+      }
     }
   }
 

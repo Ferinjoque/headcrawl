@@ -316,6 +316,19 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Elites in the list look like they do on the map: bold on a faint tile. */
+.foe .elite {
+  font-weight: bold;
+  text-align: center;
+  background: color-mix(in oklch, currentColor 22%, transparent);
+}
+.pane .more {
+  font-size: var(--fs-xs);
+  margin: 2px 0 0 calc(2ch + 8px);
+}
+.pack .tools kbd {
+  width: auto;
+}
 .foe .stats {
   grid-column: 2 / 4;
   color: var(--text-faint);

@@ -51,7 +51,7 @@ function foe(m: Monster, detail: boolean) {
   return h(
     "div",
     { class: "foe" },
-    h("span", { class: m.boss ? "t-boss glow" : m.awake ? "t-bad" : "dim" }, m.glyph),
+    h("span", { class: `${m.boss ? "t-boss glow" : m.awake ? "t-bad" : "dim"}${m.affix ? " elite" : ""}`, title: m.affix ? `elite: ${AFFIX[m.affix].name}` : undefined }, m.glyph),
     h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, shortName(m.name)),
     hpBar(m.hp, m.maxHp),
     detail ? h("span", { class: "stats" }, stats) : null,
@@ -73,11 +73,12 @@ export function renderPanel(el: HTMLElement, game: Game): void {
 
   // What is near you comes first. Full stats only for the closest one; the
   // rest get a name and a health bar, and hovering a monster tells the rest.
-  const seen = game.floor.monsters
+  const visible = game.floor.monsters
     .filter((m) => game.isVisible(m.x, m.y))
-    .sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p))
-    .slice(0, 8);
-  const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y)).slice(0, 5);
+    .sort((a, b) => Number(!!b.boss) - Number(!!a.boss) || dist(a, p) - dist(b, p));
+  const seen = visible.slice(0, SIGHT_ROWS);
+  const more = visible.length - seen.length;
+  const items = game.floor.items.filter((i) => game.isVisible(i.x, i.y)).slice(0, 3);
   const sight =
     seen.length || items.length
       ? h(
@@ -85,6 +86,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
           { class: "pane" },
           h("h2", null, "in sight"),
           ...seen.map((m, i) => foe(m, i === 0)),
+          more > 0 ? h("p", { class: "faint more" }, `+${more} more in sight`) : null,
           ...items.map((i) =>
             h(
               "div",
@@ -105,7 +107,12 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     p.weapon ? h("p", { title: `${describe(p.weapon)}. ${TRAITS[p.weapon.trait].text}` }, h("kbd", null, " "), ` / ${shortName(p.weapon.name, 30)} +${p.weapon.bonus}`) : null,
     p.armor ? h("p", { title: describe(p.armor) }, h("kbd", null, " "), ` [ ${shortName(p.armor.name, 30)} def ${p.armor.bonus}`) : null,
     p.curses ? h("p", { class: "t-bad" }, h("kbd", null, " "), ` % XXX x${p.curses}`) : null,
-    p.perks.length ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", ")) : null,
+    // A long tool list turns the pack into a paragraph; past three, the sheet has them.
+    p.perks.length > 3
+      ? h("p", { class: "faint tools" }, `${plural(p.perks.length, "tool")}, `, h("kbd", null, "c"), " lists them")
+      : p.perks.length
+        ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", "))
+        : null,
   ];
   const pack = held.some(Boolean) ? h("section", { class: "pane pack" }, h("h2", null, "pack"), ...held) : null;
 
@@ -127,6 +134,9 @@ export function renderPanel(el: HTMLElement, game: Game): void {
 
   replace(el, sight, pack, map, here);
 }
+
+/** Monsters listed under "in sight" before the rest are folded into a count. */
+const SIGHT_ROWS = 6;
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
