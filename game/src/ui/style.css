@@ -930,3 +930,72 @@ body.dragging #screen::after {
     padding-left: 2ch;
   }
 }
+
+/* Lab tools: a docked panel over the top left of the map, in practice runs only. */
+#lab {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 4;
+  max-width: min(420px, calc(100% - 20px));
+  max-height: calc(100% - 20px);
+  overflow: auto;
+  background: oklch(0.15 0.025 20 / 0.94);
+  border: 1px solid var(--ink-line);
+  font-size: var(--fs-xs);
+}
+.lab-head {
+  all: unset;
+  display: flex;
+  justify-content: space-between;
+  gap: 2ch;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  color: var(--ember);
+  cursor: pointer;
+}
+.lab-head kbd {
+  font-family: inherit;
+  color: var(--text-faint);
+}
+.lab-head:hover,
+.lab-head:focus-visible {
+  background: oklch(0.66 0.17 45 / 0.12);
+}
+.lab-body {
+  padding: 0 10px 10px;
+}
+.lab-body h3 {
+  margin: 10px 0 4px;
+  font-weight: normal;
+  color: var(--text-dim);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.chip,
+.lab-select {
+  font: inherit;
+  color: var(--text);
+  background: oklch(0.2 0.025 20);
+  border: 1px solid var(--ink-line);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--ember);
+  outline: none;
+}
+.chip[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--ember);
+  border-color: var(--ember);
+}
+.lab-note {
+  margin: 8px 0 0;
+}

@@ -24,6 +24,7 @@ export interface TitleHost {
   help(): void;
   settings(): void;
   bestiary(): void;
+  lab(): void;
   caption(): string;
 }
 
@@ -78,6 +79,7 @@ export class TitleMenu {
           settings: () => h.settings(),
           toggleMore: () => this.toggleMore(),
           bestiary: () => h.bestiary(),
+          lab: () => h.lab(),
           folder: () => h.openFolder(),
           showCode: () => this.showCode(),
         },
@@ -165,6 +167,7 @@ export class TitleMenu {
       d: () => this.playDaily(),
       "?": () => h.help(),
       b: () => h.bestiary(),
+      l: () => h.lab(),
       ...(this.view.more ? { f: () => h.openFolder() } : {}),
     };
     const act = actions[key];

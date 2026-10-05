@@ -3,6 +3,7 @@
 // Gallery dungeons:  #/play/<slug>?run=<n>
 // Your own dungeon:  #/x/<run>/<deflated spec, base64url>
 // Built in browser:  #/gh/<owner>/<repo>@<commit sha>?run=<n>  (rebuilt on open)
+// The lab:           #/lab   (any dungeon also takes ?practice=1)
 // Everything lives after the #, so it never reaches a server.
 
 import { Inflate, deflateSync, strFromU8, strToU8 } from "fflate";
@@ -23,6 +24,8 @@ interface Extra {
   v?: number;
   /** Difficulty other than normal. Part of the run, like the run number. */
   level?: Level;
+  /** Lab tools on, and the run counts for nothing: no save, records or daily. */
+  practice?: boolean;
 }
 
 export type Route =
@@ -30,7 +33,8 @@ export type Route =
   | { kind: "compare"; owner: string; repo: string; a: string; b: string }
   | ({ kind: "gallery"; slug: string } & Extra)
   | ({ kind: "custom"; data: string } & Extra)
-  | ({ kind: "github"; owner: string; repo: string; sha: string } & Extra);
+  | ({ kind: "github"; owner: string; repo: string; sha: string } & Extra)
+  | ({ kind: "lab" } & Extra);
 
 export type PlayRoute = Exclude<Route, { kind: "title" } | { kind: "compare" }>;
 
@@ -46,9 +50,11 @@ function parseExtra(query: string): Extra | null {
   const level = params.get("level");
   const lv = level === "story" || level === "hard" ? { level: level as Level } : {};
   if (level !== null && !("level" in lv)) return null;
+  const practice = params.get("practice");
+  if (practice !== null && practice !== "1") return null;
   const v = params.get("v");
   const version = v && /^\d{1,4}$/.test(v) ? { v: Number(v) } : {};
-  return { run: Number(run), ...lv, ...(watch ? { watch } : {}), ...(race ? { race } : {}), ...((watch || race) ? version : {}) };
+  return { run: Number(run), ...lv, ...(practice ? { practice: true } : {}), ...(watch ? { watch } : {}), ...(race ? { race } : {}), ...((watch || race) ? version : {}) };
 }
 
 export function parseRoute(hash: string): Route {
@@ -59,6 +65,7 @@ export function parseRoute(hash: string): Route {
   if (!extra) return { kind: "title" };
   const vs = path.match(/^\/vs\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})\.\.([0-9a-f]{7,40})$/);
   if (vs && vs[2] !== "." && vs[2] !== "..") return { kind: "compare", owner: vs[1], repo: vs[2], a: vs[3], b: vs[4] };
+  if (path === "/lab") return { kind: "lab", ...extra, practice: true };
   const play = path.match(/^\/play\/([a-z0-9._-]{1,60})$/i);
   if (play) return { kind: "gallery", slug: play[1].toLowerCase(), ...extra };
   const gh = path.match(/^\/gh\/([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})$/);
@@ -75,6 +82,7 @@ export function routeHash(route: Route): string {
   const params = new URLSearchParams();
   if (route.run && route.kind !== "custom") params.set("run", String(route.run));
   if (route.level) params.set("level", route.level);
+  if (route.practice && route.kind !== "lab") params.set("practice", "1");
   if (route.watch) params.set("watch", route.watch);
   if (route.race) params.set("race", route.race);
   if ((route.watch || route.race) && route.v) params.set("v", String(route.v));
@@ -86,6 +94,8 @@ export function routeHash(route: Route): string {
       return `#/x/${route.run}/${route.data}${query}`;
     case "github":
       return `#/gh/${route.owner}/${route.repo}@${route.sha}${query}`;
+    case "lab":
+      return `#/lab${query}`;
   }
 }
 

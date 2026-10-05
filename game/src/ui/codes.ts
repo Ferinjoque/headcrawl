@@ -11,6 +11,7 @@ const GALLERY = /^([a-z0-9._-]{1,60})-(\d{1,9})(?:-(story|hard))?$/;
 const GITHUB = /^([A-Za-z0-9][A-Za-z0-9-]{0,38})\/([A-Za-z0-9._-]{1,100})@([0-9a-f]{7,40})-(\d{1,9})(?:-(story|hard))?$/i;
 
 export function runCode(route: PlayRoute, head?: string): string | null {
+  if (route.practice) return null;
   const level = route.level ? `-${route.level}` : "";
   if (route.kind === "gallery") return `${route.slug}-${route.run}${level}`;
   if (route.kind === "github") return `${route.owner}/${route.repo}@${(head ?? route.sha).slice(0, 7)}-${route.run}${level}`;

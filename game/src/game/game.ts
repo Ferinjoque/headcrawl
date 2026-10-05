@@ -51,6 +51,8 @@ export class Game {
   readonly eliteKills: Record<string, number> = {};
   /** Every weapon and armor you put on this run, in order. */
   readonly wielded: Gear[] = [];
+  /** Lab and practice switches. Never on in a run that counts. */
+  readonly cheats = { god: false, frozen: false };
   /** The floor where a Feature flag saved you, -1 before that. */
   flagUsedOn = -1;
   /** Set by an async weapon: the monsters skip this turn. */
@@ -227,7 +229,7 @@ export class Game {
     if (this.freeTurn) {
       this.freeTurn = false;
       this.say("async. You swing again before anything answers.", "good", true);
-    } else monstersAct(this);
+    } else if (!this.cheats.frozen) monstersAct(this);
     this.updateSight();
     return true;
   }
@@ -383,8 +385,14 @@ export class Game {
   private choosePerk(index: number): void {
     const id = this.perkChoice?.[index];
     if (!id) return;
-    const p = this.player;
     this.perkChoice = null;
+    this.applyPerk(id);
+    this.offerPerks();
+  }
+
+  /** Take a tool: the ones that change numbers change them now. The lab calls this too. */
+  applyPerk(id: PerkId): void {
+    const p = this.player;
     p.perks.push(id);
     if (id === "refactoring") p.atk += 2;
     if (id === "monorepo") {
@@ -398,7 +406,6 @@ export class Game {
     }
     this.emit({ t: "perk", id });
     this.say(`${PERKS[id].name}: ${PERKS[id].text}.`, "good");
-    this.offerPerks();
   }
 
   freeNeighbour(x: number, y: number): [number, number] | null {

@@ -78,3 +78,15 @@ test("the character sheet opens from c and from the HUD", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "@ level 1" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("the lab opens with its tools and spawns what you ask for", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("./#/lab");
+  await expect(page.locator("#hud")).toContainText("lab");
+  await expect(page.getByRole("button", { name: "tangle" })).toBeVisible();
+  await page.getByRole("button", { name: "tangle" }).click();
+  await expect(page.locator("#panel")).toContainText("route_request");
+  await page.keyboard.press("`");
+  await expect(page.getByRole("button", { name: "tangle" })).toBeHidden();
+  expect(errors).toEqual([]);
+});

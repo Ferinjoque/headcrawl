@@ -20,12 +20,15 @@ import { keyToCommand, touchPad, type Command } from "./ui/input";
 import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { bestiaryScreen } from "./ui/bestiary";
+import { endKey, type EndHandlers } from "./ui/screens";
 import { bannerCard, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
 import { choiceAction, syncChoice } from "./ui/choices";
 import { sheetScreen } from "./ui/sheet";
 import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordFinished } from "./ui/records";
+import { labSpec } from "./game/lab";
+import { LabPanel } from "./ui/labpanel";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -63,6 +66,8 @@ export class App {
   /** The run being raced, step by step, and whose it is. */
   private race: { track: Track; whose: string } | null = null;
   private endMore = false;
+  private endOn: EndHandlers | null = null;
+  private labPanel!: LabPanel;
   /** The finished run went into the bestiary, ghosts and bests already. */
   private recorded = false;
   private hints = new Hints();
@@ -97,6 +102,13 @@ export class App {
     this.log = new Log($("log"), window.matchMedia("(max-width: 900px)").matches ? 2 : 3);
     this.settings = { ...loadSettings(this.osReduced), sound: this.sound.enabled };
     this.applySettings();
+    this.labPanel = new LabPanel($("lab"), {
+      game: () => (this.mode === "play" ? this.game : null),
+      changed: () => {
+        if (this.game) this.handleEvents(this.game.drain());
+        this.refreshUi();
+      },
+    });
     this.builder = new Builder({
       status: (text, tone) => this.buildStatus(text, tone),
       busy: (on) => {
@@ -134,6 +146,7 @@ export class App {
       help: () => this.openHelp(),
       settings: () => this.openSettings(),
       bestiary: () => this.overlay((close) => bestiaryScreen(loadCodex(), close)),
+      lab: () => this.navigate({ kind: "lab", run: 0, practice: true }),
       caption: () => this.attract.caption(),
     });
     this.watcher = new Watcher({
@@ -249,6 +262,8 @@ export class App {
       text = await this.builder.github(route.owner, route.repo, route.sha);
       if (seq !== this.navSeq) return;
       if (!text) return;
+    } else if (route.kind === "lab") {
+      text = JSON.stringify(labSpec());
     } else {
       text = decodeSpec(route.data);
       if (!text) return this.failToTitle("That link is broken or too big.");
@@ -277,7 +292,7 @@ export class App {
     window.clearTimeout(this.saveTimer);
     const write = () => {
       const game = this.game;
-      if (!game || this.mode === "watch" || this.route.kind === "title" || this.route.watch) return;
+      if (!game || this.mode === "watch" || this.route.kind === "title" || this.route.watch || this.route.practice) return;
       if (game.outcome !== "playing") return dropSave(this.saveKey());
       if (!game.log.length) return;
       putSave({
@@ -322,6 +337,7 @@ export class App {
 
   private showTitle(): void {
     this.mode = "title";
+    this.labPanel.enable(false);
     this.title.reset();
     this.attract.start();
     this.syncMusic();
@@ -415,6 +431,11 @@ export class App {
     if (game && (this.mode === "play" || this.mode === "pause" || this.mode === "help")) this.overlay((close) => sheetScreen(game, close));
   }
 
+  /** The lab, or a run started with ?practice=1: tools on, nothing counts. */
+  private get practice(): boolean {
+    return this.route.kind !== "title" && !!this.route.practice;
+  }
+
   private code(): string | null {
     return this.route.kind === "title" ? null : runCode(playRoute(this.route), this.game?.spec.repo.head);
   }
@@ -432,14 +453,14 @@ export class App {
     if (!game || game.outcome === "playing") return;
     if (!this.recorded) {
       this.recorded = true;
-      recordFinished(game, this.saveKey(), this.route.kind !== "title" && !!this.route.watch);
+      if (!this.practice) recordFinished(game, this.saveKey(), this.route.kind !== "title" && !!this.route.watch);
     }
     this.mode = "end";
     this.stopAuto();
     const level = this.route.kind !== "title" && this.route.level && !this.dailyMod ? this.route.level : "";
     const share = resultText(game, shareLink(location.href), [this.dailyLabel(), level].filter(Boolean).join(" "), this.code());
     this.showScreen(
-      endScreen(game, share, this.copied, {
+      endScreen(game, share, this.copied, (this.endOn = {
         again: () => this.again(),
         copy: () => this.copyResult(share),
         save: () => this.game && saveLog(this.game),
@@ -452,7 +473,7 @@ export class App {
           this.endMore = !this.endMore;
           this.showEnd();
         },
-      }, this.route.kind !== "title" && !!this.route.watch, this.endMore),
+      }), this.route.kind !== "title" && !!this.route.watch, this.endMore),
     );
   }
 
@@ -500,7 +521,7 @@ export class App {
     this.stopAuto();
     this.fx.clear();
     this.log.clear();
-    const daily = this.route.kind === "gallery" ? dailyOf(this.gallery, this.route.slug, run) : null;
+    const daily = this.route.kind === "gallery" && !this.practice ? dailyOf(this.gallery, this.route.slug, run) : null;
     // The twist comes from the run number alone, so a replay of an old daily
     // keeps it even after the gallery changes.
     const mod = this.route.kind === "gallery" ? dailyMod(run) : null;
@@ -518,6 +539,7 @@ export class App {
     this.renderer.snapCamera();
     document.title = `${spec.repo.name} | HEADCRAWL`;
     this.mode = "play";
+    this.labPanel.enable(this.practice && !watching);
     this.showScreen(null);
     this.handleEvents(this.game.drain());
     this.floorCard();
@@ -675,6 +697,7 @@ export class App {
     this.syncMusic();
     if (this.mode === "settings") return this.settingsMenu.key(e);
     const typing = e.target instanceof HTMLInputElement;
+    if (e.key === "`" && this.mode === "play") return this.labPanel.toggle();
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
       e.preventDefault();
       return this.openSettings();
@@ -689,22 +712,7 @@ export class App {
       return;
     }
     if (this.mode === "dying" || this.mode === "loading") return;
-    if (this.mode === "end") {
-      if (e.key === "r" || e.key === "R") this.again();
-      else if (e.key === "c" || e.key === "C") this.copyResult(resultText(this.game!, shareLink(location.href), this.dailyLabel(), this.code()));
-      else if (e.key === "s" || e.key === "S") saveLog(this.game!);
-      else if (e.key === "w" || e.key === "W") this.copyReplay();
-      else if (e.key === "g" || e.key === "G") this.copyReplay(true);
-      else if (e.key === "v" || e.key === "V") this.exportGif();
-      else if (e.key === "a" || e.key === "A") saveCast(this.game!);
-      else if (e.key === "Tab") {
-        e.preventDefault();
-        this.endMore = !this.endMore;
-        this.showEnd();
-      }
-      else if (e.key === "Escape") this.navigate({ kind: "title" });
-      return;
-    }
+    if (this.mode === "end") return endKey(e, this.endOn);
     if (this.mode === "pause" && (e.key === "m" || e.key === "M")) {
       this.navigate({ kind: "title" });
       return;

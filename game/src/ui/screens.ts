@@ -57,6 +57,7 @@ export interface TitleHandlers {
   toggleMore(): void;
   showCode(): void;
   bestiary(): void;
+  lab(): void;
   folder(): void;
 }
 
@@ -180,6 +181,7 @@ export function titleScreen(
           { class: "actions" },
           btn("o", "open a dungeon.json", on.open),
           btn("b", "bestiary", on.bestiary),
+          btn("l", "the lab: try any monster, weapon or tool", on.lab),
           btn(",", "settings", on.settings),
           btn("?", "how it works", on.help),
         ),
@@ -290,6 +292,26 @@ export interface EndHandlers {
   cast(): void;
   menu(): void;
   more(): void;
+}
+
+const END_KEYS: Record<string, keyof EndHandlers> = {
+  r: "again",
+  c: "copy",
+  s: "save",
+  w: "replay",
+  g: "race",
+  v: "gif",
+  a: "cast",
+  tab: "more",
+  escape: "menu",
+};
+
+/** Keys on the end screen, the same actions as its buttons. */
+export function endKey(e: KeyboardEvent, on: EndHandlers | null): void {
+  const name = END_KEYS[e.key.toLowerCase()];
+  if (!name || !on) return;
+  if (e.key === "Tab") e.preventDefault();
+  on[name]();
 }
 
 const TOMB = ["    _______", "   /       \\", "  /  R.I.P  \\", "  |         |", "  |  HEAD~1 |", "  |         |", "__|_________|__"].join("\n");

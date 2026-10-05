@@ -117,6 +117,7 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   if (p.armor) dmg = Math.max(1, dmg - p.armor.bonus);
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
+  if (p.hp <= 0 && g.cheats.god) p.hp = 1;
   if (p.hp <= 0 && g.has("flag") && g.flagUsedOn !== g.floor.index) {
     g.flagUsedOn = g.floor.index;
     p.hp = 1;
