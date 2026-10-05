@@ -21,6 +21,7 @@ import { Log } from "./ui/log";
 import { renderPanel } from "./ui/panel";
 import { bannerCard, bestiaryScreen, compareScreen, floorBanner, endScreen, helpScreen, pauseScreen } from "./ui/screens";
 import { choiceAction, syncChoice } from "./ui/choices";
+import { sheetScreen } from "./ui/sheet";
 import { TEXT_SCALE, loadSettings, saveSettings, type Settings } from "./ui/settings";
 import { setColors } from "./render/palette";
 import { recordFinished } from "./ui/records";
@@ -30,7 +31,7 @@ import { runCode } from "./ui/codes";
 import { dropSave, findSave, putSave } from "./ui/save";
 import { RULES, decodeLog } from "./game/record";
 import { compareSpecs } from "./lite/compare";
-import { Builder } from "./ui/builder";
+import { Builder, bindFiles } from "./ui/builder";
 import { bindPointer } from "./ui/pointer";
 import { copyText, runLink, saveCast, saveGif, saveLog } from "./ui/exports";
 import { Hints } from "./ui/hints";
@@ -131,7 +132,7 @@ export class App {
       openFolder: () => ($("folder") as HTMLInputElement).click(),
       help: () => this.openHelp(),
       settings: () => this.openSettings(),
-      bestiary: () => this.openBestiary(),
+      bestiary: () => this.overlay((close) => bestiaryScreen(loadCodex(), close)),
       caption: () => this.attract.caption(),
     });
     this.watcher = new Watcher({
@@ -211,7 +212,7 @@ export class App {
         this.startAuto({ kind: "travel", to });
       },
     });
-    this.bindFiles();
+    bindFiles(this.builder);
     if (window.matchMedia("(pointer: coarse)").matches) {
       const pad = $("touch");
       pad.hidden = false;
@@ -378,16 +379,15 @@ export class App {
     );
   }
 
-  private openHelp(): void {
+  /** Help, the bestiary and the character sheet: read, then esc back to where you were. */
+  private overlay(make: (close: () => void) => HTMLElement): void {
     this.returnMode = this.mode === "help" ? this.returnMode : this.mode;
     this.mode = "help";
-    this.showScreen(helpScreen(() => this.closeOverlay()));
+    this.showScreen(make(() => this.closeOverlay()));
   }
 
-  private openBestiary(): void {
-    this.returnMode = this.mode === "help" ? this.returnMode : this.mode;
-    this.mode = "help";
-    this.showScreen(bestiaryScreen(loadCodex(), () => this.closeOverlay()));
+  private openHelp(): void {
+    this.overlay(helpScreen);
   }
 
   private openPause(): void {
@@ -401,11 +401,17 @@ export class App {
           if (code) void copyText(code);
         },
         resume: () => this.closeOverlay(),
+        sheet: () => this.openSheet(),
         restart: () => this.restart(),
         settings: () => this.openSettings(),
         menu: () => this.navigate({ kind: "title" }),
       }, this.code(), this.game ? `${this.game.spec.repo.name} @${this.game.spec.repo.head.slice(0, 7)}, turn ${this.game.player.turns}` : ""),
     );
+  }
+
+  private openSheet(): void {
+    const game = this.game;
+    if (game && (this.mode === "play" || this.mode === "pause" || this.mode === "help")) this.overlay((close) => sheetScreen(game, close));
   }
 
   private code(): string | null {
@@ -553,6 +559,7 @@ export class App {
     // Esc during a level up still pauses; the other cards treat it as walking away.
     if (pick === null && !this.game?.perkChoice) return;
     if (c.kind === "help") return this.openHelp();
+    if (c.kind === "sheet") return this.openSheet();
     if (c.kind === "menu") return this.mode === "play" ? this.openPause() : this.closeOverlay();
     if (c.kind === "panel") {
       $("panel").classList.toggle("open");
@@ -701,6 +708,7 @@ export class App {
       this.navigate({ kind: "title" });
       return;
     }
+    if (this.mode === "pause" && e.key === "@") return this.openSheet();
     if (this.mode === "pause" && (e.key === "c" || e.key === "C")) {
       const code = this.code();
       if (code) void copyText(code);
@@ -722,38 +730,6 @@ export class App {
     }
     e.preventDefault();
     this.command(cmd);
-  }
-
-  private bindFiles(): void {
-    const folder = $("folder") as HTMLInputElement;
-    folder.addEventListener("change", () => {
-      if (folder.files) void this.builder.fromFolder(folder.files);
-      folder.value = "";
-    });
-    const input = $("file") as HTMLInputElement;
-    input.addEventListener("change", () => {
-      const file = input.files?.[0];
-      if (file) void this.builder.openFile(file);
-      input.value = "";
-    });
-    let depth = 0;
-    window.addEventListener("dragenter", (e) => {
-      e.preventDefault();
-      depth++;
-      document.body.classList.add("dragging");
-    });
-    window.addEventListener("dragleave", () => {
-      depth = Math.max(0, depth - 1);
-      if (!depth) document.body.classList.remove("dragging");
-    });
-    window.addEventListener("dragover", (e) => e.preventDefault());
-    window.addEventListener("drop", (e) => {
-      e.preventDefault();
-      depth = 0;
-      document.body.classList.remove("dragging");
-      const file = e.dataTransfer?.files?.[0];
-      if (file) void this.builder.openFile(file);
-    });
   }
 
   /** Ask for a fresh frame: something on screen changed. */

@@ -7,6 +7,7 @@ export type Command =
   | { kind: "explore" }
   | { kind: "rest" }
   | { kind: "help" }
+  | { kind: "sheet" }
   | { kind: "menu" }
   | { kind: "panel" }
   | { kind: "sound" }
@@ -69,6 +70,9 @@ export function keyToCommand(e: KeyboardEvent): Command | null {
       return { kind: "rest" };
     case "?":
       return { kind: "help" };
+    case "c":
+    case "@":
+      return { kind: "sheet" };
     case "Escape":
       return { kind: "menu" };
     case "Tab":

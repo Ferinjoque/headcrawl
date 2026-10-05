@@ -31,7 +31,7 @@ export function wordmark(word = "HEADCRAWL"): string {
   return rows.map((r) => r.trimEnd()).join("\n");
 }
 
-function btn(key: string, label: string, onclick: () => void) {
+export function btn(key: string, label: string, onclick: () => void) {
   return h("button", { class: "btn", type: "button", onclick }, h("kbd", null, `[${key}]`), ` ${label}`);
 }
 
@@ -241,6 +241,7 @@ export function helpScreen(close: () => void) {
     row(". or space", "wait a turn"),
     row(">", "take the stairs once the boss is dead"),
     row("q / r", "drink a TODO / read a HACK"),
+    row("c", "you: every number behind a fight, your gear and tools"),
     row("click or tap", "walk there; hover a monster to inspect it"),
     row("tab", "show or hide the side panel"),
     row("m / ,", "sound, settings"),
@@ -533,6 +534,7 @@ function tokenSection({ place, note }: TokenView, on: SettingsHandlers): HTMLEle
 export interface PauseHandlers {
   copy(): void;
   resume(): void;
+  sheet(): void;
   restart(): void;
   settings(): void;
   menu(): void;
@@ -552,6 +554,7 @@ export function pauseScreen(on: PauseHandlers, code: string | null = null, where
       "div",
       { class: "actions" },
       btn("esc", "resume", on.resume),
+      btn("@", "you: stats, gear, tools", on.sheet),
       code ? btn("c", "copy run code", on.copy) : null,
       btn("r", "new run, new rolls", on.restart),
       btn(",", "settings", on.settings),

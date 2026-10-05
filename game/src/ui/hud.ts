@@ -31,6 +31,7 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string): vo
     ),
     h("span", { class: "hud-stat" }, h("small", null, "lv "), `${p.level}`, h("span", { class: "hud-xp", "aria-hidden": "true" }, xpFill(p.xp, p.nextXp))),
     h("span", { class: "hud-stat" }, h("small", null, "atk "), `${p.atk + (p.weapon?.bonus ?? 0)}`),
+    p.armor ? h("span", { class: "hud-stat" }, h("small", null, "def "), `${p.armor.bonus}`) : null,
     h("span", { class: "hud-spacer" }),
     h("span", { class: "hud-floor" }, h("small", null, `floor ${f.index + 1}/${total} `), f.name),
     goal,

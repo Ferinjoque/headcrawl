@@ -139,3 +139,36 @@ export class Builder {
     this.host.navigate({ kind: "custom", run: 0, data: encodeSpec(JSON.stringify(res.spec)) });
   }
 }
+
+/** The hidden file and folder pickers, and dropping a dungeon file anywhere. */
+export function bindFiles(builder: Pick<Builder, "fromFolder" | "openFile">): void {
+  const folder = document.getElementById("folder") as HTMLInputElement;
+  folder.addEventListener("change", () => {
+    if (folder.files) void builder.fromFolder(folder.files);
+    folder.value = "";
+  });
+  const input = document.getElementById("file") as HTMLInputElement;
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    if (file) void builder.openFile(file);
+    input.value = "";
+  });
+  let depth = 0;
+  window.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    depth++;
+    document.body.classList.add("dragging");
+  });
+  window.addEventListener("dragleave", () => {
+    depth = Math.max(0, depth - 1);
+    if (!depth) document.body.classList.remove("dragging");
+  });
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    depth = 0;
+    document.body.classList.remove("dragging");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) void builder.openFile(file);
+  });
+}

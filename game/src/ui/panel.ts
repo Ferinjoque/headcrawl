@@ -57,6 +57,7 @@ function foe(m: Monster, detail: boolean) {
 }
 
 function lootNote(i: Game["floor"]["items"][number]): string {
+  if (i.gear) return i.gear.slot === "armor" ? `defense ${i.gear.bonus}` : `attack +${i.gear.bonus}, ${TRAITS[i.gear.trait].name}`;
   if (!i.loot) return "still warm";
   const year = i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}` : "";
   const who = i.loot.author ? ` by ${i.loot.author}` : "";
@@ -87,7 +88,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
               "div",
               { class: "foe" },
               h("span", { class: "t-loot" }, ITEM[i.kind][0]),
-              h("span", { class: "name t-loot" }, ITEM[i.kind][1]),
+              h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : ITEM[i.kind][1]),
               h("span", null, ""),
               h("span", { class: "stats" }, lootNote(i)),
             ),
@@ -99,8 +100,8 @@ export function renderPanel(el: HTMLElement, game: Game): void {
   const held = [
     p.potions.length ? h("p", { class: "t-good" }, h("kbd", null, "q"), ` ! TODO x${p.potions.length}`) : null,
     p.scrolls.length ? h("p", { class: "t-loot" }, h("kbd", null, "r"), ` ? HACK x${p.scrolls.length}`) : null,
-    p.weapon ? h("p", { title: TRAITS[p.weapon.trait].text }, h("kbd", null, " "), ` / ${describe(p.weapon)}`) : null,
-    p.armor ? h("p", null, h("kbd", null, " "), ` [ ${describe(p.armor)}`) : null,
+    p.weapon ? h("p", { title: `${describe(p.weapon)}. ${TRAITS[p.weapon.trait].text}` }, h("kbd", null, " "), ` / ${shortName(p.weapon.name, 30)} +${p.weapon.bonus}`) : null,
+    p.armor ? h("p", { title: describe(p.armor) }, h("kbd", null, " "), ` [ ${shortName(p.armor.name, 30)} def ${p.armor.bonus}`) : null,
     p.curses ? h("p", { class: "t-bad" }, h("kbd", null, " "), ` % XXX x${p.curses}`) : null,
     p.perks.length ? h("p", { class: "faint tools" }, p.perks.map((id) => PERKS[id].name).join(", ")) : null,
   ];
