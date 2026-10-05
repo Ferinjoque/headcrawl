@@ -113,6 +113,8 @@ class Boss(_Model):
     nesting: int = Field(default=0, ge=0, le=1000)
     params: int = Field(default=0, ge=0, le=1000)
     nloc: int = Field(default=0, ge=0, le=10_000_000)
+    # The first few lines of the function, indentation kept, shown when you inspect it.
+    code: list[Line] = Field(default_factory=list, max_length=8)
 
 
 class RoomPast(_Model):

@@ -94,7 +94,7 @@ export type GameEvent =
   | { t: "shot"; x: number; y: number; tx: number; ty: number }
   | { t: "descend"; floor: number }
   | { t: "taunt"; name: string; text: string }
-  | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean; style: string }
+  | { t: "intro"; name: string; title: string; where: string; text: string; final: boolean; style: string; code: string[] }
   /** A wind-up. "line" is a remote call aiming; the rest hit an area. */
   | { t: "telegraph"; x: number; y: number; line?: boolean }
   | { t: "dodge"; x: number; y: number }

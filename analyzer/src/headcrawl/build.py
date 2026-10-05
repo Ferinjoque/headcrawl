@@ -37,7 +37,7 @@ from .models import (
 )
 from .resolve import Resolver, go_module
 from .syntax import SyntaxInfo, extract
-from .text import clean
+from .text import clean, code_excerpt
 from .walk import SourceFile, walk
 
 ENTRY_NAMES = ("main", "index", "__init__", "__main__", "app", "lib", "mod", "cli")
@@ -695,6 +695,7 @@ def _boss(ctx: _Context, rep: FileReport, f: FunctionMetric, depth: int, final: 
         nesting=f.nesting,
         params=f.params,
         nloc=f.nloc,
+        code=code_excerpt(rep.src.text, f.start_line),
     )
 
 

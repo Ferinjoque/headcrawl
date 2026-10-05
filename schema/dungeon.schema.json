@@ -28,6 +28,15 @@
           "title": "Churn",
           "type": "integer"
         },
+        "code": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Code",
+          "type": "array"
+        },
         "damage": {
           "maximum": 99,
           "minimum": 1,

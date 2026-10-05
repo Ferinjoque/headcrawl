@@ -7,6 +7,10 @@
 export type Floors = [Floor, ...Floor[]];
 export type Ccn = number;
 export type Churn = number;
+/**
+ * @maxItems 8
+ */
+export type Code = string[];
 export type Damage = number;
 export type Final = boolean;
 export type Hp = number;
@@ -196,6 +200,7 @@ export interface Floor {
 export interface Boss {
   ccn: Ccn;
   churn: Churn;
+  code?: Code;
   damage: Damage;
   final?: Final;
   hp: Hp;

@@ -41,6 +41,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
       m.boss ? h("div", { class: "faint" }, `${m.boss.title}. Its file changed ${plural(m.boss.churn, "time")}.`) : null,
       m.boss && styleLine(m.boss) ? h("div", { class: "t-boss" }, styleLine(m.boss)) : null,
+      m.boss?.code?.length ? h("pre", { class: "tip-code" }, m.boss.code.join("\n")) : null,
       m.awake ? null : h("div", { class: "faint" }, "asleep"),
     );
     return true;

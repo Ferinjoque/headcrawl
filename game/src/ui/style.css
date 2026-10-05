@@ -911,6 +911,24 @@ body.dragging #screen::after {
   color: var(--lore);
   margin-top: 10px;
 }
+/* A boss's first lines, as written. Left aligned so indentation reads. */
+.card-code,
+#tip .tip-code {
+  margin: 10px auto 0;
+  width: fit-content;
+  max-width: 100%;
+  text-align: left;
+  white-space: pre;
+  overflow: hidden;
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  border-left: 2px solid var(--ink-line);
+  padding-left: 1ch;
+}
+#tip .tip-code {
+  margin: 6px 0 0;
+}
 @keyframes card {
   0% { opacity: 0; transform: translateY(10px); }
   10% { opacity: 1; transform: none; }

@@ -666,7 +666,7 @@ export class App {
       else if (e.t === "taunt") this.log.push(`${e.name}: "${e.text}"`, "boss");
       else if (e.t === "intro") {
         this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
-        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style));
+        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style, e.code));
       }
       if (e.t === "descend") this.floorCard();
       if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "back" : "side door", e.name, "floor", e.merged ? "back where you left" : "another version of this floor. > at the far end takes you back"));

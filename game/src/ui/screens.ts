@@ -183,7 +183,10 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
 }
 
 /** The big title card for a new floor or a boss, over the map. */
-export function bannerCard(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string, style?: string) {
+/** Lines of a boss's own code on its card. */
+const CARD_CODE = 4;
+
+export function bannerCard(kicker: string, name: string, kind: "boss" | "floor", sub: string, quote?: string, style?: string, code: string[] = []) {
   return h(
     "div",
     { class: "card" },
@@ -192,6 +195,7 @@ export function bannerCard(kicker: string, name: string, kind: "boss" | "floor",
     h("div", { class: "card-sub" }, sub),
     style ? h("div", { class: "card-style" }, style) : null,
     quote ? h("div", { class: "card-quote" }, `"${quote}"`) : null,
+    code.length ? h("pre", { class: "card-code", "aria-label": "Its code" }, code.slice(0, CARD_CODE).join("\n")) : null,
   );
 }
 

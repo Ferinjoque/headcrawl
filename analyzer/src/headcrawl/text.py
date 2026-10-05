@@ -46,3 +46,22 @@ def first_sentence(text: str, limit: int = 160) -> str:
     if len(re.findall(r"[A-Za-z]{2,}", text)) < 3:
         return ""
     return clean(text, limit)
+
+
+def code_excerpt(text: str, start_line: int, count: int = 6, width: int = 72) -> list[str]:
+    """The first few lines of a function, as it reads in the file.
+
+    Unlike clean(), this keeps indentation: it is shown as code. Shared
+    indentation is taken off, tabs become four spaces, blank edges go.
+    """
+    lines = text.splitlines()[max(0, start_line - 1) : max(0, start_line - 1) + count]
+    kept = []
+    for raw in lines:
+        line = "".join(ch for ch in raw.expandtabs(4) if unicodedata.category(ch) not in _DROP).rstrip()
+        kept.append(line)
+    while kept and not kept[-1].strip():
+        kept.pop()
+    indents = [len(line) - len(line.lstrip(" ")) for line in kept if line.strip()]
+    cut = min(indents, default=0)
+    out = [line[cut:] for line in kept]
+    return [line if len(line) <= width else line[: width - 1].rstrip() + "…" for line in out]

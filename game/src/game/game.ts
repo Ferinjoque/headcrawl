@@ -355,6 +355,7 @@ export class Game {
           text: boss.boss.taunts[0],
           final: Boolean(boss.boss.final),
           style: styleLine(boss.boss),
+          code: boss.boss.code ?? [],
         });
       } else if (boss) this.taunt(boss);
     }
