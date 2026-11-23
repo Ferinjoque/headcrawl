@@ -1,6 +1,6 @@
 [project]
 name = "headcrawl"
-version = "0.1.0"
+version = "0.2.0"
 description = "Turn a git repo into a roguelike dungeon."
 readme = "README.md"
 authors = [
