@@ -105,7 +105,7 @@ export function welcomeScreen(close: () => void) {
     h("p", null, "This dungeon was dug out of a real program. Folders are floors, files are rooms, and every monster is a piece of the code, named after it."),
     h("p", null, "You don't need to know any code. Walk into monsters to fight them, walk over things to pick them up, and take the stairs once the floor's boss is down. You get one life."),
     h("p", { class: "dim" }, "Arrows or hjkl move, x explores for you, ? explains everything."),
-    h("div", { class: "actions" }, primary(btn("enter", "let's go", close))),
+    h("div", { class: "actions" }, primary(btn("enter", "go down", close))),
   );
 }
 

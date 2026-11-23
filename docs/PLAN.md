@@ -72,7 +72,7 @@ Floor order: floors sorted by how "deep" their code sits in the import graph.
 Entry points and tests near the top, the most-imported core code at the
 bottom. So you literally descend into the core.
 
-Enemy archetypes by smell, so it is not just bigger numbers:
+Enemy archetypes by smell, so each one fights differently:
 
 - CCN high: Tangle. Lots of HP.
 - Nesting deep: Nest. Hits hard.

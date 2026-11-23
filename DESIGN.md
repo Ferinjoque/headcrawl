@@ -46,11 +46,19 @@ Gear sits on the steel role: `/` weapons, `[` armor.
 
 ## Typography
 
-One family on purpose: VT323 (OFL, self-hosted). The whole game is a
-terminal, so the map, HUD and menus share it. Hierarchy by size and color,
-not a second font. Title wordmark is drawn as block letters on the canvas.
+Two faces, one job each (Cogmind's split: one font for the map and for
+reading, another for the interface around it). Both OFL, self-hosted.
 
-Scale (px): 16 / 20 / 24 / 32 / 48 / 72. Log and HUD body at 20, labels at 16.
+- VT323 for everything you read: the map, names, log, descriptions, values.
+- Silkscreen, in caps, for everything you scan: window titles, tabs,
+  section headings, stat names in the HUD, difficulty tags, key glyphs.
+  16px, 12px for the small ones. It is wide, so give it room in columns.
+
+No bold anywhere: VT323 has one weight and a faked bold smears it. Title
+wordmark is drawn as block letters on the canvas.
+
+Scale (px): VT323 16 / 20 / 24 / 32 / 48 / 72, log and HUD body at 20.
+Silkscreen 12 / 16 / 24 (24 only for overlay titles set in the frame).
 
 ## Layout
 
@@ -111,11 +119,24 @@ Windows: one 1px frame in a warm brown (`--frame`), the title in the top
 border, a dark fill. Panes inside split by a single neutral line. Never
 nested frames, never side stripes.
 
-Buttons are key caps: the key in ember, then what it does, on a slightly
-raised fill with a 3px shadow below for depth. Hover lifts 1px and lights
-the edge in ember; pressing pushes it down 2px. The one button a screen is
-mostly for (descend, resume, try again) carries an ember fill. Calm motion
-keeps the light, drops the movement. Touch screens get 44px tall buttons.
+Keys are glyph plates, like a console's button prompts: Silkscreen caps,
+dark on an ember plate. In a tab or an unpicked menu row the plate is
+quiet (an outline) until it is the live one.
+
+Overlay buttons are a menu, one row each, not a row of chips: a cursor
+(▸) on the picked row, a tinted bar behind it, the key on the right. The
+screen opens with the cursor on the button it is mostly for (resume, try
+again), up and down move it, enter or the pad's A press it. The dungeon
+list uses the same cursor. Level up, shop and gear choices are rows too,
+the number on a plate, rare ones on a gold plate.
+
+Elsewhere (descend and practice on the title) a button is a flat plate
+with one frame; hover lights the frame in ember. No drop shadows, no
+lifting. The title's extras are prompts along the bottom: plate, label,
+nothing around them. Touch screens get 44px tall buttons.
+
+Side panel sections are a Silkscreen label running into a thin rule line,
+the same idea as a window title set into its frame.
 
 Tabs sit on a window's top edge; the open one joins the window below.
 Choice options are the same pressable tiles; a rare tool gets a gold edge.

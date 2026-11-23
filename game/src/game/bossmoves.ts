@@ -8,7 +8,7 @@ export type BossStyle = "deep" | "sprawl" | "long" | "hot" | "plain";
 
 export const BOSS_STYLE: Record<BossStyle, { name: string; text: string }> = {
   deep: { name: "deep", text: "its sweep reaches 3 cells, but comes slower" },
-  sprawl: { name: "crowded", text: "calls a helper every few turns, not just when hurt" },
+  sprawl: { name: "crowded", text: "calls a helper every few turns, hurt or not" },
   long: { name: "huge", text: "heals while you are out of reach" },
   hot: { name: "hot", text: "gets faster the longer the fight goes" },
   plain: { name: "plain", text: "winds up an area attack, calls helpers at half health" },

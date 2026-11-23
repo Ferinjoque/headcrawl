@@ -40,7 +40,7 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onS
     h(
       "span",
       { class: `hud-stat hud-review${p.review ? "" : " ready"}`, title: "f shoots a monster up to 5 cells away (a review comment)" },
-      h("small", null, "f "),
+      h("small", null, "shot "),
       p.review ? `${p.review}` : "ready",
     ),
     p.slowed ? h("span", { class: "hud-slow", title: "Outdated code hit you: monsters act half again as often" }, `slowed ${p.slowed}`) : null,

@@ -3,7 +3,7 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-10-05, round 10): M0-M5 done, plus a UI redesign, music and a
+Status (2026-11-23, round 11): M0-M5 done, plus a UI redesign, music and a
 lot of mechanics on top. Playable and tested. Shipped as a private GitHub
 repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
 with play.py; no hosted site (owner's call, 2026-10-03).
@@ -226,6 +226,21 @@ redraws the whole view at 20 fps when idle.
   - No AI-sounding words, em dashes or emojis found in the repo.
   - Dropped from next ideas: side branches in browser builds. Nothing that
     is both token-free and pinned to a commit lists them.
+
+- Round 11 (owner: afraid the UI and type look AI-made; every UI element
+  should make sense in a video game):
+  - Research: Cogmind's font posts (a map font and a separate text font,
+    readability over theme), and the game-ui-tells list from the
+    SillyToolValley game-ux-ui skill (web buttons, no focus state, no input
+    prompts, boxes around everything).
+  - Type: Silkscreen caps for labels (titles, tabs, headings, HUD stat
+    names, tags, keys), VT323 for everything you read.
+  - Keys are glyph plates. Overlay buttons became menus: a cursor row,
+    focus starts on the main action, arrows and the pad's A work. Level-up,
+    shop and gear choices are rows. No more lifted chips with drop shadows.
+    Title extras are a prompt strip. Panel headings run into a rule line.
+  - Copy: dropped "not just X" lines, "let's go", "Quiet, for now".
+  - e2e for the pause menu cursor.
 
 ## Next ideas
 

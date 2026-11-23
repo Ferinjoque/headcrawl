@@ -91,7 +91,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     "section",
     { class: "pane sight" },
     h("h2", null, "in sight"),
-    h("div", { class: "focus" }, nearest ? foe(nearest, true) : h("p", { class: "faint" }, "Nothing. Quiet, for now.")),
+    h("div", { class: "focus" }, nearest ? foe(nearest, true) : h("p", { class: "faint" }, "Nothing in sight.")),
     h("div", { class: "rows" }, ...(rows.length ? shown : idleLines(game)), more > 0 ? h("p", { class: "faint more" }, `+${more} more`) : null),
   );
 
@@ -101,7 +101,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     h(
       "p",
       { class: g ? "" : "faint", title: g ? `${describe(g)}${g.trait !== "plain" ? `. ${TRAITS[g.trait].text}` : ""}` : "" },
-      h("kbd", null, " "),
+      h("span", { class: "gap" }),
       ` ${glyph} `,
       g ? `${shortName(g.name, 26)} ${stat}` : empty,
     );

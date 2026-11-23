@@ -116,6 +116,12 @@ export class Pads {
   private press(key: string): void {
     if (!this.allow(key)) return;
     if (onCard(key)) return;
+    // A synthetic enter doesn't press a button, so A presses the menu row the cursor is on.
+    const active = document.activeElement;
+    if (key === "Enter" && active instanceof HTMLButtonElement && active.closest("#screen")) {
+      active.click();
+      return;
+    }
     window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
   }
 }

@@ -1,4 +1,5 @@
 import "@fontsource/vt323";
+import "@fontsource/silkscreen/400.css";
 import "./ui/style.css";
 import { App } from "./app";
 

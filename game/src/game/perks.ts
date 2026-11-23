@@ -1,5 +1,5 @@
 // Level-up choices. Each perk is a dev tool and changes how a fight goes,
-// so picking one is a real decision, not just bigger numbers.
+// so picking one costs you something.
 
 export type PerkId =
   | "linter"
@@ -54,7 +54,7 @@ export const PERKS: Record<PerkId, Perk> = {
   owners: { id: "owners", name: "Code owners", text: "shops sell you both of their deals", about: "the people who have to sign off on a change", rare: true },
   lazy: { id: "lazy", name: "Lazy loading", text: "the first hit on something asleep always crits", about: "don't load anything until someone needs it" },
   static: { id: "static", name: "Static analysis", text: "3 more damage to anything winding up", about: "reading code for problems without running it" },
-  logging: { id: "logging", name: "Structured logging", text: "kills give a third more XP", about: "logs you can search, not just scroll" },
+  logging: { id: "logging", name: "Structured logging", text: "kills give a third more XP", about: "logs a program can search" },
   retry: { id: "retry", name: "Retry with backoff", text: "a miss swings once more", about: "if it fails, wait a bit and try again" },
   fuzzing: { id: "fuzzing", name: "Fuzzing", text: "crits hit one time harder", about: "throw random junk at code until it breaks", rare: true },
   gc: { id: "gc", name: "Garbage collector", text: "double damage to ghosts and boss helpers", about: "cleans up memory nobody uses any more" },

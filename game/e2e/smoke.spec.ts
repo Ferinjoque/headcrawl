@@ -79,6 +79,21 @@ test("the character sheet opens from c and from the HUD", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("the pause menu starts on resume and arrows move the cursor", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto("./#/play/requests");
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /resume/ })).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(page.getByRole("button", { name: /dungeon list/ })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "@ level 1" })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test("the lab opens with its tools and spawns what you ask for", async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto("./#/lab");

@@ -31,7 +31,7 @@ import { recordFinished } from "./ui/records";
 import { labSpec } from "./game/lab";
 import { LabPanel } from "./ui/labpanel";
 import { Aim } from "./ui/aim";
-import { tabKey } from "./ui/win";
+import { focusMenu, menuKey, tabKey } from "./ui/win";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, levelName, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -366,6 +366,7 @@ export class App {
     screen.classList.toggle("clear", clear);
     replace(screen, node);
     screen.hidden = false;
+    focusMenu(screen);
     this.syncMusic();
   }
 
@@ -698,6 +699,10 @@ export class App {
     if (e.key === "`" && this.mode === "play") return this.labPanel.toggle();
     if (this.mode === "play" && this.aim.onKey(e)) return;
     if (this.mode === "help" && tabKey($("screen"), e.key)) return this.sound.ui("move");
+    if ((this.mode === "pause" || this.mode === "end" || this.mode === "help" || this.mode === "compare") && menuKey($("screen"), e.key)) {
+      e.preventDefault();
+      return this.sound.ui("move");
+    }
     if (e.key === "," && !typing && (this.mode === "title" || this.mode === "play" || this.mode === "pause")) {
       e.preventDefault();
       return this.openSettings();

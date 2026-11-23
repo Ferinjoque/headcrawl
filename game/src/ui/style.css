@@ -19,6 +19,11 @@
   --lore: oklch(0.8 0.08 230);
 
   --font: "VT323", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  /* Labels: window titles, tabs, headings, stat names, key glyphs. VT323
+     carries everything you read, Silkscreen everything you scan. */
+  --label: "Silkscreen", var(--font);
+  --fs-label: 16px;
+  --fs-label-s: 12px;
   --ui-scale: 1;
   --fs-xs: calc(16px * var(--ui-scale));
   --fs-s: calc(20px * var(--ui-scale));
@@ -35,6 +40,8 @@ html[data-text="small"] {
 }
 html[data-text="large"] {
   --ui-scale: 1.2;
+  --fs-label: 20px;
+  --fs-label-s: 16px;
 }
 /* Okabe-Ito colors, the same ones the canvas uses in this mode. */
 html[data-colors="colorblind"] {
@@ -161,6 +168,22 @@ body {
 }
 .glow { text-shadow: 0 0 6px currentColor; }
 
+/* A key is a glyph plate, the way games draw button prompts, not a word. */
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 2px 5px 1px;
+  font-family: var(--label);
+  font-size: var(--fs-label-s);
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  vertical-align: 0.15em;
+  color: oklch(0.16 0.03 40);
+  background: var(--ember);
+  box-shadow: inset 0 -2px 0 oklch(0.45 0.12 40);
+}
+
 /* HUD bits */
 .hud-title {
   color: var(--ember);
@@ -168,12 +191,10 @@ body {
   text-shadow: 0 0 8px var(--ember);
 }
 #hud small {
-  font-size: var(--fs-xs);
+  font-family: var(--label);
+  font-size: var(--fs-label-s);
+  text-transform: uppercase;
   color: var(--text-faint);
-}
-#hud kbd {
-  font-family: inherit;
-  color: var(--ember);
 }
 /* Health is the first thing on the line and the biggest. */
 .hud-hp {
@@ -304,15 +325,19 @@ body {
 .pane {
   margin: 0 0 18px;
 }
+/* Section labels run into a rule line, like the frame of a window. */
 .pane h2 {
-  font-size: var(--fs-s);
-  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: 1ch;
   color: var(--ember);
-  margin: 0 0 4px;
+  margin: 0 0 8px;
 }
-.pane h2::before {
-  content: "> ";
-  color: var(--text-faint);
+.pane h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: oklch(0.42 0.08 40 / 0.55);
 }
 .pane p {
   margin: 0 0 2px;
@@ -391,11 +416,9 @@ body {
   image-rendering: pixelated;
   opacity: 0.85;
 }
-.pack kbd {
+.pack .gap {
   display: inline-block;
   width: 2ch;
-  font-family: inherit;
-  color: var(--ember);
 }
 .pack .tools {
   font-size: var(--fs-xs);
@@ -511,18 +534,10 @@ body.titling #touch {
   color: var(--text);
   background: oklch(0.66 0.17 45 / 0.1);
   border: 1px solid oklch(0.66 0.17 45 / 0.6);
-  box-shadow: 0 3px 0 oklch(0.09 0.015 20);
-  transition: background-color 120ms var(--ease), border-color 120ms var(--ease), transform 120ms var(--ease), box-shadow 120ms var(--ease);
-}
-.continue kbd {
-  font-family: inherit;
-  color: var(--ember);
-  border: 1px solid oklch(0.66 0.17 45 / 0.5);
-  padding: 0 6px;
+  transition: background-color 100ms var(--ease), border-color 100ms var(--ease);
 }
 .continue:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 oklch(0.09 0.015 20);
+  background: oklch(0.66 0.17 45 / 0.24);
 }
 .continue .name {
   color: var(--gold);
@@ -559,8 +574,9 @@ body.titling #touch {
 }
 .facts {
   display: grid;
-  grid-template-columns: 10ch 1fr;
-  gap: 4px 1.5ch;
+  grid-template-columns: 12ch 1fr;
+  gap: 6px 1.5ch;
+  align-items: baseline;
   margin: 14px 0 16px;
 }
 .facts dt {
@@ -629,10 +645,6 @@ body.titling #touch {
   border-bottom: none;
   transition: color 120ms var(--ease), background-color 120ms var(--ease);
 }
-.tab kbd {
-  font-family: inherit;
-  color: var(--text-faint);
-}
 .tab:hover,
 .tab:focus-visible {
   color: var(--text);
@@ -642,9 +654,6 @@ body.titling #touch {
   color: var(--ember);
   background: oklch(0.13 0.02 20 / 0.92);
   border-color: var(--frame);
-}
-.tab[aria-selected="true"] kbd {
-  color: var(--ember);
 }
 .keys {
   display: flex;
@@ -662,29 +671,22 @@ body.titling #touch {
   all: unset;
   cursor: pointer;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 1ch;
-  padding: 5px 12px;
+  padding: 5px 12px 5px 6px;
   color: var(--text-dim);
-  background: oklch(0.17 0.025 20);
+  background: oklch(0.16 0.022 20);
   border: 1px solid var(--ink-line);
-  box-shadow: 0 3px 0 oklch(0.09 0.015 20);
-  transition: color 120ms var(--ease), border-color 120ms var(--ease), transform 120ms var(--ease), box-shadow 120ms var(--ease);
-}
-.key kbd {
-  font-family: inherit;
-  color: var(--ember);
+  transition: color 100ms var(--ease), border-color 100ms var(--ease), background-color 100ms var(--ease);
 }
 .key:hover,
 .key:focus-visible {
   color: var(--text);
   border-color: var(--ember);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 oklch(0.09 0.015 20), 0 0 14px oklch(0.66 0.17 45 / 0.25);
+  background: oklch(0.66 0.17 45 / 0.1);
 }
 .key:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 oklch(0.09 0.015 20);
+  background: oklch(0.66 0.17 45 / 0.24);
 }
 .key.primary {
   color: var(--text);
@@ -745,7 +747,7 @@ body.titling #touch {
   all: unset;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 2ch minmax(14ch, 1fr) 11ch 9ch;
+  grid-template-columns: 2ch minmax(14ch, 1fr) 11ch 12ch;
   gap: 0 1.5ch;
   width: 100%;
   padding: 3px 6px;
@@ -779,27 +781,12 @@ body.titling #touch {
   margin-right: 2ch;
   transition: color 150ms var(--ease);
 }
-.btn kbd {
-  font-family: inherit;
-  color: var(--ember);
-}
 .btn:hover,
 .btn:focus-visible {
   color: var(--text);
 }
-.btn:hover kbd,
-.btn:focus-visible kbd {
-  text-shadow: 0 0 6px var(--ember);
-}
 .btn:active {
   color: var(--gold);
-}
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 26px;
 }
 
 .build {
@@ -923,7 +910,7 @@ body.dragging #screen::after {
   font: inherit;
   font-size: var(--fs-xs);
   color: var(--text-dim);
-  border-left: 2px solid var(--ink-line);
+  border-left: 1px solid var(--ink-line);
   padding-left: 1ch;
 }
 #tip .tip-code {
@@ -961,23 +948,19 @@ body.dragging #screen::after {
   gap: 0 1ch;
   align-items: baseline;
   text-align: left;
-  padding: 8px 10px;
+  padding: 7px 10px;
   color: var(--text-dim);
-  background: oklch(0.17 0.025 20);
-  border: 1px solid var(--ink-line);
-  box-shadow: 0 3px 0 oklch(0.09 0.015 20);
-  transition: color 120ms var(--ease), border-color 120ms var(--ease), transform 120ms var(--ease), box-shadow 120ms var(--ease);
+  border-top: 1px solid var(--ink-line);
+  transition: color 100ms var(--ease), background-color 100ms var(--ease);
+}
+.perk:first-of-type {
+  border-top-color: transparent;
 }
 .perk kbd {
-  font-family: inherit;
-  color: var(--ember);
-  text-align: center;
-  border: 1px solid oklch(0.66 0.17 45 / 0.45);
-  padding: 0 4px;
+  justify-self: start;
 }
 .perk:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 oklch(0.09 0.015 20);
+  background: oklch(0.66 0.17 45 / 0.24);
 }
 .perk-name {
   color: var(--gold);
@@ -987,8 +970,8 @@ body.dragging #screen::after {
   color: var(--text-faint);
   font-size: var(--fs-xs);
 }
-.perk.rare {
-  border-color: oklch(0.88 0.16 90 / 0.55);
+.perk.rare kbd {
+  background: var(--gold);
 }
 .perk.rare .perk-name {
   text-shadow: 0 0 8px oklch(0.88 0.16 90 / 0.5);
@@ -999,9 +982,7 @@ body.dragging #screen::after {
 .perk:hover,
 .perk:focus-visible {
   color: var(--text);
-  border-color: var(--ember);
-  background: oklch(0.66 0.17 45 / 0.1);
-  transform: translateY(-1px);
+  background: oklch(0.66 0.17 45 / 0.14);
 }
 @media (max-width: 600px) {
   .perk {
@@ -1114,7 +1095,7 @@ body.dragging #screen::after {
     display: none;
   }
   .repos li button {
-    grid-template-columns: 2ch 1fr 7ch;
+    grid-template-columns: 2ch 1fr auto;
   }
   .repos .lang {
     display: none;
@@ -1251,10 +1232,6 @@ body.dragging #screen::after {
   color: var(--ember);
   cursor: pointer;
 }
-.lab-head kbd {
-  font-family: inherit;
-  color: var(--text-faint);
-}
 .lab-head:hover,
 .lab-head:focus-visible {
   background: oklch(0.66 0.17 45 / 0.12);
@@ -1379,4 +1356,130 @@ body.dragging #screen::after {
   .tab kbd {
     display: none;
   }
+}
+
+/* ---- labels and menus -------------------------------------------------------
+   Two faces, one job each: VT323 for anything you read, Silkscreen caps for
+   anything you scan (titles, tabs, headings, stat names, key glyphs). */
+.pane h2,
+.page h2,
+.win-title,
+.tab,
+.card-kicker,
+.facts dt,
+.repos .diff,
+.attract,
+#screen .page:not(.title) > h1:first-child {
+  font-family: var(--label);
+  font-size: var(--fs-label);
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.repos .diff,
+.attract,
+.facts dt,
+.tabs.inner .tab {
+  font-size: var(--fs-label-s);
+}
+.tabs.inner .tab {
+  padding: 6px 10px;
+}
+#screen .page:not(.title) > h1:first-child {
+  font-size: 24px;
+  top: -0.6em;
+}
+.page h2 {
+  margin: 26px 0 10px;
+}
+
+/* Tabs keep their number quiet until they are the open one. */
+.tab kbd {
+  background: var(--ink-line);
+  color: var(--text-dim);
+  box-shadow: none;
+}
+.tab[aria-selected="true"] kbd {
+  background: var(--ember);
+  color: oklch(0.16 0.03 40);
+}
+
+/* Overlay buttons are a menu: one row each, a cursor on the picked one,
+   up and down move it, the key on the right for people who know it. */
+.actions {
+  display: grid;
+  justify-items: stretch;
+  gap: 2px;
+  width: min(46ch, 100%);
+  margin-top: 22px;
+}
+.actions.more {
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ink-line);
+}
+.actions .key,
+.actions .key.primary {
+  display: grid;
+  grid-template-columns: 2ch 1fr auto;
+  padding: 5px 6px 5px 4px;
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+}
+.actions .key::before {
+  content: "\25B8";
+  color: transparent;
+}
+.actions .key span {
+  grid-column: 2;
+  grid-row: 1;
+}
+.actions .key kbd {
+  grid-column: 3;
+  grid-row: 1;
+  background: none;
+  color: var(--text-faint);
+  box-shadow: inset 0 0 0 1px var(--ink-line);
+}
+.actions .key:hover,
+.actions .key:focus,
+.actions:not(:focus-within) .key.primary {
+  color: var(--text);
+  background: oklch(0.66 0.17 45 / 0.15);
+  outline: none;
+}
+.actions .key:hover::before,
+.actions .key:focus::before,
+.actions:not(:focus-within) .key.primary::before {
+  color: var(--ember);
+  text-shadow: 0 0 6px var(--ember);
+}
+.actions .key:hover kbd,
+.actions .key:focus kbd,
+.actions:not(:focus-within) .key.primary kbd {
+  background: var(--ember);
+  color: oklch(0.16 0.03 40);
+  box-shadow: inset 0 -2px 0 oklch(0.45 0.12 40);
+}
+.actions .key:active {
+  background: oklch(0.66 0.17 45 / 0.28);
+}
+
+/* The title's extras are prompts along the bottom, not a row of buttons. */
+.keys.footer {
+  gap: 4px 22px;
+}
+.keys.footer .key {
+  padding: 4px 2px;
+  background: none;
+  border: 0;
+}
+.keys.footer .key:hover,
+.keys.footer .key:focus-visible {
+  color: var(--text);
+  background: none;
+  text-decoration: underline;
+  text-decoration-color: var(--ember);
+  text-underline-offset: 4px;
 }

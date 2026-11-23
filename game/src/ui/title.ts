@@ -106,7 +106,7 @@ function repoList(s: TitleState, on: TitleHandlers) {
             onclick: () => (i === s.selected ? on.play(e.slug) : on.select(i)),
             ondblclick: () => on.play(e.slug),
           },
-          h("span", { class: "mark" }, ">"),
+          h("span", { class: "mark", "aria-hidden": "true" }, "▸"),
           h("span", { class: "name" }, e.repo),
           h("span", { class: "lang" }, e.language),
           i === start

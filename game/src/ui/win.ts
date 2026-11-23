@@ -62,6 +62,27 @@ export function paneTabs(panes: { label: string; body: Child[] }[]): HTMLElement
   return h("div", { class: "pane-tabs" }, h("div", { class: "tabs inner", role: "tablist" }, ...buttons), ...bodies);
 }
 
+function menuItems(root: HTMLElement): HTMLButtonElement[] {
+  return [...root.querySelectorAll<HTMLButtonElement>(".actions button")];
+}
+
+/** Up and down move the cursor through an overlay's menu. True if it did. */
+export function menuKey(root: HTMLElement, key: string): boolean {
+  if (key !== "ArrowUp" && key !== "ArrowDown") return false;
+  const items = menuItems(root);
+  if (items.length < 2) return false;
+  const at = items.indexOf(document.activeElement as HTMLButtonElement);
+  const step = key === "ArrowDown" ? 1 : -1;
+  items[at < 0 ? 0 : (at + step + items.length) % items.length].focus();
+  return true;
+}
+
+/** Put the cursor on the button a screen is mostly for, so enter does it. */
+export function focusMenu(root: HTMLElement): void {
+  const items = menuItems(root);
+  (items.find((b) => b.classList.contains("primary")) ?? items[0])?.focus({ preventScroll: true });
+}
+
 /** A number key in an overlay with tabs: open that tab. True if it did. */
 export function tabKey(root: HTMLElement, key: string): boolean {
   if (!/^[1-9]$/.test(key)) return false;
