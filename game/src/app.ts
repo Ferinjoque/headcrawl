@@ -171,7 +171,6 @@ export class App {
       bestiary: () => this.overlay((close) => bestiaryScreen(loadCodex(), close)),
       lab: () => this.navigate({ kind: "lab", run: 0, practice: true }),
       tick: (kind) => this.sound.ui(kind),
-      caption: () => this.attract.caption(),
     });
     this.compare = new CompareView({
       builder: this.builder,
@@ -206,9 +205,7 @@ export class App {
         this.handleEvents(events, game, true);
         this.touch();
       },
-      changed: (caption) => {
-        const el = document.getElementById("attract");
-        if (el) el.textContent = caption;
+      changed: () => {
         this.renderer.snapCamera();
         this.fx.clear();
       },

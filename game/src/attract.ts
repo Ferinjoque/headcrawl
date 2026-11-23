@@ -19,7 +19,8 @@ const MAX_IDLE_STEPS = 40;
 export interface AttractHooks {
   entries(): GalleryEntry[];
   events(game: Game, events: GameEvent[]): void;
-  changed(caption: string): void;
+  /** A new dungeon or floor came up: the camera jumps there. */
+  changed(): void;
   stepMs(): number;
 }
 
@@ -56,12 +57,6 @@ export class Attract {
     this.game = null;
   }
 
-  caption(): string {
-    const g = this.game;
-    if (!g) return "";
-    return `demo  ${this.last}  floor ${g.floor.index + 1} of ${g.spec.floors.length}`;
-  }
-
   private async next(): Promise<void> {
     if (!this.active) return;
     const gen = ++this.gen;
@@ -81,7 +76,7 @@ export class Attract {
     this.game.drain();
     this.last = pick.slug;
     this.started = performance.now();
-    this.hooks.changed(this.caption());
+    this.hooks.changed();
     this.tick(gen);
   }
 
@@ -96,7 +91,7 @@ export class Attract {
       if (action.type !== "wait") break;
     }
     this.hooks.events(game, game.drain());
-    if (game.floor.index !== floor) this.hooks.changed(this.caption());
+    if (game.floor.index !== floor) this.hooks.changed();
     const over = game.outcome !== "playing" || performance.now() - this.started > DEMO_MS;
     this.timer = window.setTimeout(() => (over ? void this.next() : this.tick(gen)), over ? CUT_MS : this.hooks.stepMs());
   }

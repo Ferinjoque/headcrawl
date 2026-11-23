@@ -83,7 +83,7 @@ Silkscreen 12 / 16 / 24 (24 only for overlay titles set in the frame).
   any GitHub repo,
   run code, files. Daily, bestiary, the lab, settings and help are key
   buttons below it. 1 to 4 or tab switch tabs. Behind it all the bot plays a
-  gallery dungeon (attract mode).
+  gallery dungeon (attract mode), with no caption: the demo speaks for itself.
 - Overlays (pause, help, settings, the sheet, the bestiary, the end screen)
   are framed windows over a dimmed map, the heading set into the top border
   like an old TUI. Long ones (help, bestiary) have tabs; number keys switch.

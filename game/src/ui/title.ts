@@ -249,7 +249,6 @@ export function titleScreen(s: TitleState, on: TitleHandlers) {
       key(",", "settings", on.settings),
       key("?", "how it works", on.help),
     ),
-    h("p", { id: "attract", class: "attract faint", "aria-hidden": "true" }),
   );
 }
 

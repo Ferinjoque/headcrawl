@@ -728,16 +728,6 @@ body.titling #touch {
   font-size: var(--fs-l);
   line-height: 1.2;
 }
-.attract {
-  position: fixed;
-  right: 18px;
-  bottom: 14px;
-  margin: 0 !important;
-  font-size: var(--fs-xs);
-  letter-spacing: 0.04em;
-  pointer-events: none;
-}
-
 .repos {
   list-style: none;
   margin: 0;
@@ -1294,11 +1284,6 @@ body.dragging #screen::after {
     padding: 26px 14px 16px;
   }
 }
-@media (max-width: 760px) {
-  .attract {
-    display: none;
-  }
-}
 /* Short laptop screens: the same regions, tighter, so the file you stand in still shows. */
 @media (max-height: 820px) {
   .sight .rows {
@@ -1368,7 +1353,6 @@ body.dragging #screen::after {
 .card-kicker,
 .facts dt,
 .repos .diff,
-.attract,
 #screen .page:not(.title) > h1:first-child {
   font-family: var(--label);
   font-size: var(--fs-label);
@@ -1377,7 +1361,6 @@ body.dragging #screen::after {
   letter-spacing: 0.02em;
 }
 .repos .diff,
-.attract,
 .facts dt,
 .tabs.inner .tab {
   font-size: var(--fs-label-s);

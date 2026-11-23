@@ -26,7 +26,6 @@ export interface TitleHost {
   settings(): void;
   bestiary(): void;
   lab(): void;
-  caption(): string;
   /** Menu feedback: a tick for moving, a click for picking. */
   tick(kind: "move" | "pick"): void;
 }
@@ -99,8 +98,6 @@ export class TitleMenu {
       ),
     );
     document.querySelector<HTMLElement>(`.repos button[data-index="${this.selected}"]`)?.scrollIntoView({ block: "nearest" });
-    const caption = document.getElementById("attract");
-    if (caption) caption.textContent = h.caption();
   }
 
   private select(i: number): void {
