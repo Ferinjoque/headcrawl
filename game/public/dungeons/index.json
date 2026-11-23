@@ -191,29 +191,6 @@
     "difficulty": 5
   },
   {
-    "slug": "mediatr",
-    "repo": "jbogard/MediatR",
-    "head": "1fad4c7a35c8dd4e733a0f8d43e28eddc1aa5f5b",
-    "language": "csharp",
-    "floors": 8,
-    "rooms": 71,
-    "enemies": 191,
-    "boss": "Runner::Run",
-    "bossTitle": "the Executioner",
-    "taunt": "Runner::Run has 19 paths. Hope you chose the right one.",
-    "floorNames": [
-      "tests",
-      "MediatR",
-      "MediatR.Contracts + 3 more",
-      "MediatR/Licensing",
-      "MediatR/MicrosoftExtensionsDI",
-      "MediatR/NotificationPublishers + 1 more",
-      "MediatR/Pipeline",
-      "examples"
-    ],
-    "difficulty": 4
-  },
-  {
     "slug": "alamofire",
     "repo": "Alamofire/Alamofire",
     "head": "dea4bab91767a971d6e112bc955c6a82295589b7",
@@ -233,7 +210,7 @@
       "Source/Features",
       "examples"
     ],
-    "difficulty": 3
+    "difficulty": 4
   },
   {
     "slug": "slim",
@@ -398,5 +375,28 @@
       "game/src/game"
     ],
     "difficulty": 5
+  },
+  {
+    "slug": "polly",
+    "repo": "App-vNext/Polly",
+    "head": "ad7d87bf1c1cee65f4a90f1afb192094111df6eb",
+    "language": "csharp",
+    "floors": 8,
+    "rooms": 135,
+    "enemies": 636,
+    "boss": "CustomNetworkException::Action",
+    "bossTitle": "the Retry Loop",
+    "taunt": "Fallback::Action() has 3 paths. None of them lead to success.",
+    "floorNames": [
+      "tests",
+      "(root) + 5 more",
+      "examples",
+      "src/LegacySupport + 4 more",
+      "src/Polly",
+      "src/Polly.Core + src/Polly.Core/Simmy",
+      "src/Polly.Core/Retry + 2 more",
+      "src/Snippets"
+    ],
+    "difficulty": 3
   }
 ]

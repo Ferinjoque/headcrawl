@@ -21,7 +21,7 @@ repos=(
   "ripgrep BurntSushi/ripgrep"
   "jq jqlang/jq"
   "jsoup jhy/jsoup"
-  "mediatr jbogard/MediatR"
+  "polly App-vNext/Polly"
   "alamofire Alamofire/Alamofire"
   "slim slimphp/Slim"
   "sinatra sinatra/sinatra"
