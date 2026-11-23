@@ -3,6 +3,7 @@
 // picked repo's details beside it. Key buttons for the rest along the bottom.
 
 import { bestFor, bestLabel } from "./best";
+import { bossLine, showNames } from "../game/names";
 import { codeEverywhere } from "./detail";
 import { h, plural, type Child } from "./dom";
 import type { GalleryEntry } from "./gallery";
@@ -148,7 +149,7 @@ function detail(s: TitleState, on: TitleHandlers) {
       h("dt", null, "your best"),
       h("dd", { class: best ? "t-loot" : "faint" }, best || "not played yet"),
     ),
-    e.taunt ? h("p", { class: "taunt t-boss" }, `"${e.taunt}"`) : null,
+    e.taunt ? h("p", { class: "taunt t-boss" }, `"${codeEverywhere() || !e.bossTitle ? e.taunt : showNames(bossLine(e.taunt, e.boss, e.bossTitle), false)}"`) : null,
     isDaily ? h("p", { class: "t-lore" }, "Today's daily dungeon.") : null,
     s.selected === startHere(s.entries) ? h("p", { class: "t-lore" }, "Small and gentle. A good first run.") : null,
     h(

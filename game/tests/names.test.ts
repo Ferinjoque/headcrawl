@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { gameName, gearLabel, named, nameOf, nameSays, showNames, words } from "../src/game/names";
+import { bossLine, gameName, gearLabel, named, nameOf, nameSays, showNames, words } from "../src/game/names";
 
 describe("game names", () => {
   it("turn a verb and its object into who does it", () => {
@@ -89,5 +89,13 @@ describe("what a name says", () => {
     expect(nameSays("find_app_by_string")).toBe("it finds app");
     expect(nameSays("Foo.match_path")).toBe("it matches path");
     expect(nameSays("value")).toBeNull();
+  });
+});
+
+describe("boss lines", () => {
+  it("call the boss by its title wherever its raw name shows up", () => {
+    const line = bossLine("test_response_types has seen 32 tests.", "test_response_types", "the Status Checker");
+    expect(showNames(line, false)).toBe("the Status Checker has seen 32 tests.");
+    expect(showNames(line, true)).toBe("test_response_types has seen 32 tests.");
   });
 });

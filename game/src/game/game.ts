@@ -21,7 +21,7 @@ import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
 import { review } from "./ranged";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
-import { named, showNames } from "./names";
+import { bossLine, named, showNames } from "./names";
 
 export interface GameOptions {
   /** Changes combat rolls but not the dungeon, so friends can race the same map. */
@@ -364,7 +364,7 @@ export class Game {
           name: boss.name,
           title: boss.boss.title,
           where: `${room.path}:${boss.boss.line}`,
-          text: boss.boss.taunts[0],
+          text: bossLine(boss.boss.taunts[0], boss.name, boss.boss.title),
           final: Boolean(boss.boss.final),
           style: styleLine(boss.boss),
           code: boss.boss.code ?? [],
@@ -385,7 +385,7 @@ export class Game {
     if (!lines.length) return;
     const text = lines[which ?? this.rng.int(0, lines.length - 1)];
     m.lastTaunt = this.player.turns;
-    this.emit({ t: "taunt", name: named(`${m.name}, ${m.boss!.title}`, m.boss!.title), text });
+    this.emit({ t: "taunt", name: named(`${m.name}, ${m.boss!.title}`, m.boss!.title), text: bossLine(text, m.name, m.boss!.title) });
   }
 
   gainXp(amount: number): void {

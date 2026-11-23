@@ -57,9 +57,11 @@ describe("the log by default", () => {
     const raw = new Set(res.spec.floors.flatMap((f) => [f.boss.name, ...f.rooms.flatMap((r) => r.enemies.map((e) => e.name))]).filter((n) => n.includes("_")));
     const g = new Game(res.spec);
     const shown: string[] = [];
-    for (let i = 0; i < 400 && g.outcome === "playing"; i++) {
+    for (let i = 0; i < 1500 && g.outcome === "playing"; i++) {
       g.act(botAction(g));
       for (const e of g.drain()) {
+        if ((e.t === "taunt" || e.t === "intro") && !e.text.includes("")) shown.push(e.text);
+        else if (e.t === "taunt" || e.t === "intro") shown.push(logText({ text: e.text }) ?? "");
         if (e.t !== "msg" || e.quiet) continue;
         const text = logText(e);
         if (text) shown.push(text);

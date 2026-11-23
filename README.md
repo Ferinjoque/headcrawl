@@ -11,9 +11,10 @@ levels you pick a new trick.
 
 The twist is where the dungeons come from. Each one is built from the
 source code of a real program: folders become floors, files become rooms,
-and every monster is a function from that code, named after it. The
-tangled, hard-to-follow ones are the tough ones. You don't need to know any
-code to play. If you do, you'll recognise a few faces.
+and every monster is a function from that code. `load_payload` comes at you
+as the Payload Loader. The tangled, hard-to-follow ones are the tough ones.
+You don't need to know any code to play. If you do, you'll recognise a few
+faces, and hovering one shows the real code behind it.
 
 Same code, same dungeon. A run code like `flask-4821` gives a friend your
 exact game, down to every roll.
@@ -165,7 +166,7 @@ For the curious. Every number in the game comes from the code:
 | one file importing another | `~` corridor |
 | an import cycle | `o~` loop corridor that walks you back once |
 | neighbours in the folder tree | `#` passage |
-| function | monster named after it |
+| function | monster, with a name made from the function's |
 | complexity (paths through it) / nesting / parameters | HP / damage / speed |
 | test file | shrine |
 | `TODO` | potion |

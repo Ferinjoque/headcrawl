@@ -166,6 +166,11 @@ export function monsterLabel(m: Named): string {
   return m.boss ? m.boss.title : gameName(m.name);
 }
 
+/** A boss's line, with its own raw name in it tagged so screens can show its title. */
+export function bossLine(text: string, real: string, title: string): string {
+  return real.length > 2 ? text.split(real).join(named(real, title)) : text;
+}
+
 /** A monster's name for a log line. */
 export function nameOf(m: Named): string {
   return named(m.name, monsterLabel(m));

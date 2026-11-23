@@ -690,11 +690,12 @@ export class App {
       else if (e.t === "intro") {
         // The boss goes by its title; its real name leads only with code details on.
         const code = codeEverywhere();
-        this.log.push(code ? `${e.name}, ${e.title}: "${e.text}"` : `${e.title}: "${e.text}"`, "boss");
+        const said = showNames(e.text, code);
+        this.log.push(code ? `${e.name}, ${e.title}: "${said}"` : `${e.title}: "${said}"`, "boss");
         const kicker = e.final ? "the last boss" : "boss";
         replace($("banner"), code
-          ? bannerCard(kicker, e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style, e.code)
-          : bannerCard(kicker, e.title, "boss", "", e.text, e.style));
+          ? bannerCard(kicker, e.name, "boss", `${e.title}. ${e.where}`, said, e.style, e.code)
+          : bannerCard(kicker, e.title, "boss", "", said, e.style));
       }
       if (e.t === "descend") this.floorCard();
       if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "back" : "side door", e.name, "floor", e.merged ? "back where you left" : "another version of this floor. > at the far end takes you back"));

@@ -29,7 +29,7 @@ function foe(m: Monster, detail: boolean) {
   // What it does in a fight first. The numbers from its code only when asked for.
   const code = codeEverywhere();
   const stats = m.boss
-    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${code ? `${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}` : `hits up to ${m.damage}`}`
+    ? `${code ? `${m.boss.title}. ` : ""}${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${code ? `${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}` : `hits up to ${m.damage}`}`
     : e
       ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${m.undo ? "comes back once. " : ""}${kindLine(m.archetype)}. ${code ? `${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}` : `hits up to ${m.damage}`}`
       : kindLine(m.archetype);
