@@ -21,6 +21,18 @@ test("title lists the gallery and starts a run", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("a number key opens its tab without typing into the box there", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByRole("listbox", { name: "Repos" })).toBeVisible();
+  await page.keyboard.press("2");
+  const box = page.locator(".title-main input").first();
+  await expect(box).toBeFocused();
+  await expect(box).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("3");
+  await expect(page.locator(".title-main input").first()).toHaveValue("");
+});
+
 test("moving and exploring advance turns", async ({ page }) => {
   await page.goto("./#/play/requests");
   await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
@@ -100,9 +112,10 @@ test("the lab opens with its tools and spawns what you ask for", async ({ page }
   await expect(page.locator("#hud")).toContainText("lab");
   await expect(page.getByRole("button", { name: "tangle" })).toBeVisible();
   await page.getByRole("button", { name: "tangle" }).click();
-  await expect(page.locator("#panel")).toContainText("route_request");
+  // On screen it goes by its game name; route_request is in its hover tip.
+  await expect(page.locator("#panel")).toContainText("Route Request");
   // The map is a canvas, so what happens is also read out from a live region.
-  await expect(page.locator("#sr-log")).toContainText("lab: route_request");
+  await expect(page.locator("#sr-log")).toContainText("lab: Route Request");
   await page.keyboard.press("`");
   await expect(page.getByRole("button", { name: "tangle" })).toBeHidden();
   expect(errors).toEqual([]);

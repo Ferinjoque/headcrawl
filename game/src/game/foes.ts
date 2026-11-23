@@ -10,7 +10,7 @@ import { callHelper } from "./combat";
 import { REMOTE, lineCells } from "./elites";
 import type { Game } from "./game";
 import type { Monster } from "./types";
-import { nameOf } from "./names";
+import { monsterLabel, nameOf } from "./names";
 
 export function monstersAct(g: Game): void {
   const grid = g.floor.map.grid;
@@ -162,8 +162,9 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
     p.hp = 0;
     g.outcome = "dead";
     g.killer = m.name;
+    g.killerLabel = monsterLabel(m);
     const where = m.enemy ? ` at line ${m.enemy.line}` : "";
-    g.say(`${nameOf(m)}${where} got you.`, "bad");
+    g.say(`${nameOf(m)} got you.`, "bad", false, `${nameOf(m)}${where} got you.`);
     g.emit({ t: "death", killer: m.name });
   }
 }

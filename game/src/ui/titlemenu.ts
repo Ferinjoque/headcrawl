@@ -164,7 +164,11 @@ export class TitleMenu {
       return;
     }
     const tab = TITLE_TABS.find((t) => t.cap === key);
-    if (tab) return this.openTab(tab.id);
+    if (tab) {
+      // Opening a tab focuses its text box; the key must not land in it as a character.
+      e.preventDefault();
+      return this.openTab(tab.id);
+    }
     if (key === "Escape" && this.tab !== "repos") return this.openTab("repos");
     if (this.tab === "repos" && (key === "ArrowDown" || key === "j" || key === "ArrowUp" || key === "k")) {
       const down = key === "ArrowDown" || key === "j";

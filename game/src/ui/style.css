@@ -1520,3 +1520,10 @@ body.dragging #screen::after {
   font-size: var(--fs-xs);
   letter-spacing: 0.02em;
 }
+
+/* Long names with no spaces (identifiers) wrap inside their column
+   instead of running under the next one. */
+.page .row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

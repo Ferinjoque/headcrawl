@@ -185,7 +185,7 @@ export function resultText(game: Game, link: string, label = "", code: string | 
     game.outcome === "won"
       ? `cleared in ${p.turns} turns`
       : game.outcome === "dead"
-        ? `died to ${game.killer} on floor ${f.index + 1} of ${total}, turn ${p.turns}`
+        ? `died to ${game.killerLabel ?? game.killer} on floor ${f.index + 1} of ${total}, turn ${p.turns}`
         : `on floor ${f.index + 1} of ${total}, turn ${p.turns}`;
   return [
     `HEADCRAWL${label ? ` ${label}` : ""}  ${repo}`,

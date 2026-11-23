@@ -150,7 +150,7 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
   const p = game.player;
   const won = game.outcome === "won";
   const f = game.floorSpec;
-  const killer = game.killer;
+  const killer = codeEverywhere() ? game.killer : game.killerLabel ?? game.killer;
   return h(
     "div",
     { class: "page" },

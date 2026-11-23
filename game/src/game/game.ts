@@ -37,6 +37,8 @@ export class Game {
   floor: FloorState;
   outcome: Outcome = "playing";
   killer: string | null = null;
+  /** What a player calls the killer: a boss's title, or a monster's game name. */
+  killerLabel: string | null = null;
   /** Combat rolls. Used by combat.ts, foes.ts and items.ts too, in a fixed order. */
   readonly rng: Rng;
   private events: GameEvent[] = [];

@@ -4,6 +4,7 @@
 import { AFFIX, type Affix } from "../game/elites";
 import { TRAITS, languagesWith, type Trait } from "../game/gear";
 import { topDeaths, type Codex, type Trophy } from "./codex";
+import { gameName, gearLabel } from "../game/names";
 import { codeEverywhere, traitName } from "./detail";
 import { h, plural } from "./dom";
 import { MONSTERS } from "./glossary";
@@ -16,12 +17,12 @@ const KINDS = ["tangle", "nest", "hydra", "wall", "imp", "bug", "ghost", "remote
 const AFFIXES: Affix[] = ["god", "deep", "hot"];
 const WEAPON_TRAITS = Object.keys(TRAITS).filter((t) => t !== "plain") as Trait[];
 
-function entry(name: string, cls: string, lines: (string | null)[]) {
+function entry(name: string, cls: string, lines: (string | null)[], real?: string) {
   const [first, ...rest] = lines.filter((l): l is string => !!l);
   return h(
     "div",
     { class: "row entry" },
-    h("span", { class: cls }, name),
+    h("span", { class: cls, title: real && real !== name ? real : undefined }, name),
     h("span", null, first ?? "", ...rest.map((l) => h("span", { class: "faint sub" }, l))),
   );
 }
@@ -71,7 +72,7 @@ export function bestiaryScreen(c: Codex, close: () => void, earned: Map<string, 
           ...elites,
           h("h2", null, "weapons carried"),
           ...weapons,
-          c.best ? entry("best ever", "t-loot", [`${c.best.name} +${c.best.bonus}, ${TRAITS[c.best.trait as Trait]?.name ?? c.best.trait} (${c.best.repo})`]) : null,
+          c.best ? entry("best ever", "t-loot", [`${codeEverywhere() ? c.best.name : gearLabel({ slot: "weapon", name: c.best.name, trait: c.best.trait })} +${c.best.bonus}, ${TRAITS[c.best.trait as Trait] ? traitName(c.best.trait as Trait) : c.best.trait} (${c.best.repo})`]) : null,
         ],
       },
       {
@@ -87,7 +88,7 @@ export function bestiaryScreen(c: Codex, close: () => void, earned: Map<string, 
           h("h2", null, "beaten, gnarliest first"),
           ...(c.bosses.length ? c.bosses.map((b) => entry(b.name, "t-boss", [`${b.repo}, ${plural(b.ccn, "path")}`])) : [h("p", { class: "faint" }, "None yet. Every floor ends with one.")]),
           h("h2", null, "what keeps getting you"),
-          ...(deaths.length ? deaths.map(([name, n]) => entry(name, "t-bad", [`x${n}`])) : [h("p", { class: "faint" }, "Nothing yet.")]),
+          ...(deaths.length ? deaths.map(([name, n]) => entry(codeEverywhere() ? name : gameName(name), "t-bad", [`x${n}`], name)) : [h("p", { class: "faint" }, "Nothing yet.")]),
         ],
       },
     ]),
