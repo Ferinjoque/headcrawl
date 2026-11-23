@@ -1,7 +1,7 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from headcrawl.text import clean, code_excerpt, first_sentence, strip_comment_markers
+from headcrawl.text import clean, code_excerpt, first_sentence, function_doc, strip_comment_markers
 
 
 def test_clean_strips_control_and_invisible_chars() -> None:
@@ -54,3 +54,31 @@ def test_code_excerpt_never_overflows(text: str, start: int) -> None:
     lines = code_excerpt(text, start)
     assert len(lines) <= 6
     assert all(len(line) <= 72 for line in lines)
+
+
+def test_function_doc_reads_a_python_docstring() -> None:
+    lines = ["def load_payload(payload):", '    """Loads the encoded object.', "", '    More text."""', "    return x"]
+    assert function_doc(lines, 1) == "Loads the encoded object."
+
+
+def test_function_doc_reads_a_one_line_docstring_after_a_long_signature() -> None:
+    lines = ["def f(", "    a,", "    b,", "):", "    '''Adds a and b together.'''", "    return a + b"]
+    assert function_doc(lines, 1) == "Adds a and b together."
+
+
+def test_function_doc_reads_the_comment_block_above_past_decorators() -> None:
+    lines = [
+        "// Parses the request body as JSON.",
+        "// Returns an error when it fails.",
+        "@Override",
+        "func parseBody() {",
+        "}",
+    ]
+    assert function_doc(lines, 4) == "Parses the request body as JSON."
+
+
+def test_function_doc_skips_tags_licenses_and_decoration() -> None:
+    assert function_doc(["# TODO: fix this later please", "def a():", "    pass"], 2) == ""
+    assert function_doc(["# ------------------", "def a():", "    pass"], 2) == ""
+    assert function_doc(["x = 1", "", "def a():", "    pass"], 3) == ""
+    assert function_doc([], 1) == ""

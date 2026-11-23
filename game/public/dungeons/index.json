@@ -379,14 +379,14 @@
   {
     "slug": "headcrawl",
     "repo": "headcrawl (this game)",
-    "head": "4c479731938766c753acfaf05a38a0d96650673b",
+    "head": "720a148c8b9c99994c0e42c3293aa9aae8b0bf1f",
     "language": "typescript",
     "floors": 8,
     "rooms": 97,
-    "enemies": 490,
+    "enemies": 492,
     "boss": "act",
     "bossTitle": "the Executor",
-    "taunt": "25 branches and counting. You're the action, I'm the stage.",
+    "taunt": "25 branches and counting. You're the next to fall.",
     "floorNames": [
       "tests",
       "game/src + game/src/map",

@@ -328,3 +328,26 @@ def test_web_blame_and_subjects_from_outside(make_repo: MakeRepo) -> None:
     lair = next(r for f in out["floors"] for r in f["rooms"] if r["id"] == f["lair"])
     if lair["path"] == "pkg/a.py":
         assert lair["last_commit"] == "fix the thing"
+
+
+CORE = '''def load_payload(payload, key, salt):
+    """Loads the encoded object and checks its signature."""
+    if payload:
+        if key:
+            if salt:
+                return 1
+    return 0
+
+
+# Picks the signer for a given key.
+def make_signer(key):
+    return key
+'''
+
+
+def test_enemies_and_bosses_carry_what_their_author_says_they_do(make_repo: MakeRepo) -> None:
+    spec = analyze(make_repo({**SAMPLE, "app/core/sign.py": CORE}), name="docs")
+    enemies = [e for r in _all_rooms(spec) for e in r.enemies]
+    docs = {e.name: e.doc for e in enemies} | {f.boss.name: f.boss.doc for f in spec.floors}
+    assert docs.get("load_payload") == "Loads the encoded object and checks its signature."
+    assert docs.get("make_signer") == "Picks the signer for a given key."

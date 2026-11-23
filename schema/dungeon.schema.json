@@ -43,6 +43,19 @@
           "title": "Damage",
           "type": "integer"
         },
+        "doc": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc"
+        },
         "final": {
           "default": false,
           "title": "Final",
@@ -310,6 +323,19 @@
           "default": false,
           "title": "Deprecated",
           "type": "boolean"
+        },
+        "doc": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc"
         },
         "hp": {
           "maximum": 999,

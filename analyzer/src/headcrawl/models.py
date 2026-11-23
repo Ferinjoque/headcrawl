@@ -72,6 +72,8 @@ class Enemy(_Model):
     nloc: int = Field(ge=0, le=10_000_000)
     # Marked deprecated in the code (@deprecated, #[deprecated], Deprecated: ...).
     deprecated: bool = False
+    # What its author says it does: first sentence of its docstring or the comment above it.
+    doc: Line | None = None
 
 
 class Loot(_Model):
@@ -115,6 +117,8 @@ class Boss(_Model):
     nloc: int = Field(default=0, ge=0, le=10_000_000)
     # The first few lines of the function, indentation kept, shown when you inspect it.
     code: list[Line] = Field(default_factory=list, max_length=8)
+    # What its author says it does, as for an enemy.
+    doc: Line | None = None
 
 
 class RoomPast(_Model):

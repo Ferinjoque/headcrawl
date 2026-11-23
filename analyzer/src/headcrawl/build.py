@@ -37,7 +37,7 @@ from .models import (
 )
 from .resolve import Resolver, go_module
 from .syntax import SyntaxInfo, extract
-from .text import clean, code_excerpt
+from .text import clean, code_excerpt, function_doc
 from .walk import SourceFile, walk
 
 ENTRY_NAMES = ("main", "index", "__init__", "__main__", "app", "lib", "mod", "cli")
@@ -612,6 +612,7 @@ def _enemy(
         params=f.params,
         nloc=f.nloc,
         deprecated=bool(lines) and markers.is_deprecated(lines or [], f.start_line, f.end_line),
+        doc=function_doc(lines, f.start_line) or None if lines else None,
     )
 
 
@@ -706,6 +707,7 @@ def _boss(ctx: _Context, rep: FileReport, f: FunctionMetric, depth: int, final: 
         params=f.params,
         nloc=f.nloc,
         code=code_excerpt(rep.src.text, f.start_line),
+        doc=function_doc(rep.src.text.splitlines(), f.start_line) or None,
     )
 
 

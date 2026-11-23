@@ -48,6 +48,56 @@ def first_sentence(text: str, limit: int = 160) -> str:
     return clean(text, limit)
 
 
+_DOC_OPEN = re.compile(r"^\s*[rRbBuU]?(\"\"\"|''')")
+_COMMENT_LINE = re.compile(r"^\s*(?:#(?!\[)|//|/\*|\*|--|;)")
+_ATTRIBUTE = re.compile(r"^\s*(?:@\w|#\[)")
+_TAG_WORD = re.compile(r"\b(?:TODO|FIXME|HACK|XXX)\b")
+
+
+def function_doc(lines: list[str], start_line: int, limit: int = 140) -> str:
+    """What the author says a function does: the first sentence of its Python
+    docstring, or of the comment block right above it (past decorators).
+    "" when there is none, or when it is a tag, a license or decoration."""
+    at = max(0, start_line - 1)
+    if at >= len(lines):
+        return ""
+    # A docstring is the first thing after the signature, which may span lines.
+    end = next((k for k in range(at, min(len(lines), at + 8)) if lines[k].rstrip().endswith((":", "{"))), at)
+    after = next((k for k in range(end + 1, min(len(lines), end + 3)) if lines[k].strip()), None)
+    for i in [after] if after is not None else []:
+        m = _DOC_OPEN.match(lines[i])
+        if m:
+            quote = m.group(1)
+            block = [lines[i]]
+            if lines[i].count(quote) < 2:
+                for j in range(i + 1, min(len(lines), i + 12)):
+                    block.append(lines[j])
+                    if quote in lines[j]:
+                        break
+            return _doc_sentence("\n".join(block), limit)
+    above: list[str] = []
+    i = at - 1
+    while i >= 0 and _ATTRIBUTE.match(lines[i]):
+        i -= 1
+    while i >= 0 and _COMMENT_LINE.match(lines[i]):
+        above.insert(0, lines[i])
+        i -= 1
+    return _doc_sentence("\n".join(above), limit) if above else ""
+
+
+def _doc_sentence(text: str, limit: int) -> str:
+    if _TAG_WORD.search(text) or legal_text(text):
+        return ""
+    return first_sentence(text, limit)
+
+
+_LEGAL_WORDS = re.compile(r"(?i)\b(copyright|license|licensed|spdx|all rights reserved)\b")
+
+
+def legal_text(text: str) -> bool:
+    return bool(_LEGAL_WORDS.search(text))
+
+
 def code_excerpt(text: str, start_line: int, count: int = 6, width: int = 72) -> list[str]:
     """The first few lines of a function, as it reads in the file.
 

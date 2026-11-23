@@ -12,6 +12,7 @@ export type Churn = number;
  */
 export type Code = string[];
 export type Damage = number;
+export type Doc = string | null;
 export type Final = boolean;
 export type Hp = number;
 export type Id = string;
@@ -70,6 +71,7 @@ export type Archetype = "tangle" | "nest" | "hydra" | "wall" | "imp" | "bug" | "
 export type Ccn2 = number;
 export type Damage1 = number;
 export type Deprecated = boolean;
+export type Doc1 = string | null;
 export type Hp1 = number;
 export type Id2 = string;
 export type Line1 = number;
@@ -203,6 +205,7 @@ export interface Boss {
   churn: Churn;
   code?: Code;
   damage: Damage;
+  doc?: Doc;
   final?: Final;
   hp: Hp;
   id: Id;
@@ -284,6 +287,7 @@ export interface Enemy {
   ccn: Ccn2;
   damage: Damage1;
   deprecated?: Deprecated;
+  doc?: Doc1;
   hp: Hp1;
   id: Id2;
   line: Line1;
