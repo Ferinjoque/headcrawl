@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { bossLine, gameName, gearLabel, named, nameOf, nameSays, showNames, words } from "../src/game/names";
+import { bossLine, bossWeaponLabel, gameName, gearLabel, named, nameOf, nameSays, showNames, words } from "../src/game/names";
 
 describe("game names", () => {
   it("turn a verb and its object into who does it", () => {
@@ -97,5 +97,38 @@ describe("boss lines", () => {
     const line = bossLine("test_response_types has seen 32 tests.", "test_response_types", "the Status Checker");
     expect(showNames(line, false)).toBe("the Status Checker has seen 32 tests.");
     expect(showNames(line, true)).toBe("test_response_types has seen 32 tests.");
+  });
+});
+
+describe("names that used to come out odd", () => {
+  it("call anonymous functions wisps after their file", () => {
+    expect(gameName("main@181")).toBe("Main Wisp");
+    expect(gameName("tea_test@752")).toBe("Tea Wisp");
+  });
+
+  it("name operators, little words and bare scaffolding", () => {
+    expect(gameName("==")).toBe("the Operator");
+    expect(gameName("after")).toBe("the After");
+    expect(gameName("test")).toBe("the Test");
+  });
+
+  it("say short letter groups out loud and keep short words as words", () => {
+    expect(gameName("kv_get")).toBe("Store Getter");
+    expect(gameName("tap_io")).toBe("Tap IO");
+    expect(gameName("test_v4")).toBe("the V4");
+    expect(gameName("go")).toBe("the Go");
+  });
+
+  it("say a repeated word once and read checks and tries", () => {
+    expect(gameName("into_response_failed_doesnt_impl_into_response")).not.toMatch(/Response.*Response/);
+    expect(gameName("path_is_valid")).toBe("Path Judge");
+    expect(gameName("try_from_uri")).toBe("Link Trier");
+  });
+});
+
+describe("a boss's weapon", () => {
+  it("is named after the boss as players know it", () => {
+    expect(bossWeaponLabel("the Unsigner", "pierce")).toBe("the Unsigner's Spear");
+    expect(gearLabel({ slot: "weapon", name: "test_loads_unsafe.unsign", trait: "pierce", label: bossWeaponLabel("the Unsigner", "pierce") })).toBe("the Unsigner's Spear");
   });
 });

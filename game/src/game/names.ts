@@ -8,7 +8,7 @@ const AGENTS: Record<string, string> = {
   accept: "Gatekeeper", add: "Adder", append: "Appender", bind: "Binder", cancel: "Canceller",
   clean: "Cleaner", consume: "Eater", conv: "Converter", detect: "Detector", escape: "Escaper",
   flush: "Flusher", insert: "Inserter", kill: "Killer", normalize: "Normalizer", publish: "Herald",
-  throw: "Thrower", trim: "Trimmer", unescape: "Unescaper", unwrap: "Unwrapper", apply: "Applier", assert: "Judge", build: "Builder",
+  throw: "Thrower", trim: "Trimmer", try: "Trier", unescape: "Unescaper", unwrap: "Unwrapper", apply: "Applier", assert: "Judge", build: "Builder",
   calc: "Counter", calculate: "Counter", call: "Caller", can: "Judge", check: "Checker",
   choose: "Picker", clear: "Sweeper", clone: "Copier", close: "Closer", coerce: "Coercer",
   compile: "Builder", compute: "Counter", connect: "Linker", construct: "Builder", convert: "Converter",
@@ -32,6 +32,7 @@ const AGENTS: Record<string, string> = {
 
 /** Short forms programmers use, in words anyone reads. */
 const WORDS: Record<string, string> = {
+  fmt: "Format", tty: "Terminal", ws: "Socket", kv: "Store", http2: "Web", cli: "Console",
   args: "Arguments", arg: "Argument", attr: "Attribute", auth: "Login", buf: "Buffer",
   cfg: "Config", conf: "Config", ctx: "Context", cur: "Current", db: "Database",
   dict: "Table", dir: "Folder", dst: "Target", env: "Setting", err: "Error",
@@ -49,13 +50,20 @@ const NOISE = new Set(["test", "tests", "impl", "internal", "private", "inner", 
 const STOP = new Set([
   "by", "with", "for", "from", "in", "into", "of", "on", "or", "and", "that", "can", "be", "is", "are", "when",
   "if", "does", "doesnt", "not", "no", "should", "after", "before", "during", "without", "at", "as", "then", "it",
+  "vs",
 ]);
 
 const MAX = 24;
 
+/** Two-letter words that are words, not letters. */
+const SHORT_WORDS = new Set(["go", "up", "do", "me", "my", "we", "be", "so", "no", "by", "an", "as", "at", "if", "is", "it", "on", "or", "of", "to", "in", "us"]);
+
 function title(word: string): string {
   const w = word.toLowerCase();
-  return WORDS[w] ?? w.charAt(0).toUpperCase() + w.slice(1);
+  if (WORDS[w]) return WORDS[w];
+  // fmt, tty, io, v4: short or vowel-less, so most likely letters to say out loud.
+  if ((w.length <= 2 && !SHORT_WORDS.has(w)) || !/[aeiouy]/.test(w)) return w.toUpperCase();
+  return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
 /** "parseBody" -> ["parse", "body"]; "RouteCollector" -> ["route", "collector"]. */
@@ -63,9 +71,14 @@ export function words(identifier: string): string[] {
   return identifier
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-    .split(/[^A-Za-z]+/)
+    .split(/[^A-Za-z0-9]+/)
     .map((w) => w.toLowerCase())
-    .filter((w) => w && !NOISE.has(w));
+    .filter((w) => w && !/^\d+$/.test(w) && !NOISE.has(w));
+}
+
+/** "Queue Received Queue" -> "Received Queue": a word said twice is said once, the last time. */
+function once(parts: string[]): string[] {
+  return parts.filter((w, i) => parts.indexOf(w, i + 1) === -1);
 }
 
 /** The verb at the front of a name, plural forms too ("loads" -> load). */
@@ -94,12 +107,23 @@ export function gameName(identifier: string): string {
   const primes = (raw.match(/'+$/) ?? [""])[0].length;
   raw = raw.replace(/'+$/, "");
   if (/(^|_)helper\d*$/.test(raw)) return "Helper";
+  // Operators (==, ->, +) have no words to go on.
+  if (!/[A-Za-z]/.test(raw)) return "the Operator";
+  // Anonymous functions are named after their file and line (main@181).
+  // They're the small unnamed things around a file: wisps.
+  const anon = raw.match(/^(.*)@\d+$/);
+  if (anon) {
+    const place = words(anon[1]).map(title);
+    return place.length ? `${fit(place.slice(-2), "Wisp")}` : "a Wisp";
+  }
   // pkg.Class.method, Class::method, a/b: the last part names it, unless
   // that part is only a verb (Foo.__init__, Router::new): then Foo inits.
   const segments = raw.split(/::|[./\\#]/).filter(Boolean);
   let ws = words(segments.at(-1) ?? raw);
   if (segments.length > 1 && ws.length <= 1 && verbOf(ws[0])) ws = [...ws, ...words(segments.at(-2) ?? "").filter((w) => !verbOf(w))];
   if (!ws.length) ws = words(raw);
+  // Nothing but scaffolding (a function called test): say it as it is.
+  if (!ws.length) ws = raw.split(/[^A-Za-z]+/).filter(Boolean).map((w) => w.toLowerCase()).slice(-2);
   if (!ws.length) return "the Nameless";
   const name = nameFromWords(ws);
   return primes ? `${name} ${roman(primes + 1)}` : name;
@@ -118,6 +142,9 @@ function nameFromWords(all: string[]): string {
     const from = head(all.slice(0, to)).map(title);
     return from.length ? fit(from.slice(-2), "Converter") : "the Converter";
   }
+  // path_is_valid checks something about the path: a Path Judge.
+  const judged = all.findIndex((w, i) => i > 0 && (w === "is" || w === "has"));
+  if (judged > 0 && !verbOf(all[0])) return fit(once(head(all.slice(0, judged)).map(title)).slice(-2), "Judge");
   const ws = all[0] === "to" ? all : all.filter((w) => w !== "to");
   // A verb up front (load_payload), or at the end in C style (tsd_init).
   let verb = verbOf(ws[0]);
@@ -128,13 +155,15 @@ function nameFromWords(all: string[]): string {
   }
   if (verb) {
     const agent = AGENTS[verb];
-    const obj = head(object).map(title);
+    const obj = once(head(object).map(title));
     if (!obj.length) return `the ${agent}`;
     // AccessDeniedExceptionHandler::Handle is already a handler.
     if (obj.at(-1) === agent) return obj.length === 1 ? `the ${agent}` : fit(obj.slice(0, -1).slice(-2), agent);
     return fit(obj.slice(-2), agent);
   }
-  const nouns = head(ws).map(title);
+  let nouns = once(head(ws).map(title));
+  // Only little words (after, into_inner): keep them, they're all there is.
+  if (!nouns.length) nouns = once(ws.map(title)).slice(-2);
   if (!nouns.length) return "the Nameless";
   return nouns.length === 1 ? `the ${nouns[0]}` : fit(nouns.slice(0, -1).slice(-2), nouns.at(-1)!);
 }
@@ -202,6 +231,11 @@ export function gearLabel(g: GearLike): string {
     return `${gameName(stem).replace(/^the /, "")} ${/^@types\//.test(g.name) ? "Plate" : "Mail"}`;
   }
   return `${possessive(gameName(g.name))} ${WEAPON_NOUN[g.trait] ?? "Sword"}`;
+}
+
+/** A beaten boss's own weapon, named after its title. */
+export function bossWeaponLabel(title: string, trait: string): string {
+  return `${possessive(title)} ${WEAPON_NOUN[trait] ?? "Sword"}`;
 }
 
 /** Gear's name for a log line. */

@@ -18,6 +18,8 @@ export interface Gear {
   trait: Trait;
   /** Attack for a weapon, defense for armor. */
   bonus: number;
+  /** A game name set where the code name alone would read badly (a boss's own weapon). */
+  label?: string;
 }
 
 /** `name` is the programmer joke, `title` what a player calls it. */

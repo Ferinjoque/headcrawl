@@ -8,7 +8,7 @@ import type { Game } from "./game";
 import { ELITE } from "./elites";
 import { armor, armorBonus, describe, guardName, TRAITS, weapon, weaponBonus, type Gear } from "./gear";
 import type { Item, ItemKind, Monster } from "./types";
-import { gearName, nameOf } from "./names";
+import { bossWeaponLabel, gearName, nameOf } from "./names";
 
 /** Leave something on the nearest free floor cell. */
 export function drop(g: Game, x: number, y: number, kind: Extract<ItemKind, "coffee" | "weapon" | "armor">, gear?: Gear, source = ""): void {
@@ -167,6 +167,8 @@ export function dropGear(g: Game, m: Monster): void {
 export function dropBossWeapon(g: Game, m: Monster): void {
   const room = g.floor.map.rooms[m.room]?.spec;
   if (!m.boss || !room) return;
-  const gear = weapon(m.name, room.language, weaponBonus(5, g.floor.index));
+  const base = weapon(m.name, room.language, weaponBonus(5, g.floor.index));
+  // Named after the boss as players know it: the Unsigner's Spear.
+  const gear = { ...base, label: bossWeaponLabel(m.boss.title, base.trait) };
   drop(g, m.x, m.y, "weapon", gear, `${room.path}:${m.boss.line}`);
 }
