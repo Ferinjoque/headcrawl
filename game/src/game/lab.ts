@@ -11,6 +11,7 @@ import type { Game } from "./game";
 import type { PerkId } from "./perks";
 import type { ItemKind, Monster } from "./types";
 import { fromBoss, fromEnemy } from "./world";
+import { nameOf } from "./names";
 
 const LAB_SHA = "1abc0de1abc0de1abc0de1abc0de1abc0de1abc0";
 
@@ -175,7 +176,7 @@ export function spawn(g: Game, kind: LabKind, affix: Affix | null = null, deprec
   if (reverted) m.undo = 1;
   m.awake = true;
   g.floor.monsters.push(m);
-  g.say(`lab: ${m.name}${affix ? ` (elite, ${AFFIX[affix].name})` : ""} appears.`, "lore");
+  g.say(`lab: ${nameOf(m)}${affix ? ` (elite, ${AFFIX[affix].name})` : ""} appears.`, "lore");
   return m;
 }
 
@@ -196,7 +197,7 @@ export function spawnBoss(g: Game, style: BossStyle): Monster | null {
   const m = fromBoss(boss, at[0], at[1], room, g.floor.index, g.spec.floors.length);
   m.awake = true;
   g.floor.monsters.push(m);
-  g.say(`lab: ${m.name}, ${BOSS_STYLE[style].name}.`, "lore");
+  g.say(`lab: ${nameOf(m)}, ${BOSS_STYLE[style].name}.`, "lore");
   return m;
 }
 

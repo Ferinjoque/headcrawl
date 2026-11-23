@@ -1514,3 +1514,9 @@ body.dragging #screen::after {
   padding-top: 6px;
   border-top: 1px solid var(--ink-line);
 }
+/* The real identifier, set apart from the game name above it. */
+#tip .code-name {
+  color: var(--text);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+}

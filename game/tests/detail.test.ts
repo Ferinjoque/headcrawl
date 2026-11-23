@@ -46,3 +46,35 @@ describe("code details", () => {
     expect(g.journal.at(-1)).toContain("src/a.py:3");
   });
 });
+
+describe("the log by default", () => {
+  it("never shows a raw function name while a bot plays a gallery dungeon", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { loadSpec } = await import("../src/spec");
+    const { botAction } = await import("../src/game/bot");
+    const res = loadSpec(readFileSync(new URL("../public/dungeons/itsdangerous.json", import.meta.url), "utf8"));
+    if (!res.ok) throw new Error(res.error);
+    const raw = new Set(res.spec.floors.flatMap((f) => [f.boss.name, ...f.rooms.flatMap((r) => r.enemies.map((e) => e.name))]).filter((n) => n.includes("_")));
+    const g = new Game(res.spec);
+    const shown: string[] = [];
+    for (let i = 0; i < 400 && g.outcome === "playing"; i++) {
+      g.act(botAction(g));
+      for (const e of g.drain()) {
+        if (e.t !== "msg" || e.quiet) continue;
+        const text = logText(e);
+        if (text) shown.push(text);
+      }
+    }
+    expect(shown.length).toBeGreaterThan(20);
+    const leaks = shown.filter((t) => [...raw].some((n) => t.includes(n)));
+    expect(leaks.join(" || ")).toBe("");
+  });
+});
+
+describe("room names", () => {
+  it("name a room after its file, in game words", async () => {
+    const { roomLabel } = await import("../src/ui/detail");
+    expect(roomLabel("tests/test_signer.py")).toBe("the Signer's room");
+    expect(roomLabel("src/app/views.py")).toBe("the Views' room");
+  });
+});

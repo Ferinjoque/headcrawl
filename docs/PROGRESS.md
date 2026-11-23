@@ -269,6 +269,24 @@ redraws the whole view at 20 fps when idle.
     repos now, ky and gin have 6 floors). Left alone until a playtest.
   - docs/PLAYTEST.md: a script for a playtest with someone who doesn't code.
 
+- Round 13 (owner: monsters, gear and the pack still read as raw function
+  names; pick between accessible and a tool to learn code. Chose both):
+  - game/names.ts: gameName turns an identifier into a name (load_payload
+    is the Payload Loader, coerce_str the String Coercer, __init__ the
+    Starter); bosses go by their title; gear gets a noun from how it fights
+    (Payload Loader's Spear, Signer Mail); weapon traits got plain names
+    (piercing, quick, reckless); rooms are "the Signer's room".
+  - Log lines carry names as tags with both forms (named/showNames): the
+    screen shows the game name, or the real one with code details on, and
+    the run log always the real one. A test plays a gallery dungeon and
+    fails if a raw snake_case name reaches the default log.
+  - The learn layer is the hover tip under its rule: real name, signature,
+    what it does in its author's words (new `doc` on enemies and bosses:
+    first sentence of the docstring or the comment above, analyzer
+    text.function_doc) or else what its name says ("it loads payload"),
+    and its shape in plain words. 1253 of 4373 gallery monsters have a doc.
+  - Gallery rebuilt with docs (same HEADs, headcrawl moved).
+
 ## Next ideas
 
 - Balance: npm run sim gives both bots on the whole gallery. Still worth a

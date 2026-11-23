@@ -4,7 +4,7 @@
 import { AFFIX, type Affix } from "../game/elites";
 import { TRAITS, languagesWith, type Trait } from "../game/gear";
 import { topDeaths, type Codex, type Trophy } from "./codex";
-import { codeEverywhere } from "./detail";
+import { codeEverywhere, traitName } from "./detail";
 import { h, plural } from "./dom";
 import { MONSTERS } from "./glossary";
 import { TROPHIES } from "../game/trophies";
@@ -52,7 +52,7 @@ export function bestiaryScreen(c: Codex, close: () => void, earned: Map<string, 
   );
   const weapons = metFirst(WEAPON_TRAITS, (t) => !!c.traits[t]).map((t) =>
     c.traits[t]
-      ? entry(`${TRAITS[t].name} x${c.traits[t]}`, "t-loot", [TRAITS[t].text])
+      ? entry(`${traitName(t)} x${c.traits[t]}`, "t-loot", [TRAITS[t].text])
       : unknown(`a weapon from ${languagesWith(t).join(", ")} code`),
   );
   return h(

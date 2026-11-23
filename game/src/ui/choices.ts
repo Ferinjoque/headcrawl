@@ -7,7 +7,7 @@ import { TRAITS, type Gear } from "../game/gear";
 import { PERKS, type PerkId } from "../game/perks";
 import type { Action } from "../game/types";
 import type { Offer } from "../game/extras";
-import { codeEverywhere, toolName } from "./detail";
+import { codeEverywhere, gearShown, toolName, traitName } from "./detail";
 import { h, replace } from "./dom";
 import type { Command } from "./input";
 
@@ -46,8 +46,8 @@ function gearText(g: Gear, other?: Gear): string {
   const stat = g.slot === "armor" ? "defense" : "attack +";
   const diff = other ? g.bonus - other.bonus : 0;
   const delta = !other || !diff ? "" : diff > 0 ? ` (${diff} more)` : ` (${-diff} less)`;
-  const head = g.slot === "armor" ? `${stat} ${g.bonus}${delta}` : `${stat}${g.bonus}${delta}, ${g.language}`;
-  return g.trait === "plain" ? head : `${head}. ${TRAITS[g.trait].name}: ${TRAITS[g.trait].text}`;
+  const head = g.slot === "armor" ? `${stat} ${g.bonus}${delta}` : codeEverywhere() ? `${stat}${g.bonus}${delta}, ${g.language}` : `${stat}${g.bonus}${delta}`;
+  return g.trait === "plain" ? head : `${head}. ${traitName(g.trait)}: ${TRAITS[g.trait].text}`;
 }
 
 const short = (s: string, n = 18) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -57,8 +57,8 @@ export function gearCard(found: Gear, mine: Gear, pick: (take: boolean) => void)
     "div",
     { class: "card choice", role: "dialog", "aria-label": `Swap your ${found.slot}?` },
     h("div", { class: "card-kicker" }, `a ${found.slot}. you carry one: take it, or keep yours`),
-    option("1", short(found.name), gearText(found, mine), () => pick(true)),
-    option("2", short(mine.name), `yours. ${gearText(mine)}`, () => pick(false), "keep"),
+    option("1", short(gearShown(found), 24), gearText(found, mine), () => pick(true), "", found.name),
+    option("2", short(gearShown(mine), 24), `yours. ${gearText(mine)}`, () => pick(false), "keep", mine.name),
   );
 }
 

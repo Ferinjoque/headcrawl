@@ -10,6 +10,7 @@ import { callHelper } from "./combat";
 import { REMOTE, lineCells } from "./elites";
 import type { Game } from "./game";
 import type { Monster } from "./types";
+import { nameOf } from "./names";
 
 export function monstersAct(g: Game): void {
   const grid = g.floor.map.grid;
@@ -51,7 +52,7 @@ function monsterTurn(g: Game, m: Monster, chase: Int16Array, taken: Uint8Array):
   if (m.archetype === "remote" && m.cooldown === 0 && aim(g, m)) return;
   if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
     if (m.archetype === "nest" && m.cooldown === 0) {
-      windUp(g, m, 1, `${m.name} digs in for a heavy hit.`);
+      windUp(g, m, 1, `${nameOf(m)} digs in for a heavy hit.`);
       return;
     }
     monsterAttack(g, m);
@@ -74,19 +75,19 @@ function bossTurn(g: Game, m: Monster): boolean {
   m.turns++;
   if (style === "hot" && m.turns % mv.hotEvery === 0 && m.speed < m.boss!.speed + mv.hotCap) {
     m.speed += mv.hotStep;
-    g.say(`${m.name} speeds up. Somebody pushed another fix.`, "bad", true);
+    g.say(`${nameOf(m)} speeds up. Somebody pushed another fix.`, "bad", true);
   }
   if (style === "sprawl" && m.turns % mv.sprawlEvery === 0) {
     const helpers = g.floor.monsters.filter((x) => x.archetype === "spawn").length;
     if (helpers < mv.sprawlMaxHelpers && callHelper(g, m)) {
-      g.say(`${m.name} passes one more argument. A helper shows up.`, "boss");
+      g.say(`${nameOf(m)} passes one more argument. A helper shows up.`, "boss");
       return true;
     }
   }
   const radius = style === "deep" ? mv.deepRadius : TUNING.bossSweepRadius;
   const every = style === "deep" ? mv.deepEvery : TUNING.bossSweepEvery;
   if (m.turns % every === 0 && dist(m, g.player) <= radius + 1) {
-    windUp(g, m, radius, `${m.name} winds up. Get out of the red.`);
+    windUp(g, m, radius, `${nameOf(m)} winds up. Get out of the red.`);
     return true;
   }
   return false;
@@ -116,7 +117,7 @@ function aim(g: Game, m: Monster): boolean {
   if (!end || end[0] !== p.x || end[1] !== p.y) return false;
   m.threat = line;
   g.emit({ t: "telegraph", x: m.x, y: m.y, line: true });
-  g.say(`${m.name} opens a connection. Get off the red line.`, "bad");
+  g.say(`${nameOf(m)} opens a connection. Get off the red line.`, "bad");
   return true;
 }
 
@@ -128,7 +129,7 @@ function releaseWindup(g: Game, m: Monster): void {
   m.cooldown = TUNING.windupCooldown;
   if (!hit) {
     g.emit({ t: "miss", x: m.x, y: m.y });
-    g.say(`${m.name} hits nothing but air.`);
+    g.say(`${nameOf(m)} hits nothing but air.`);
     return;
   }
   const mult = m.boss ? TUNING.bossSweepMultiplier : m.archetype === "nest" ? TUNING.nestWindupMultiplier : 1;
@@ -148,7 +149,7 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
   p.hp -= dmg;
   g.emit({ t: "hit", x: p.x, y: p.y, amount: dmg, crit: false, onPlayer: true });
   if (m.enemy?.deprecated && p.hp > 0) {
-    if (!p.slowed) g.say(`${m.name} is outdated code, and its hit slows you down.`, "bad");
+    if (!p.slowed) g.say(`${nameOf(m)} is outdated code, and its hit slows you down.`, "bad");
     p.slowed = SLOW.turns;
   }
   if (p.hp <= 0 && g.cheats.god) p.hp = 1;
@@ -162,7 +163,7 @@ function monsterAttack(g: Game, m: Monster, mult = 1, sure = false): void {
     g.outcome = "dead";
     g.killer = m.name;
     const where = m.enemy ? ` at line ${m.enemy.line}` : "";
-    g.say(`${m.name}${where} got you.`, "bad");
+    g.say(`${nameOf(m)}${where} got you.`, "bad");
     g.emit({ t: "death", killer: m.name });
   }
 }

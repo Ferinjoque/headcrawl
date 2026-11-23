@@ -98,6 +98,12 @@ Silkscreen 12 / 16 / 24 (24 only for overlay titles set in the frame).
   is and does; paths, metrics, commits and git jokes live in hover tips,
   under a rule after the game facts. Set to everywhere, they come back in
   the panel, log, cards and title.
+- Names: on screen a monster is its game name (Payload Loader), a boss its
+  title, gear a thing you hold (Payload Loader's Spear), a room "the
+  Signer's room". The real identifier is the first line under the tip's
+  rule, then its signature, what its author says it does (or what its
+  name says), and its shape in plain words. That part is the learn layer:
+  there when you look, never in the way.
   The gear card names both items and says how much better or worse the new
   one is; the one you keep is dimmed.
 - The character sheet (`c`, or atk/def in the top line) and the bestiary

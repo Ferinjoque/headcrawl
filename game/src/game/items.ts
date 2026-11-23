@@ -8,6 +8,7 @@ import type { Game } from "./game";
 import { ELITE } from "./elites";
 import { armor, armorBonus, describe, guardName, TRAITS, weapon, weaponBonus, type Gear } from "./gear";
 import type { Item, ItemKind, Monster } from "./types";
+import { gearName, nameOf } from "./names";
 
 /** Leave something on the nearest free floor cell. */
 export function drop(g: Game, x: number, y: number, kind: Extract<ItemKind, "coffee" | "weapon" | "armor">, gear?: Gear, source = ""): void {
@@ -90,7 +91,7 @@ export function readScroll(g: Game): boolean {
     g.say(`Time slips. The floor is the way it was in ${year}${swapped}.`, "loot", false, `Time slips. The floor is the way it was in ${year}${swapped}. git checkout.`);
     if (t && target) {
       const how = t.after < t.before ? "weaker" : "tougher";
-      g.say(`${target.name} is ${how} back then.`, "loot", false, `${target.name} goes back to ${t.after} paths from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`);
+      g.say(`${nameOf(target)} is ${how} back then.`, "loot", false, `${nameOf(target)} goes back to ${t.after} paths from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`);
     }
     g.emit({ t: "rewind" });
   } else if (roll === 0) {
@@ -140,10 +141,10 @@ export function equip(g: Game, item: Item, gear: Gear): void {
     g.declined.add(id);
   }
   g.emit({ t: "equip", x: item.x, y: item.y, gear });
-  if (gear.slot === "armor") g.say(`You put on ${gear.name}. Defense ${gear.bonus}.`, "loot");
+  if (gear.slot === "armor") g.say(`You put on ${gearName(gear)}. Defense ${gear.bonus}.`, "loot");
   else {
     const t = gear.trait === "plain" ? "" : ` ${TRAITS[gear.trait].name}: ${TRAITS[gear.trait].text}.`;
-    g.say(`You take up ${gear.name}. Attack +${gear.bonus}.${t}`, "loot");
+    g.say(`You take up ${gearName(gear)}. Attack +${gear.bonus}.${t}`, "loot");
   }
 }
 

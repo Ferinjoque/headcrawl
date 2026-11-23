@@ -8,6 +8,7 @@ import type { Game } from "./game";
 import { ELITE } from "./elites";
 import { drop, dropBossWeapon, dropGear } from "./items";
 import type { Monster } from "./types";
+import { nameOf } from "./names";
 
 export function playerAttack(g: Game, m: Monster): void {
   const p = g.player;
@@ -20,7 +21,7 @@ export function playerAttack(g: Game, m: Monster): void {
   }
   if (missed) {
     g.emit({ t: "miss", x: m.x, y: m.y });
-    g.say(`You miss ${m.name}.`);
+    g.say(`You miss ${nameOf(m)}.`);
     if (trait === "unsafe" && p.hp > 1) {
       p.hp--;
       g.emit({ t: "hit", x: p.x, y: p.y, amount: 1, crit: false, onPlayer: true });
@@ -31,7 +32,7 @@ export function playerAttack(g: Game, m: Monster): void {
   m.awake = true;
   if (m.archetype === "bug" && !g.has("linter") && g.rng.chance(TUNING.bugDodge)) {
     g.emit({ t: "dodge", x: m.x, y: m.y });
-    g.say(`${m.name} dodges. Can't reproduce.`);
+    g.say(`${nameOf(m)} dodges. Can't reproduce.`);
     return;
   }
   const crit = g.rng.chance(critChance(g)) || (asleep && g.has("lazy"));
@@ -106,7 +107,7 @@ export function killMonster(g: Game, m: Monster): boolean {
   if (m.undo > 0) {
     m.undo--;
     m.hp = Math.max(1, Math.ceil(m.maxHp / 2));
-    g.say(`${m.name} comes back at half HP.`, "bad", false, `${m.name} was reverted once before, and comes back at half HP.`);
+    g.say(`${nameOf(m)} comes back at half HP.`, "bad", false, `${nameOf(m)} was reverted once before, and comes back at half HP.`);
     return false;
   }
   const p = g.player;
@@ -122,7 +123,7 @@ export function killMonster(g: Game, m: Monster): boolean {
     p.bosses++;
     p.bossNames.push(`${m.name}, ${m.boss.title}`);
     g.floor.bossDead = true;
-    g.say(`${m.name} falls. ${m.boss.final ? "You reached the bottom." : "The way down opens."}`, "boss");
+    g.say(`${nameOf(m)} falls. ${m.boss.final ? "You reached the bottom." : "The way down opens."}`, "boss");
     if (m.boss.final) {
       g.outcome = "won";
       g.emit({ t: "victory" });
@@ -134,7 +135,7 @@ export function killMonster(g: Game, m: Monster): boolean {
     for (let i = 0; i < DROPS.bossCoffee; i++) drop(g, m.x, m.y, "coffee");
     dropBossWeapon(g, m);
   } else {
-    g.say(`${KILL_VERB[m.archetype] ?? "You fix"} ${m.name}.`);
+    g.say(`${KILL_VERB[m.archetype] ?? "You fix"} ${nameOf(m)}.`);
     if (g.rng.chance(DROPS.coffee)) drop(g, m.x, m.y, "coffee");
     dropGear(g, m);
   }
@@ -159,7 +160,7 @@ export function bossPhase(g: Game, m: Monster): void {
     g.floor.monsters.push(spawnHelper(g, m, x, y));
     made++;
   }
-  if (made) g.say(`${m.name} calls its helpers.`, "boss");
+  if (made) g.say(`${nameOf(m)} calls its helpers.`, "boss");
 }
 
 /** One helper in a free cell next to the boss. False if it is boxed in. */
@@ -186,7 +187,7 @@ function splitHydra(g: Game, m: Monster): void {
   const n = g.spawnCount++;
   g.floor.monsters.push({ ...m, id: `h${n}`, name: `${m.name}'`, x: spot[0], y: spot[1], hp: half, threat: [], energy: 0, undo: 0 });
   g.emit({ t: "split", x: spot[0], y: spot[1] });
-  g.say(`${m.name} splits in two.`, "bad");
+  g.say(`${nameOf(m)} splits in two.`, "bad");
 }
 
 function spawnHelper(g: Game, boss: Monster, x: number, y: number): Monster {

@@ -20,16 +20,17 @@ export interface Gear {
   bonus: number;
 }
 
-export const TRAITS: Record<Trait, { name: string; text: string }> = {
-  pierce: { name: "borrow checked", text: "ignores armor" },
-  cleave: { name: "duck typed", text: "half damage to everything else next to you" },
-  async: { name: "async", text: "one swing in four takes no time" },
-  steady: { name: "boring", text: "never misses" },
-  unsafe: { name: "unsafe", text: "crits hit three times as hard, a miss costs you 1 HP" },
-  heavy: { name: "enterprise", text: "+1 damage and knocks back" },
-  arc: { name: "ref counted", text: "every kill heals 2" },
-  loose: { name: "loosely typed", text: "hits for anywhere from half to double" },
-  plain: { name: "plain", text: "no tricks" },
+/** `name` is the programmer joke, `title` what a player calls it. */
+export const TRAITS: Record<Trait, { name: string; title: string; text: string }> = {
+  pierce: { name: "borrow checked", title: "piercing", text: "ignores armor" },
+  cleave: { name: "duck typed", title: "sweeping", text: "half damage to everything else next to you" },
+  async: { name: "async", title: "quick", text: "one swing in four takes no time" },
+  steady: { name: "boring", title: "steady", text: "never misses" },
+  unsafe: { name: "unsafe", title: "reckless", text: "crits hit three times as hard, a miss costs you 1 HP" },
+  heavy: { name: "enterprise", title: "heavy", text: "+1 damage and knocks back" },
+  arc: { name: "ref counted", title: "leeching", text: "every kill heals 2" },
+  loose: { name: "loosely typed", title: "wild", text: "hits for anywhere from half to double" },
+  plain: { name: "plain", title: "plain", text: "no tricks" },
 };
 
 const TRAIT_OF: Record<string, Trait> = {

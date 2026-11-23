@@ -5,7 +5,8 @@ import type { Game } from "../game/game";
 import { PERKS } from "../game/perks";
 import { REVIEW } from "../game/ranged";
 import { pct, stats } from "../game/stats";
-import { codeEverywhere, toolName } from "./detail";
+import { TRAITS } from "../game/gear";
+import { codeEverywhere, gearLine, toolName, traitName } from "./detail";
 import { h, plural } from "./dom";
 import { btn } from "./screens";
 
@@ -31,9 +32,9 @@ export function sheetScreen(game: Game, close: () => void) {
     row("monsters land", `${pct(s.struck)} of plain swings. Red cells always land.`),
     row("armor", s.defense ? `${s.defense} off every hit, never below 1` : "none. Every hit lands in full."),
     h("h2", null, "gear"),
-    row("/ weapon", p.weapon ? `${p.weapon.name} +${p.weapon.bonus}, ${p.weapon.language}` : s.weapon, "t-loot"),
-    s.trait ? row("", s.trait, "") : null,
-    row("[ armor", s.armor, "t-loot"),
+    row("/ weapon", p.weapon ? gearLine(p.weapon) : s.weapon, "t-loot"),
+    p.weapon && p.weapon.trait !== "plain" ? row("", `${traitName(p.weapon.trait)}: ${TRAITS[p.weapon.trait].text}`, "") : null,
+    row("[ armor", p.armor ? gearLine(p.armor) : s.armor, "t-loot"),
     h("h2", null, "tools"),
     ...(p.perks.length ? p.perks.map((id) => row(toolName(id), codeEverywhere() ? `${PERKS[id].text}. ${PERKS[id].about}` : PERKS[id].text, "t-good")) : [h("p", { class: "dim" }, "None yet. You pick one every level.")]),
     h("h2", null, "pack"),

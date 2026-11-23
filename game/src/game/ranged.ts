@@ -9,6 +9,7 @@ import { critChance, critMultiplier, killMonster, bossPhase } from "./combat";
 import { lineCells } from "./elites";
 import type { Game } from "./game";
 import type { Monster } from "./types";
+import { nameOf } from "./names";
 
 export const REVIEW = {
   range: 5,
@@ -59,7 +60,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   m.awake = true;
   if (!g.rng.chance(HIT.player)) {
     g.emit({ t: "miss", x: m.x, y: m.y });
-    g.say(`Your shot misses ${m.name}.`, "info", false, `Your shot misses ${m.name}. Resolved without a change.`);
+    g.say(`Your shot misses ${nameOf(m)}.`, "info", false, `Your shot misses ${nameOf(m)}. Resolved without a change.`);
     return true;
   }
   const crit = g.rng.chance(critChance(g));
@@ -67,7 +68,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   if (crit) dmg *= critMultiplier(g);
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  g.say(`Your shot hits ${m.name} for ${dmg}.`, "good", true, `Your shot hits ${m.name} for ${dmg}. nit.`);
+  g.say(`Your shot hits ${nameOf(m)} for ${dmg}.`, "good", true, `Your shot hits ${nameOf(m)} for ${dmg}. nit.`);
   if (m.hp <= 0) killMonster(g, m);
   else if (m.boss) bossPhase(g, m);
   return true;

@@ -1,11 +1,11 @@
 import type { Game } from "../game/game";
 import { styleLine } from "../game/bossmoves";
 import { AFFIX } from "../game/elites";
-import { describe, TRAITS } from "../game/gear";
+import { TRAITS } from "../game/gear";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
 import { h, plural, replace } from "./dom";
-import { codeEverywhere, roomName, toolName } from "./detail";
+import { codeEverywhere, gearLine, gearShown, monsterName, roomLabel, toolName, traitName } from "./detail";
 import { LOOT, MONSTERS } from "./glossary";
 
 /** "tangle: regrows". Helpers and bosses go by the kind alone. */
@@ -37,14 +37,14 @@ function foe(m: Monster, detail: boolean) {
     "div",
     { class: "foe" },
     h("span", { class: `${m.boss ? "t-boss glow" : m.awake ? "t-bad" : "dim"}${m.affix ? " elite" : ""}`, title: m.affix ? `elite: ${AFFIX[m.affix].name}` : undefined }, m.glyph),
-    h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, shortName(m.name)),
+    h("span", { class: "name", title: e?.signature ?? m.boss?.signature ?? m.name }, shortName(monsterName(m))),
     hpBar(m.hp, m.maxHp),
     detail ? h("span", { class: "stats" }, stats) : null,
   );
 }
 
 function lootNote(i: Game["floor"]["items"][number]): string {
-  if (i.gear) return i.gear.slot === "armor" ? `defense ${i.gear.bonus}` : `attack +${i.gear.bonus}, ${TRAITS[i.gear.trait].name}`;
+  if (i.gear) return i.gear.slot === "armor" ? `defense ${i.gear.bonus}` : `attack +${i.gear.bonus}, ${traitName(i.gear.trait)}`;
   if (!i.loot) return "still warm";
   if (!codeEverywhere()) return `"${i.loot.text || i.loot.tag}"`;
   const year = i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}` : "";
@@ -71,7 +71,7 @@ function itemRow(i: Game["floor"]["items"][number]) {
     "div",
     { class: "foe" },
     h("span", { class: "t-loot" }, LOOT[i.kind].glyph),
-    h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(i.gear.name) : LOOT[i.kind].name),
+    h("span", { class: "name t-loot", title: i.gear?.name ?? "" }, i.gear ? shortName(gearShown(i.gear)) : LOOT[i.kind].name),
     h("span", { class: "stats inline" }, lootNote(i)),
   );
 }
@@ -103,10 +103,10 @@ export function renderPanel(el: HTMLElement, game: Game): void {
   const slot = (glyph: string, g: typeof p.weapon, stat: string, empty: string) =>
     h(
       "p",
-      { class: g ? "" : "faint", title: g ? `${describe(g)}${g.trait !== "plain" ? `. ${TRAITS[g.trait].text}` : ""}` : "" },
+      { class: g ? "" : "faint", title: g ? `${gearLine(g)}${g.trait !== "plain" ? `. ${TRAITS[g.trait].text}` : ""}. From ${g.name}` : "" },
       h("span", { class: "gap" }),
       ` ${glyph} `,
-      g ? `${shortName(g.name, 26)} ${stat}` : empty,
+      g ? `${shortName(gearShown(g), 26)} ${stat}` : empty,
     );
   const held = [
     slot("/", p.weapon, `+${p.weapon?.bonus ?? 0}`, "bare hands"),
@@ -133,7 +133,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     { class: "pane here" },
     ...(room
       ? [
-        h("p", { class: "path", title: room.spec.path }, codeEverywhere() ? room.spec.path : roomName(room.spec.path)),
+        h("p", { class: "path", title: room.spec.path }, codeEverywhere() ? room.spec.path : roomLabel(room.spec.path)),
         codeEverywhere() ? h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, changed ${plural(room.spec.churn, "time")}`) : null,
         room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
         room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,

@@ -148,8 +148,10 @@ you dead. `m` mutes; `,` opens settings (music on its own, difficulty,
 text size, colorblind friendly or high contrast colors, calm motion, code
 details). On a phone, tap a monster to see what it is.
 
-The screens talk about the game first. Hover over (or tap) a monster or an
-item to see the code it came from. If you'd rather see the code everywhere,
+The screens talk about the game first: `load_payload` is the Payload Loader,
+its weapon the Payload Loader's Spear. Hover over (or tap) a monster or an
+item to see the code it came from, what its author says it does, and how
+it's built, in plain words. If you'd rather see the code everywhere,
 paths, metrics, commits and all, set code details to everywhere.
 
 ## How code becomes a dungeon

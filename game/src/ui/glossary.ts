@@ -51,7 +51,7 @@ export const PLACES: (Term & { glyph: string })[] = [
 /** The help tab for the curious: how code turns into a dungeon. */
 export const BEHIND = [
   "Every dungeon is built from a real program's source code. You don't need to read code to play.",
-  "Folders are floors and files are rooms. Every function, one small job the program does, is a monster named after it.",
+  "Folders are floors and files are rooms. Every function, one small job the program does, is a monster, and its name comes from the function's: load_payload is the Payload Loader.",
   "A function that is hard to follow is a tough monster: more paths through it means more HP, deeper nesting hits harder, more inputs moves faster.",
   "Each floor's boss is the most tangled function in the file that changed the most.",
   "Notes programmers leave in their code are the loot. TODO is a potion, FIXME a weapon, HACK a scroll, XXX a curse.",

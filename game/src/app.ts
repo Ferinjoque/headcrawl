@@ -33,6 +33,7 @@ import { LabPanel } from "./ui/labpanel";
 import { Aim } from "./ui/aim";
 import { focusMenu, menuKey, tabKey } from "./ui/win";
 import { codeEverywhere, logText, setCodeDetail } from "./ui/detail";
+import { showNames } from "./game/names";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, levelName, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -688,11 +689,15 @@ export class App {
         if (text) this.log.push(text, e.tone);
       }
       else if (e.t === "hit" && e.onPlayer) this.director.duck();
-      else if (e.t === "taunt") this.log.push(`${e.name}: "${e.text}"`, "boss");
+      else if (e.t === "taunt") this.log.push(showNames(`${e.name}: "${e.text}"`, codeEverywhere()), "boss");
       else if (e.t === "intro") {
-        this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
-        const where = codeEverywhere() ? `. ${e.where}` : "";
-        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}${where}`, e.text, e.style, codeEverywhere() ? e.code : []));
+        // The boss goes by its title; its real name leads only with code details on.
+        const code = codeEverywhere();
+        this.log.push(code ? `${e.name}, ${e.title}: "${e.text}"` : `${e.title}: "${e.text}"`, "boss");
+        const kicker = e.final ? "the last boss" : "boss";
+        replace($("banner"), code
+          ? bannerCard(kicker, e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style, e.code)
+          : bannerCard(kicker, e.title, "boss", "", e.text, e.style));
       }
       if (e.t === "descend") this.floorCard();
       if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "back" : "side door", e.name, "floor", e.merged ? "back where you left" : "another version of this floor. > at the far end takes you back"));

@@ -21,6 +21,7 @@ import { monstersAct } from "./foes";
 import { equip, pickUp, quaff, readScroll } from "./items";
 import { review } from "./ranged";
 import type { Action, GameEvent, Item, Monster, Outcome, Player, Tone } from "./types";
+import { named, showNames } from "./names";
 
 export interface GameOptions {
   /** Changes combat rolls but not the dungeon, so friends can race the same map. */
@@ -167,7 +168,7 @@ export class Game {
     if (quiet) e.quiet = true;
     if (full) e.full = full;
     this.emit(e);
-    if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${full ?? text}`);
+    if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${showNames(full ?? text, true)}`);
   }
 
   monsterAt(x: number, y: number): Monster | undefined {
@@ -382,7 +383,7 @@ export class Game {
     if (!lines.length) return;
     const text = lines[which ?? this.rng.int(0, lines.length - 1)];
     m.lastTaunt = this.player.turns;
-    this.emit({ t: "taunt", name: `${m.name}, ${m.boss!.title}`, text });
+    this.emit({ t: "taunt", name: named(`${m.name}, ${m.boss!.title}`, m.boss!.title), text });
   }
 
   gainXp(amount: number): void {
@@ -514,7 +515,7 @@ export class Game {
   private enterFloorMessages(): void {
     const f = this.floorSpec;
     const total = this.spec.floors.length;
-    this.say(`Floor ${f.index + 1} of ${total}: ${f.name}. Somewhere here waits ${f.boss.name}.`, "boss", true);
+    this.say(`Floor ${f.index + 1} of ${total}: ${f.name}. Somewhere here waits ${named(f.boss.name, f.boss.title)}.`, "boss", true);
     const room = this.roomOfPlayer();
     if (room) this.enterRoom(room.index);
   }

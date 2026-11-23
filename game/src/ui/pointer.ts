@@ -5,7 +5,10 @@ import { styleLine } from "../game/bossmoves";
 import { AFFIX } from "../game/elites";
 import { installLine } from "../game/extras";
 import type { Game } from "../game/game";
-import { describe, TRAITS } from "../game/gear";
+import { TRAITS } from "../game/gear";
+import { nameSays } from "../game/names";
+import type { Monster } from "../game/types";
+import { gearLine, gearShown, monsterName, traitName } from "./detail";
 import { walkable } from "../map/grid";
 import { h, plural, replace } from "./dom";
 import { LOOT, MONSTERS } from "./glossary";
@@ -34,8 +37,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       tip,
       // The fight first: what it is and what it does. The code it came from
       // sits below a rule, for whoever wants it.
-      h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
-      m.boss ? h("div", { class: "t-boss" }, m.boss.title) : null,
+      h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, monsterName(m)),
       h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}${m.awake ? "" : ", asleep"}`),
       h("div", { class: "t-lore" }, `${MONSTERS[m.archetype].name}: ${MONSTERS[m.archetype].does}`),
       m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
@@ -45,8 +47,7 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
       h(
         "div",
         { class: "tip-source" },
-        h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
-        e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
+        ...codeLines(m),
         e?.deprecated ? h("div", { class: "faint" }, "marked deprecated in its code") : null,
         m.undo ? h("div", { class: "faint" }, "from a file someone reverted") : null,
         m.boss ? h("div", { class: "faint" }, `Its file changed ${plural(m.boss.churn, "time")}.`) : null,
@@ -60,11 +61,17 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     const mine = game.player[g.slot];
     replace(
       tip,
-      h("div", { class: "tip-name t-loot" }, g.name),
-      h("div", null, g.slot === "armor" ? `armor, defense ${g.bonus}` : `${g.language} weapon, attack +${g.bonus}`),
-      g.trait !== "plain" ? h("div", { class: "t-lore" }, `${TRAITS[g.trait].name}: ${TRAITS[g.trait].text}`) : null,
-      h("div", { class: "faint" }, mine ? `yours: ${describe(mine)}` : `your ${g.slot} slot is empty`),
-      item.source ? h("div", { class: "faint" }, item.source) : null,
+      h("div", { class: "tip-name t-loot" }, gearShown(g)),
+      h("div", null, g.slot === "armor" ? `armor, defense ${g.bonus}` : `weapon, attack +${g.bonus}`),
+      g.trait !== "plain" ? h("div", { class: "t-lore" }, `${traitName(g.trait)}: ${TRAITS[g.trait].text}`) : null,
+      h("div", { class: "faint" }, mine ? `yours: ${gearLine(mine)}` : `your ${g.slot} slot is empty`),
+      h(
+        "div",
+        { class: "tip-source" },
+        h("div", { class: "code-name" }, g.name),
+        h("div", { class: "faint" }, g.slot === "armor" ? "made from the error handling or tests around some code" : `a ${g.language} function, used as a weapon. It fights the way ${g.language} code works.`),
+        item.source ? h("div", { class: "faint" }, item.source) : null,
+      ),
     );
     return true;
   }
@@ -163,4 +170,32 @@ export function bindPointer(canvas: HTMLElement, tip: HTMLElement, stage: HTMLEl
     if (!grid.inside(x, y) || !game.floor.seen[grid.idx(x, y)] || !walkable(grid.get(x, y))) return;
     host.travel([x, y]);
   });
+}
+
+/**
+ * The learn layer: the real code behind a monster, in words anyone reads.
+ * Its real name and signature, what it does (its author's words when there
+ * are any, else what its name says), and its shape in plain terms.
+ */
+function codeLines(m: Monster) {
+  const e = m.enemy;
+  const kind = MONSTERS[m.archetype];
+  const says = nameSays(m.name);
+  const doc = e?.doc ?? m.boss?.doc;
+  return [
+    h("div", { class: "code-name" }, m.name),
+    h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
+    doc
+      ? h("div", { class: "t-lore" }, `What it does, says its author: "${doc}"`)
+      : says
+        ? h("div", { class: "t-lore" }, `A piece of the program. Going by its name, ${says}.`)
+        : null,
+    e
+      ? h(
+          "div",
+          { class: "faint" },
+          `${kind.real}: ${plural(e.ccn, "way")} through it, ${e.nesting} ${e.nesting === 1 ? "level" : "levels"} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")}.`,
+        )
+      : null,
+  ];
 }
