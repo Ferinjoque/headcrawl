@@ -157,9 +157,17 @@ export class Game {
   }
 
   /** Quiet lines go to the run log only; the screen already shows them somewhere. */
-  say(text: string, tone: Tone = "info", quiet = false): void {
-    this.emit(quiet ? { t: "msg", text, tone, quiet } : { t: "msg", text, tone });
-    if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${text}`);
+  /**
+   * A log line. `full` is the same line with the code in it (paths, git
+   * words, who wrote a TODO); the log shows it when code details are on, and
+   * the run log always keeps it. An empty `text` means only the full one exists.
+   */
+  say(text: string, tone: Tone = "info", quiet = false, full?: string): void {
+    const e: Extract<GameEvent, { t: "msg" }> = { t: "msg", text, tone };
+    if (quiet) e.quiet = true;
+    if (full) e.full = full;
+    this.emit(e);
+    if (this.journal.length < JOURNAL_CAP) this.journal.push(`${String(this.player?.turns ?? 0).padStart(5)}  ${full ?? text}`);
   }
 
   monsterAt(x: number, y: number): Monster | undefined {
@@ -245,7 +253,7 @@ export class Game {
     this.updateSight();
     if (this.freeTurn) {
       this.freeTurn = false;
-      this.say("async. You swing again before anything answers.", "good", true);
+      this.say("Quick hands. You swing again before anything answers.", "good", true, "async. You swing again before anything answers.");
     } else if (!this.cheats.frozen) monstersAct(this);
     this.updateSight();
     return true;
@@ -347,7 +355,7 @@ export class Game {
         this.floor.bossMet = true;
         boss.awake = true;
         boss.lastTaunt = this.player.turns;
-        if (room.last_commit) this.say(`Last change here: "${room.last_commit}"`, "lore");
+        if (room.last_commit) this.say("", "lore", false, `Last change here: "${room.last_commit}"`);
         this.emit({
           t: "intro",
           name: boss.name,
@@ -362,7 +370,8 @@ export class Game {
     }
     if (!this.visited.has(room.id)) {
       this.visited.add(room.id);
-      if (room.conflicts && this.floor.conflictsOn) this.say(`${room.path} has two versions of itself in here, and both want you. A merge conflict.`, "bad");
+      if (room.conflicts && this.floor.conflictsOn)
+        this.say("This room is here twice, and both versions want you.", "bad", false, `${room.path} has two versions of itself in here, and both want you. A merge conflict.`);
       this.say(`${room.path}. ${room.language}, ${room.loc} lines.`, "info", true);
       if (room.blurb) this.say(`"${room.blurb}"`, "lore", true);
     }
@@ -427,7 +436,7 @@ export class Game {
       this.floor.shrinesUsed.clear();
     }
     this.emit({ t: "perk", id });
-    this.say(`${PERKS[id].name}: ${PERKS[id].text}.`, "good");
+    this.say(`${PERKS[id].title}: ${PERKS[id].text}.`, "good", false, `${PERKS[id].name}: ${PERKS[id].text}.`);
   }
 
   freeNeighbour(x: number, y: number): [number, number] | null {
@@ -465,7 +474,7 @@ export class Game {
     this.emit({ t: "descend", floor: next });
     if (this.has("stash")) {
       p.potions.push({ id: `stash${next}`, kind: "potion", x: p.x, y: p.y, loot: null, source: "git stash" });
-      this.say("A potion you set aside is back in your pack. git stash pop.", "good", true);
+      this.say("A potion you set aside is back in your pack.", "good", true, "A potion you set aside is back in your pack. git stash pop.");
     }
     this.enterFloorMessages();
     return true;

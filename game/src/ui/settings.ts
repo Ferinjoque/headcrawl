@@ -1,6 +1,7 @@
 // Player settings, remembered in this browser.
 
 import { HEATS, isLevel, type Level } from "../game/extras";
+import type { CodeDetail } from "./detail";
 
 export type TextSize = "small" | "normal" | "large";
 export type Colors = "glow" | "colorblind" | "contrast";
@@ -16,6 +17,8 @@ export interface Settings {
   motion: Motion;
   /** For new runs. A run keeps the difficulty it started with. */
   level: Difficulty;
+  /** Where code facts show: in hover tips only, or everywhere. */
+  code: CodeDetail;
 }
 
 const KEY = "headcrawl.settings.v1";
@@ -23,7 +26,7 @@ const KEY = "headcrawl.settings.v1";
 export const TEXT_SCALE: Record<TextSize, number> = { small: 0.85, normal: 1, large: 1.2 };
 
 export function defaults(reducedMotion: boolean): Settings {
-  return { sound: true, music: true, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full", level: "normal" };
+  return { sound: true, music: true, text: "normal", colors: "glow", motion: reducedMotion ? "calm" : "full", level: "normal", code: "hover" };
 }
 
 export function loadSettings(reducedMotion: boolean): Settings {
@@ -39,6 +42,7 @@ export function loadSettings(reducedMotion: boolean): Settings {
       colors: r.colors === "colorblind" || r.colors === "contrast" || r.colors === "glow" ? r.colors : base.colors,
       motion: r.motion === "calm" || r.motion === "full" ? r.motion : base.motion,
       level: r.level === "normal" || isLevel(r.level) ? r.level : base.level,
+      code: r.code === "all" || r.code === "hover" ? r.code : base.code,
     };
   } catch {
     return base;

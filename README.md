@@ -145,8 +145,12 @@ level is part of the run code: `flask-4821-hard3`.
 The music is made live in the browser and is different for every dungeon.
 It gets darker the deeper you go and drums come in when something wants
 you dead. `m` mutes; `,` opens settings (music on its own, difficulty,
-text size, colorblind friendly or high contrast colors, calm motion). On a
-phone, tap a monster to see what it is.
+text size, colorblind friendly or high contrast colors, calm motion, code
+details). On a phone, tap a monster to see what it is.
+
+The screens talk about the game first. Hover over (or tap) a monster or an
+item to see the code it came from. If you'd rather see the code everywhere,
+paths, metrics, commits and all, set code details to everywhere.
 
 ## How code becomes a dungeon
 

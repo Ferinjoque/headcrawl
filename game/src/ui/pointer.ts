@@ -32,18 +32,26 @@ function fill(tip: HTMLElement, game: Game, x: number, y: number): boolean {
     const e = m.enemy;
     replace(
       tip,
+      // The fight first: what it is and what it does. The code it came from
+      // sits below a rule, for whoever wants it.
       h("div", { class: m.boss ? "tip-name t-boss" : "tip-name t-bad" }, m.name),
-      h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
-      h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}`),
+      m.boss ? h("div", { class: "t-boss" }, m.boss.title) : null,
+      h("div", null, `HP ${m.hp}/${m.maxHp}, hits up to ${m.damage}, speed ${m.speed}${m.awake ? "" : ", asleep"}`),
       h("div", { class: "t-lore" }, `${MONSTERS[m.archetype].name}: ${MONSTERS[m.archetype].does}`),
       m.affix ? h("div", { class: "t-boss" }, `elite, ${AFFIX[m.affix].name}: ${AFFIX[m.affix].text}`) : null,
-      e?.deprecated ? h("div", { class: "t-bad" }, "outdated code: its hits slow you down for 3 turns") : null,
-      m.undo ? h("div", { class: "t-bad" }, "reverted before: the first time it dies, it comes back at half HP") : null,
-      e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
-      m.boss ? h("div", { class: "faint" }, `${m.boss.title}. Its file changed ${plural(m.boss.churn, "time")}.`) : null,
+      e?.deprecated ? h("div", { class: "t-bad" }, "outdated: its hits slow you down for 3 turns") : null,
+      m.undo ? h("div", { class: "t-bad" }, "the first time it dies, it comes back at half HP") : null,
       m.boss && styleLine(m.boss) ? h("div", { class: "t-boss" }, styleLine(m.boss)) : null,
-      m.boss?.code?.length ? h("pre", { class: "tip-code" }, m.boss.code.join("\n")) : null,
-      m.awake ? null : h("div", { class: "faint" }, "asleep"),
+      h(
+        "div",
+        { class: "tip-source" },
+        h("div", { class: "dim" }, e?.signature ?? m.boss?.signature ?? "spawned by its boss"),
+        e ? h("div", { class: "faint" }, `${MONSTERS[m.archetype].real}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, ${plural(e.nloc, "line")} long`) : null,
+        e?.deprecated ? h("div", { class: "faint" }, "marked deprecated in its code") : null,
+        m.undo ? h("div", { class: "faint" }, "from a file someone reverted") : null,
+        m.boss ? h("div", { class: "faint" }, `Its file changed ${plural(m.boss.churn, "time")}.`) : null,
+        m.boss?.code?.length ? h("pre", { class: "tip-code" }, m.boss.code.join("\n")) : null,
+      ),
     );
     return true;
   }

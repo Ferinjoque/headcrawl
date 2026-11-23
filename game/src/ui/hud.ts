@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { codeEverywhere } from "./detail";
 import { h, replace } from "./dom";
 
 // One line, fixed order, health first. Repo, commit and turn count live on
@@ -20,7 +21,7 @@ export function renderHud(el: HTMLElement, game: Game | null, repo?: string, onS
   fill.style.width = `${(frac * 100).toFixed(1)}%`;
   const goal = game.floor.bossDead
     ? h("span", { class: "hud-goal stairs" }, "stairs are open ", h("kbd", null, ">"))
-    : h("span", { class: "hud-goal" }, "hunt ", h("b", { class: "t-boss" }, f.boss.name));
+    : h("span", { class: "hud-goal", title: f.boss.name }, "hunt ", h("b", { class: "t-boss" }, codeEverywhere() ? f.boss.name : f.boss.title));
   replace(
     el,
     h(

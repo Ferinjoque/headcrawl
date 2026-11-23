@@ -241,16 +241,40 @@ redraws the whole view at 20 fps when idle.
     Title extras are a prompt strip. Panel headings run into a rule line.
   - Copy: dropped "not just X" lines, "let's go", "Quiet, for now".
   - e2e for the pause menu cursor.
+  - Then: a dot-grid minimap with a MAP heading, key plates in help, 16px
+    HUD labels. CI runs again (runners came back on their own).
+
+- Round 12 (owner: too much about code on every screen; keep the repos,
+  make it understandable):
+  - Research: progressive disclosure (show what you can act on, the rest
+    on request), Slay the Spire's keyword plus tooltip, a roguelike HUD
+    review that faults DCSS and ADOM for stat dumps.
+  - New setting, code details: on hover (default) or everywhere
+    (ui/detail.ts). On hover, the panel says what a monster does and how
+    hard it hits instead of paths/depth/inputs/line; rooms go by file name;
+    the HUD hunts the boss's title; boss and floor cards drop paths and the
+    boss's code; the title list shows names and floor counts; loot is just
+    its quote. Hover tips keep everything, game facts on top and the code
+    under a rule.
+  - Log lines have a plain version and a full one (Game.say's `full`): the
+    log shows the plain one unless code details are on, the run log keeps
+    the full one. Git jokes, authors and source paths moved there.
+  - Tools have game names (Keen Eye, Parry, Last Stand...); the dev term is
+    in the hover tip and shows with code details on. A test keeps code
+    words out of them.
+  - Gallery rebuilt at current HEADs with flavor (qwen2.5:7b). It turned up
+    a real bug: a helper a boss called mid-turn wasn't marked as taken, so
+    a monster moving after it could step onto it. Fixed, with a test.
+  - Bots on the rebuilt gallery: plain 29 of 60, careful 40 of 60 (bigger
+    repos now, ky and gin have 6 floors). Left alone until a playtest.
+  - docs/PLAYTEST.md: a script for a playtest with someone who doesn't code.
 
 ## Next ideas
 
 - Balance: npm run sim gives both bots on the whole gallery. Still worth a
   real playtest before retuning; the lab makes any fight easy to set up.
-- A playtest by someone who doesn't code: does the welcome card and help
-  get them through floor 1 without asking anything?
-- Gallery dungeons got boss code and revert counts patched in place
-  (work/ scripts, not kept); the next full gallery rebuild makes them
-  natively.
+- A playtest by someone who doesn't code (docs/PLAYTEST.md): does the
+  welcome card and help get them through floor 1 without asking anything?
 - Flavor: gemma4 works on Ollama 0.35.1 (`--model gemma4`). Tried both on
   itsdangerous 2026-10-04: gemma4 is a little punchier, qwen2.5:7b gets
   more lines past the filter. qwen2.5:7b stays the default.

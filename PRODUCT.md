@@ -44,9 +44,10 @@ console. Copy is dry and short, like a commit message with a sense of humor.
 1. Game words first. Every thing has a plain name a non-programmer gets
    (potion, scroll, shop, side door); the code term rides along as flavor
    or on a faint second line. ui/glossary.ts holds the words.
-2. The code is the content. Show real names, paths, line numbers and
-   comments wherever there is room. Never invent filler where repo data
-   exists.
+2. The code is the content, on request. Names and quotes come from the
+   repo and are never invented. Paths, line numbers, metrics, commits and
+   git jokes wait in hover tips, or show everywhere with the code details
+   setting. On screen by default: what a thing is and what it does.
 3. Light is information. Brightness says what is visible, heat, danger and
    value. Decoration that glows has to mean something.
 4. One screen, one terminal. HUD, log and menus belong to the same text

@@ -92,7 +92,12 @@ Silkscreen 12 / 16 / 24 (24 only for overlay titles set in the frame).
 - A welcome card before the first run in a browser, once.
 - Words: the game word first (potion, scroll, curse, shop, side door,
   outdated), the code word after it or on a faint second line. The words
-  live in game/src/ui/glossary.ts.
+  live in game/src/ui/glossary.ts. Tools have game names too (Parry,
+  Last Stand); the developer term is the second layer.
+- Code details (a setting, on hover by default): screens show what a thing
+  is and does; paths, metrics, commits and git jokes live in hover tips,
+  under a rule after the game facts. Set to everywhere, they come back in
+  the panel, log, cards and title.
   The gear card names both items and says how much better or worse the new
   one is; the one you keep is dimmed.
 - The character sheet (`c`, or atk/def in the top line) and the bestiary

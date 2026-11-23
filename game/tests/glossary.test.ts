@@ -28,6 +28,13 @@ describe("glossary", () => {
     for (const s of Object.values(BOSS_STYLE)) expect(s.name).not.toMatch(JARGON);
   });
 
+  it("gives every tool a game name of its own", () => {
+    const tools = Object.values(PERKS);
+    for (const p of tools) expect(p.title, p.name).not.toMatch(JARGON);
+    for (const p of tools) expect(p.title, p.name).not.toMatch(/\b(git|code|CI|pipeline|repo|debug|lint|type|test|fuzz|garbage|logging|loading|injection|analysis|programming)\b/i);
+    expect(new Set(tools.map((p) => p.title)).size).toBe(tools.length);
+  });
+
   it("explains every tool in a line", () => {
     for (const p of Object.values(PERKS)) expect(p.about.length, p.name).toBeGreaterThan(5);
   });

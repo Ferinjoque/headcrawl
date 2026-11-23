@@ -5,6 +5,7 @@ import type { Game } from "../game/game";
 import { PERKS } from "../game/perks";
 import { REVIEW } from "../game/ranged";
 import { pct, stats } from "../game/stats";
+import { codeEverywhere, toolName } from "./detail";
 import { h, plural } from "./dom";
 import { btn } from "./screens";
 
@@ -34,7 +35,7 @@ export function sheetScreen(game: Game, close: () => void) {
     s.trait ? row("", s.trait, "") : null,
     row("[ armor", s.armor, "t-loot"),
     h("h2", null, "tools"),
-    ...(p.perks.length ? p.perks.map((id) => row(PERKS[id].name, `${PERKS[id].text}. ${PERKS[id].about}`, "t-good")) : [h("p", { class: "dim" }, "None yet. You pick one every level.")]),
+    ...(p.perks.length ? p.perks.map((id) => row(toolName(id), codeEverywhere() ? `${PERKS[id].text}. ${PERKS[id].about}` : PERKS[id].text, "t-good")) : [h("p", { class: "dim" }, "None yet. You pick one every level.")]),
     h("h2", null, "pack"),
     row("! potion", p.potions.length ? `${p.potions.length}, q drinks one` : "none"),
     row("? scroll", p.scrolls.length ? `${p.scrolls.length}, r reads one` : "none"),

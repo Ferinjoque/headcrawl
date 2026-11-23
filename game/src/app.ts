@@ -32,6 +32,7 @@ import { labSpec } from "./game/lab";
 import { LabPanel } from "./ui/labpanel";
 import { Aim } from "./ui/aim";
 import { focusMenu, menuKey, tabKey } from "./ui/win";
+import { codeEverywhere, logText, setCodeDetail } from "./ui/detail";
 import { dailyLabel, dailyOf, dailyStarts, startDaily } from "./ui/daily";
 import { MODS, dailyMod, levelName, type Level, type ModId } from "./game/extras";
 import { runCode } from "./ui/codes";
@@ -216,6 +217,7 @@ export class App {
 
   private applySettings(): void {
     const s = this.settings;
+    setCodeDetail(s.code);
     document.documentElement.dataset.text = s.text;
     document.documentElement.dataset.colors = s.colors;
     setColors(s.colors);
@@ -435,8 +437,14 @@ export class App {
         restart: () => this.restart(),
         settings: () => this.openSettings(),
         menu: () => this.navigate({ kind: "title" }),
-      }, this.code(), this.game ? `${this.game.spec.repo.name} @${this.game.spec.repo.head.slice(0, 7)}, turn ${this.game.player.turns}` : ""),
+      }, this.code(), this.game ? this.pauseLine(this.game) : ""),
     );
+  }
+
+  /** The line under "paused": where you are, and the exact commit when code details are on. */
+  private pauseLine(g: Game): string {
+    const where = `floor ${g.floorSpec.index + 1} of ${g.spec.floors.length}, turn ${g.player.turns}`;
+    return codeEverywhere() ? `${g.spec.repo.name} @${g.spec.repo.head.slice(0, 7)}, ${where}` : `${g.spec.repo.name.split("/").pop()}, ${where}`;
   }
 
   private openSheet(): void {
@@ -675,12 +683,16 @@ export class App {
       eventFx(e, this.fx, game, now, quiet);
       if (quiet) continue;
       this.sound.play(e);
-      if (e.t === "msg" && !e.quiet) this.log.push(e.text, e.tone);
+      if (e.t === "msg" && !e.quiet) {
+        const text = logText(e);
+        if (text) this.log.push(text, e.tone);
+      }
       else if (e.t === "hit" && e.onPlayer) this.director.duck();
       else if (e.t === "taunt") this.log.push(`${e.name}: "${e.text}"`, "boss");
       else if (e.t === "intro") {
         this.log.push(`${e.name}, ${e.title}: "${e.text}"`, "boss");
-        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}. ${e.where}`, e.text, e.style, e.code));
+        const where = codeEverywhere() ? `. ${e.where}` : "";
+        replace($("banner"), bannerCard(e.final ? "the last boss" : "boss", e.name, "boss", `${e.title}${where}`, e.text, e.style, codeEverywhere() ? e.code : []));
       }
       if (e.t === "descend") this.floorCard();
       if (e.t === "branch") replace($("banner"), bannerCard(e.merged ? "back" : "side door", e.name, "floor", e.merged ? "back where you left" : "another version of this floor. > at the far end takes you back"));

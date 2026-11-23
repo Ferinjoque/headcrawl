@@ -45,7 +45,7 @@ export function runLog(game: Game, link: string): string {
     `armor    ${p.armor ? describe(p.armor) : "none"}`,
     `turns    ${p.turns}`,
     `cursed   ${p.curses}`,
-    `tools    ${p.perks.map((id) => PERKS[id].name).join(", ") || "none"}`,
+    `tools    ${p.perks.map((id) => `${PERKS[id].title} (${PERKS[id].name})`).join(", ") || "none"}`,
     "",
     `Beat ${p.kills} monsters:`,
     ...(kills.length ? kills : ["  none"]),

@@ -41,18 +41,18 @@ export function pickUp(g: Game, item: Item): void {
   switch (item.kind) {
     case "potion":
       p.potions.push(item);
-      g.say(`You pick up a potion, a TODO${since}: ${quote} (${item.source}). q drinks it.`, "loot");
+      g.say(`You pick up a potion, a note${year}: ${quote}. q drinks it.`, "loot", false, `You pick up a potion, a TODO${since}: ${quote} (${item.source}). q drinks it.`);
       break;
     case "scroll":
       p.scrolls.push(item);
-      g.say(`You find a scroll, a HACK${since}: ${quote} (${item.source}). r reads it.`, "loot");
+      g.say(`You find a scroll, a quick fix${year}: ${quote}. r reads it.`, "loot", false, `You find a scroll, a HACK${since}: ${quote} (${item.source}). r reads it.`);
       break;
     case "curse":
       p.curses++;
       p.atk += 2;
       p.maxHp = Math.max(10, p.maxHp - 5);
       p.hp = Math.min(p.hp, p.maxHp);
-      g.say(`A curse, XXX ${quote}. It bites. Attack +2, max HP -5.`, "bad");
+      g.say(`A curse: ${quote}. It bites. Attack +2, max HP -5.`, "bad", false, `A curse, XXX ${quote}. It bites. Attack +2, max HP -5.`);
       break;
     case "coffee":
       g.heal(g.has("caffeine") ? COFFEE_HEAL * 3 : COFFEE_HEAL);
@@ -69,7 +69,7 @@ export function quaff(g: Game): boolean {
   }
   const heal = potionHeal(item.loot?.power ?? 1);
   g.heal(heat(g.mods) >= 2 ? Math.ceil(heal / 2) : heal);
-  g.say(`You finally do the TODO. You feel better.`, "good");
+  g.say("You finally do what the note said. You feel better.", "good", false, "You finally do the TODO. You feel better.");
   return true;
 }
 
@@ -86,8 +86,12 @@ export function readScroll(g: Game): boolean {
     const t = target ? timeTravel(target) : null;
     const floor = rewindFloor(g.floor, g.rng, g.spec.floors.length, g.player, g.mods, g.gate("deprecated", g.floor.index));
     const year = t?.year ?? floor?.year ?? 0;
-    g.say(`Time slips. The floor is the way it was in ${year}${floor?.swapped ? `, ${floor.swapped} monsters with it` : ""}. git checkout.`, "loot");
-    if (t && target) g.say(`${target.name} goes back to ${t.after} paths from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`, "loot");
+    const swapped = floor?.swapped ? `, ${floor.swapped} monsters with it` : "";
+    g.say(`Time slips. The floor is the way it was in ${year}${swapped}.`, "loot", false, `Time slips. The floor is the way it was in ${year}${swapped}. git checkout.`);
+    if (t && target) {
+      const how = t.after < t.before ? "weaker" : "tougher";
+      g.say(`${target.name} is ${how} back then.`, "loot", false, `${target.name} goes back to ${t.after} paths from ${t.before}. It was ${t.after < t.before ? "simpler" : "worse"} back then.`);
+    }
     g.emit({ t: "rewind" });
   } else if (roll === 0) {
     const targets = g.floor.monsters.filter((m) => g.isVisible(m.x, m.y));
@@ -105,7 +109,7 @@ export function readScroll(g: Game): boolean {
     const grid = g.floor.map.grid;
     for (let i = 0; i < grid.tiles.length; i++) if (grid.tiles[i] !== Tile.Rock) g.floor.seen[i] = 1;
     g.emit({ t: "reveal" });
-    g.say("You see the whole floor at once. Thanks, git blame.", "loot");
+    g.say("You see the whole floor at once.", "loot", false, "You see the whole floor at once. Thanks, git blame.");
   } else {
     g.heal(g.player.maxHp);
     g.say("A hotfix. Ugly, but you are back on your feet.", "loot");

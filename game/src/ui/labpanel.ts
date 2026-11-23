@@ -100,7 +100,7 @@ export class LabPanel {
     const perkSelect = h(
       "select",
       { class: "lab-select", "aria-label": "Tool to grant" },
-      ...ALL_PERKS.map((id) => h("option", { value: id }, PERKS[id].name)),
+      ...ALL_PERKS.map((id) => h("option", { value: id }, `${PERKS[id].title} (${PERKS[id].name})`)),
     ) as HTMLSelectElement;
     replace(
       this.el,

@@ -7,16 +7,18 @@ import { TRAITS, type Gear } from "../game/gear";
 import { PERKS, type PerkId } from "../game/perks";
 import type { Action } from "../game/types";
 import type { Offer } from "../game/extras";
+import { codeEverywhere, toolName } from "./detail";
 import { h, replace } from "./dom";
 import type { Command } from "./input";
 
 function option(key: string, name: string, text: string, pick: () => void, cls = "", about = "") {
   return h(
     "button",
-    { class: `perk ${cls}`.trim(), type: "button", onclick: pick },
+    { class: `perk ${cls}`.trim(), type: "button", onclick: pick, title: about || undefined },
     h("kbd", null, key),
     h("span", { class: "perk-name" }, name),
-    h("span", { class: "perk-text" }, text, about ? h("small", { class: "perk-about" }, about) : null),
+    // At the moment of choosing, only what it does. The real tool behind it is a hover away.
+    h("span", { class: "perk-text" }, text, about && codeEverywhere() ? h("small", { class: "perk-about" }, about) : null),
   );
 }
 
@@ -25,7 +27,7 @@ export function perkCard(ids: PerkId[], pick: (index: number) => void) {
     "div",
     { class: "card choice", role: "dialog", "aria-label": "Pick a tool" },
     h("div", { class: "card-kicker" }, "level up. pick a tool"),
-    ...ids.map((id, i) => option(String(i + 1), PERKS[id].name, PERKS[id].rare ? `rare. ${PERKS[id].text}` : PERKS[id].text, () => pick(i), PERKS[id].rare ? "rare" : "", PERKS[id].about)),
+    ...ids.map((id, i) => option(String(i + 1), toolName(id), PERKS[id].rare ? `rare. ${PERKS[id].text}` : PERKS[id].text, () => pick(i), PERKS[id].rare ? "rare" : "", `${PERKS[id].name}: ${PERKS[id].about}`)),
   );
 }
 

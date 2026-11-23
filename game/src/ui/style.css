@@ -1507,3 +1507,10 @@ body.dragging #screen::after {
 #hud .hud-floor > small {
   margin-right: 6px;
 }
+
+/* Hover tips: the code a thing came from sits under a rule, after the game facts. */
+#tip .tip-source {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ink-line);
+}

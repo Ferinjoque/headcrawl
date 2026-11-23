@@ -2,10 +2,10 @@ import type { Game } from "../game/game";
 import { styleLine } from "../game/bossmoves";
 import { AFFIX } from "../game/elites";
 import { describe, TRAITS } from "../game/gear";
-import { PERKS } from "../game/perks";
 import type { Monster } from "../game/types";
 import { drawMinimap } from "../render/minimap";
 import { h, plural, replace } from "./dom";
+import { codeEverywhere, roomName, toolName } from "./detail";
 import { LOOT, MONSTERS } from "./glossary";
 
 /** "tangle: regrows". Helpers and bosses go by the kind alone. */
@@ -26,10 +26,12 @@ function hpBar(hp: number, max: number): HTMLElement {
 
 function foe(m: Monster, detail: boolean) {
   const e = m.enemy;
+  // What it does in a fight first. The numbers from its code only when asked for.
+  const code = codeEverywhere();
   const stats = m.boss
-    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}`
+    ? `${m.boss.title}. ${styleLine(m.boss) ? `${styleLine(m.boss)}. ` : ""}${code ? `${plural(m.boss.ccn, "path")}, changed ${plural(m.boss.churn, "time")}` : `hits up to ${m.damage}`}`
     : e
-      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${m.undo ? "comes back once. " : ""}${kindLine(m.archetype)}. ${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}`
+      ? `${m.affix ? `elite, ${AFFIX[m.affix].name}. ` : ""}${e.deprecated ? "outdated, slows you. " : ""}${m.undo ? "comes back once. " : ""}${kindLine(m.archetype)}. ${code ? `${plural(e.ccn, "path")}, ${e.nesting} deep, ${plural(e.params, "input")}, line ${e.line}` : `hits up to ${m.damage}`}`
       : kindLine(m.archetype);
   return h(
     "div",
@@ -44,6 +46,7 @@ function foe(m: Monster, detail: boolean) {
 function lootNote(i: Game["floor"]["items"][number]): string {
   if (i.gear) return i.gear.slot === "armor" ? `defense ${i.gear.bonus}` : `attack +${i.gear.bonus}, ${TRAITS[i.gear.trait].name}`;
   if (!i.loot) return "still warm";
+  if (!codeEverywhere()) return `"${i.loot.text || i.loot.tag}"`;
   const year = i.loot.year ? `${i.loot.year}${i.loot.year_or_older ? " or earlier" : ""}` : "";
   const who = i.loot.author ? ` by ${i.loot.author}` : "";
   const when = year || who ? `${year}${who}: ` : "";
@@ -117,7 +120,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     ),
     p.perks.length > 3
       ? h("p", { class: "faint tools" }, `${plural(p.perks.length, "tool")}, `, h("kbd", null, "c"), " lists them")
-      : h("p", { class: "faint tools" }, p.perks.length ? p.perks.map((id) => PERKS[id].name).join(", ") : "no tools yet"),
+      : h("p", { class: "faint tools" }, p.perks.length ? p.perks.map(toolName).join(", ") : "no tools yet"),
   ];
   const pack = h("section", { class: "pane pack" }, h("h2", null, "pack"), ...held);
 
@@ -130,13 +133,13 @@ export function renderPanel(el: HTMLElement, game: Game): void {
     { class: "pane here" },
     ...(room
       ? [
-        h("p", { class: "path" }, room.spec.path),
-        h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, changed ${plural(room.spec.churn, "time")}`),
+        h("p", { class: "path", title: room.spec.path }, codeEverywhere() ? room.spec.path : roomName(room.spec.path)),
+        codeEverywhere() ? h("p", { class: "faint" }, `${room.spec.language}, ${room.spec.loc} lines, changed ${plural(room.spec.churn, "time")}`) : null,
         room.spec.kind === "shrine" ? h("p", { class: "t-good" }, "A test file. Step on * to heal.") : null,
         room.spec.blurb ? h("p", { class: "blurb" }, `"${room.spec.blurb}"`) : null,
-        room.spec.last_commit ? h("p", { class: "faint" }, "last change ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
+        room.spec.last_commit && codeEverywhere() ? h("p", { class: "faint" }, "last change ", h("span", { class: "t-lore" }, `"${room.spec.last_commit}"`)) : null,
         ]
-      : [h("p", { class: "faint" }, "In a corridor between files.")]),
+      : [h("p", { class: "faint" }, "In a corridor between rooms.")]),
   );
 
   replace(el, sight, pack, map, here);

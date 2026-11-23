@@ -1,4 +1,5 @@
 import type { Game } from "../game/game";
+import { codeEverywhere } from "./detail";
 import { h, plural } from "./dom";
 import { paneTabs } from "./win";
 import { BEHIND, LOOT, MONSTERS, PLACES, type Term } from "./glossary";
@@ -210,7 +211,8 @@ export function bannerCard(kicker: string, name: string, kind: "boss" | "floor",
 export function floorBanner(game: Game, twist: { name: string; text: string } | null) {
   const f = game.floorSpec;
   const today = f.index === 0 && twist ? `. Today: ${twist.name}. ${twist.text}` : "";
-  return bannerCard(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${f.rooms.length} files. Somewhere in here: ${f.boss.name}${today}`);
+  const what = codeEverywhere() ? `${f.rooms.length} files. Somewhere in here: ${f.boss.name}` : `${f.rooms.length} rooms. Somewhere in here: ${f.boss.title}`;
+  return bannerCard(`floor ${f.index + 1} of ${game.spec.floors.length}`, f.name, "floor", `${what}${today}`);
 }
 
 export interface CompareHandlers {
@@ -269,6 +271,7 @@ export interface SettingsHandlers {
   colors(): void;
   motion(): void;
   level(): void;
+  code(): void;
   tips(): void;
   saveToken(text: string, remember: boolean): void;
   clearToken(): void;
@@ -297,7 +300,7 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", tok
     h(
       "p",
       { class: "row" },
-      h("span", { class: "t-loot" }, `[${key}] ${label}`),
+      h("span", { class: "caps" }, h("kbd", null, key), ` ${label}`),
       h("button", { type: "button", onclick: act }, value),
     );
   return h(
@@ -311,7 +314,8 @@ export function settingsScreen(s: Settings, on: SettingsHandlers, note = "", tok
     row("4", "colors", COLOR_NAMES[s.colors], on.colors),
     row("5", "motion", s.motion === "full" ? "full: shake, flashes, sparks" : "calm: no shake, flashes or sparks", on.motion),
     row("6", "difficulty", levelLabel(s.level), on.level),
-    row("7", "tips", "show them again", on.tips),
+    row("7", "code details", s.code === "all" ? "everywhere: paths, git, numbers" : "on hover: the game first", on.code),
+    row("8", "tips", "show them again", on.tips),
     note ? h("p", { class: "t-good", role: "status" }, note) : null,
     tokenSection(token, on),
     h("div", { class: "actions" }, btn("esc", "back", on.close)),

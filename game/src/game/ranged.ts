@@ -59,7 +59,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   m.awake = true;
   if (!g.rng.chance(HIT.player)) {
     g.emit({ t: "miss", x: m.x, y: m.y });
-    g.say(`Your shot misses ${m.name}. Resolved without a change.`);
+    g.say(`Your shot misses ${m.name}.`, "info", false, `Your shot misses ${m.name}. Resolved without a change.`);
     return true;
   }
   const crit = g.rng.chance(critChance(g));
@@ -67,7 +67,7 @@ export function review(g: Game, dx: number, dy: number): boolean {
   if (crit) dmg *= critMultiplier(g);
   m.hp -= dmg;
   g.emit({ t: "hit", x: m.x, y: m.y, amount: dmg, crit, onPlayer: false });
-  g.say(`Your shot hits ${m.name} for ${dmg}. nit.`, "good", true);
+  g.say(`Your shot hits ${m.name} for ${dmg}.`, "good", true, `Your shot hits ${m.name} for ${dmg}. nit.`);
   if (m.hp <= 0) killMonster(g, m);
   else if (m.boss) bossPhase(g, m);
   return true;

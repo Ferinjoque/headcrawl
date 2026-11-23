@@ -81,7 +81,7 @@ export interface Player {
 export type Tone = "info" | "good" | "bad" | "loot" | "boss" | "lore";
 
 export type GameEvent =
-  | { t: "msg"; text: string; tone: Tone; quiet?: boolean }
+  | { t: "msg"; text: string; tone: Tone; quiet?: boolean; full?: string }
   | { t: "hit"; x: number; y: number; amount: number; crit: boolean; onPlayer: boolean }
   | { t: "miss"; x: number; y: number }
   | { t: "kill"; x: number; y: number; name: string; boss: boolean }

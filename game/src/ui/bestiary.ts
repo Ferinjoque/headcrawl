@@ -4,6 +4,7 @@
 import { AFFIX, type Affix } from "../game/elites";
 import { TRAITS, languagesWith, type Trait } from "../game/gear";
 import { topDeaths, type Codex, type Trophy } from "./codex";
+import { codeEverywhere } from "./detail";
 import { h, plural } from "./dom";
 import { MONSTERS } from "./glossary";
 import { TROPHIES } from "../game/trophies";
@@ -43,8 +44,8 @@ export function bestiaryScreen(c: Codex, close: () => void, earned: Map<string, 
   const metFirst = <T,>(list: readonly T[], met: (x: T) => boolean) => [...list.filter(met), ...list.filter((x) => !met(x))];
   const kinds = metFirst(KINDS, (k) => !!c.kills[k]).map((k) =>
     c.kills[k]
-      ? entry(`${MONSTERS[k].name} x${c.kills[k]}`, `kind-${k}`, [MONSTERS[k].does, MONSTERS[k].real, worstLine(c.worst[k]), c.first[k] ? `first met in ${c.first[k]}` : null])
-      : unknown(MONSTERS[k].real),
+      ? entry(`${MONSTERS[k].name} x${c.kills[k]}`, `kind-${k}`, [MONSTERS[k].does, MONSTERS[k].real, codeEverywhere() ? worstLine(c.worst[k]) : null, c.first[k] ? `first met in ${c.first[k]}` : null])
+      : unknown(codeEverywhere() ? MONSTERS[k].real : MONSTERS[k].does),
   );
   const elites = metFirst(AFFIXES, (a) => !!c.elites[a]).map((a) =>
     c.elites[a] ? entry(`${AFFIX[a].name} x${c.elites[a]}`, "t-boss", [AFFIX[a].text]) : unknown(ELITE_HINT[a]),

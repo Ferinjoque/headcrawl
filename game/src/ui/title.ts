@@ -3,7 +3,8 @@
 // picked repo's details beside it. Key buttons for the rest along the bottom.
 
 import { bestFor, bestLabel } from "./best";
-import { h, type Child } from "./dom";
+import { codeEverywhere } from "./detail";
+import { h, plural, type Child } from "./dom";
 import type { GalleryEntry } from "./gallery";
 import type { Recent } from "./recent";
 import type { SavedRun } from "./save";
@@ -107,8 +108,8 @@ function repoList(s: TitleState, on: TitleHandlers) {
             ondblclick: () => on.play(e.slug),
           },
           h("span", { class: "mark", "aria-hidden": "true" }, "▸"),
-          h("span", { class: "name" }, e.repo),
-          h("span", { class: "lang" }, e.language),
+          h("span", { class: "name", title: e.repo }, codeEverywhere() ? e.repo : e.repo.split("/").pop() ?? e.repo),
+          h("span", { class: "lang" }, codeEverywhere() ? e.language : plural(e.floors, "floor")),
           i === start
             ? h("span", { class: "diff start" }, "start here")
             : e.difficulty
@@ -135,11 +136,13 @@ function detail(s: TitleState, on: TitleHandlers) {
       "dl",
       { class: "facts" },
       h("dt", null, "floors"),
-      h("dd", null, String(e.floors), Array.isArray(e.floorNames) && e.floorNames.length ? h("span", { class: "faint floor-names" }, ` ${e.floorNames.slice(0, 8).join(" > ")}`) : null),
+      h("dd", null, String(e.floors), codeEverywhere() && Array.isArray(e.floorNames) && e.floorNames.length ? h("span", { class: "faint floor-names" }, ` ${e.floorNames.slice(0, 8).join(" > ")}`) : null),
       h("dt", null, "monsters"),
       h("dd", null, String(e.enemies)),
       h("dt", null, "last boss"),
-      h("dd", { class: "t-boss" }, e.boss, e.bossTitle ? h("span", { class: "dim" }, `, ${e.bossTitle}`) : null),
+      codeEverywhere() || !e.bossTitle
+        ? h("dd", { class: "t-boss" }, e.boss, e.bossTitle ? h("span", { class: "dim" }, `, ${e.bossTitle}`) : null)
+        : h("dd", { class: "t-boss", title: e.boss }, e.bossTitle),
       h("dt", null, "feels"),
       h("dd", { class: e.difficulty ? DIFF[e.difficulty]?.[1] : "dim" }, e.difficulty ? DIFF[e.difficulty]?.[0] : "unknown"),
       h("dt", null, "your best"),
