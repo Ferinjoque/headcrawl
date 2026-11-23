@@ -192,7 +192,7 @@ kbd {
 }
 #hud small {
   font-family: var(--label);
-  font-size: var(--fs-label-s);
+  font-size: var(--fs-label);
   text-transform: uppercase;
   color: var(--text-faint);
 }
@@ -414,7 +414,7 @@ kbd {
   object-fit: contain;
   object-position: left top;
   image-rendering: pixelated;
-  opacity: 0.85;
+  opacity: 0.95;
 }
 .pack .gap {
   display: inline-block;
@@ -1482,4 +1482,28 @@ body.dragging #screen::after {
   text-decoration: underline;
   text-decoration-color: var(--ember);
   text-underline-offset: 4px;
+}
+
+/* Help's key column: plates side by side, wrapping if a row has many. */
+.page .row .caps {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding-top: 2px;
+}
+.pane.map h2 {
+  margin-bottom: 6px;
+}
+
+/* Numbers stay in the reading face, even the small ones. */
+#hud .hud-hp-num small {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  text-transform: none;
+}
+#hud .hud-stat > small,
+#hud .hud-stats small,
+#hud .hud-floor > small {
+  margin-right: 6px;
 }

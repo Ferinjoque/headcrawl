@@ -41,7 +41,9 @@ export function btn(key: string, label: string, onclick: () => void) {
 }
 
 export function helpScreen(close: () => void) {
-  const row = (a: string, b: string) => h("p", { class: "row" }, h("span", { class: "t-loot" }, a), h("span", null, b));
+  const row = (a: string, b: string) => h("p", { class: "row" }, h("span", { class: "dim" }, a), h("span", null, b));
+  // Keys drawn as the same plates the menus use; any of them does the thing.
+  const keys = (caps: string[], b: string) => h("p", { class: "row" }, h("span", { class: "caps" }, ...caps.map((k) => h("kbd", null, k))), h("span", null, b));
   // Game words first; the faint line under each says what code it came from.
   const term = (label: string, t: Term) =>
     h("p", { class: "row" }, h("span", { class: "t-loot" }, label), h("span", null, t.does || t.real, t.does ? h("small", { class: "faint sub" }, t.real) : null));
@@ -55,18 +57,18 @@ export function helpScreen(close: () => void) {
       {
         label: "keys",
         body: [
-          row("arrows, hjkl, yubn", "move, walk into things to attack"),
-          row("x", "explore until something shows up"),
-          row("z", "rest until healed"),
-          row(". or space", "wait a turn"),
-          row(">", "stairs, once the boss is dead. On a Y side door, go in"),
-          row("f", "shoot a monster up to 5 cells away for half a hit. Tab picks, f shoots"),
-          row("q / r", "drink a potion / read a scroll"),
-          row("c", "you: every number behind a fight, your gear and tools"),
+          keys(["arrows", "hjkl", "yubn"], "move, walk into things to attack"),
+          keys(["x"], "explore until something shows up"),
+          keys(["z"], "rest until healed"),
+          keys([".", "space"], "wait a turn"),
+          keys([">"], "stairs, once the boss is dead. On a Y side door, go in"),
+          keys(["f"], "shoot a monster up to 5 cells away for half a hit. Tab picks, f shoots"),
+          keys(["q", "r"], "drink a potion / read a scroll"),
+          keys(["c"], "you: every number behind a fight, your gear and tools"),
           row("click or tap", "walk there; hover a monster to see what it is"),
-          row("tab", "show or hide the side panel"),
-          row("m / ,", "sound, settings"),
-          row("`", "lab tools, in the lab and practice runs"),
+          keys(["tab"], "show or hide the side panel"),
+          keys(["m", ","], "sound, settings"),
+          keys(["`"], "lab tools, in the lab and practice runs"),
           row("gamepad", "d-pad or stick moves, A confirms, B backs out, X explores, Y rests, LB potion, RB scroll, LT shoots, RT next target, Start menu, Back this"),
         ],
       },

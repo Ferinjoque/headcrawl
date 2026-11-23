@@ -123,7 +123,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
 
   const canvas = h("canvas", { class: "minimap", "aria-label": "Map of what you have seen" }) as HTMLCanvasElement;
   drawMinimap(canvas, game);
-  const map = h("section", { class: "pane" }, canvas);
+  const map = h("section", { class: "pane map" }, h("h2", null, "map"), canvas);
 
   const here = h(
     "section",
