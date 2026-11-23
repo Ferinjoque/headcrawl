@@ -149,7 +149,7 @@ export function renderPanel(el: HTMLElement, game: Game): void {
 function idleLines(game: Game) {
   const lines = game.floor.bossDead
     ? ["The stairs are open. > takes them."]
-    : [`${game.floorSpec.boss.name} is somewhere on this floor.`, "x explores until something shows up."];
+    : [`${codeEverywhere() ? game.floorSpec.boss.name : game.floorSpec.boss.title} is somewhere on this floor.`, "x explores until something shows up."];
   return lines.map((l) => h("p", { class: "faint idle" }, l));
 }
 

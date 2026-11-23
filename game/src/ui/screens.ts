@@ -157,7 +157,9 @@ export function endScreen(game: Game, share: string, copied: boolean, on: EndHan
     h("h1", { class: won ? "t-loot glow" : "t-bad glow" }, won ? "cleared" : "you died"),
     won ? null : h("pre", { class: "tomb", "aria-hidden": "true" }, TOMB),
     won
-      ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, at the bottom of ${game.spec.repo.name}.`)
+      ? codeEverywhere()
+        ? h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.name), `, ${f.boss.title}, at the bottom of ${game.spec.repo.name}.`)
+        : h("p", null, "You beat ", h("span", { class: "t-boss" }, f.boss.title), ` at the bottom of ${game.spec.repo.name.split("/").pop()}.`)
       : h("p", null, "Killed by ", h("span", { class: "t-bad" }, killer ?? "something"), ` on floor ${f.index + 1} (${f.name}).`),
     h(
       "p",

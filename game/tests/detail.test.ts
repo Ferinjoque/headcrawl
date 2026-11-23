@@ -78,3 +78,20 @@ describe("room names", () => {
     expect(roomLabel("src/app/views.py")).toBe("the Views' room");
   });
 });
+
+describe("the killer's name", () => {
+  it("is the game name on the death screen and in the result text", async () => {
+    const { resultText } = await import("../src/ui/share");
+    const { enemy } = await import("./fixtures");
+    const g = new Game(spec([floor([room(), room({ enemies: [enemy({ name: "load_payload", damage: 99 })] })], [[0, 1]])]));
+    const m = g.floor.monsters.find((x) => x.name === "load_payload")!;
+    g.player.hp = 1;
+    m.x = g.player.x + 1;
+    m.y = g.player.y;
+    m.awake = true;
+    for (let i = 0; i < 20 && g.outcome === "playing"; i++) g.act({ type: "wait" });
+    expect(g.killer).toBe("load_payload");
+    expect(g.killerLabel).toBe("Payload Loader");
+    expect(resultText(g, "")).toContain("died to Payload Loader");
+  });
+});

@@ -33,6 +33,29 @@ test("a number key opens its tab without typing into the box there", async ({ pa
   await expect(page.locator(".title-main input").first()).toHaveValue("");
 });
 
+// The screens use game names by default; the real identifiers live in hover tips.
+test("by default no raw function name shows on screen while you play", async ({ page, request }) => {
+  const spec = await (await request.get("./dungeons/itsdangerous.json")).json();
+  const names: string[] = spec.floors
+    .flatMap((f: { boss: { name: string }; rooms: { enemies: { name: string }[] }[] }) => [f.boss.name, ...f.rooms.flatMap((r) => r.enemies.map((e) => e.name))])
+    .filter((n: string) => n.includes("_"));
+  const onScreen = () =>
+    page.evaluate((list) => {
+      const tip = document.getElementById("tip");
+      if (tip) tip.hidden = true;
+      const text = document.body.innerText;
+      return [...new Set(list.filter((n) => text.includes(n)))];
+    }, names);
+  await page.goto("./#/play/itsdangerous");
+  await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
+  expect(await onScreen()).toEqual([]);
+  for (let i = 0; i < 10; i++) {
+    await page.keyboard.press("x");
+    await page.waitForTimeout(300);
+    expect(await onScreen()).toEqual([]);
+  }
+});
+
 test("moving and exploring advance turns", async ({ page }) => {
   await page.goto("./#/play/requests");
   await expect(page.locator("#hud")).toHaveAttribute("data-turn", "0");
