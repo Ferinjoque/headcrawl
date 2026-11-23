@@ -287,6 +287,23 @@ redraws the whole view at 20 fps when idle.
     and its shape in plain words. 1253 of 4373 gallery monsters have a doc.
   - Gallery rebuilt with docs (same HEADs, headcrawl moved).
 
+- Round 14 (owner: launch check, then fix names, swap MediatR, sell the README):
+  - Launch check: CI green, analyzer 92% / game 87% line coverage, npm
+    audit fixed (vite dev server, fast-uri), pip-audit clean, the release
+    zip path served by play.py plays and builds a GitHub repo in the tab.
+  - MediatR moved to the RPL 1.5 (strong copyleft, or a paid license), so
+    it left the gallery. Polly (BSD-3, C#) took its place.
+  - Names: anonymous functions are wisps (Main Wisp), operators the
+    Operator, short letter groups read out (Store Getter, Tap IO), a word
+    said twice is said once, path_is_valid is a Path Judge, a boss's own
+    weapon is named after its title (the Unsigner's Spear). Boss lines say
+    the title too, and the panel stopped repeating it.
+  - README rewritten to sell the game: gameplay GIF (recorded with the bot
+    in the dev build, ffmpeg to 720px/8fps), fresh screenshots including a
+    hover tip, badges, credits. Same writing rules apply to release notes.
+  - The title screen's demo caption is gone; number keys no longer type
+    into the title's search boxes.
+
 ## Next ideas
 
 - Balance: npm run sim gives both bots on the whole gallery. Still worth a
