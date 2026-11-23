@@ -3,10 +3,10 @@
 Checklist for the overnight build. Update after every step so work can be
 picked up again from here.
 
-Status (2026-11-23, round 11): M0-M5 done, plus a UI redesign, music and a
-lot of mechanics on top. Playable and tested. Shipped as a private GitHub
-repo (Ferinjoque/headcrawl) people clone and run locally, or a release zip
-with play.py; no hosted site (owner's call, 2026-10-03).
+Status (2026-11-23, round 14): public at github.com/Ferinjoque/headcrawl
+with release v0.2.0 (a zip with play.py). M0-M5 done, plus a UI redesign,
+music and a lot of mechanics on top. Playable and tested. People clone and
+run it locally or use the release zip; no hosted site yet.
 
 ## M0 setup
 - [x] git init, .gitignore, README stub
