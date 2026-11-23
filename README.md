@@ -286,6 +286,36 @@ cd game && npm test && npx playwright test
 `scripts/gallery.sh` rebuilds the bundled dungeons. Add a repo to its list,
 run it, and `npm run gallery` refreshes the index.
 
+## Credits
+
+The bundled dungeons are built from these open source projects. Each one
+quotes small parts of its code (function names, a few lines, TODO comments)
+and stays under its own license:
+[itsdangerous](https://github.com/pallets/itsdangerous),
+[flask](https://github.com/pallets/flask),
+[click](https://github.com/pallets/click),
+[requests](https://github.com/psf/requests),
+[express](https://github.com/expressjs/express),
+[ky](https://github.com/sindresorhus/ky),
+[chalk](https://github.com/chalk/chalk),
+[gin](https://github.com/gin-gonic/gin),
+[bubbletea](https://github.com/charmbracelet/bubbletea),
+[cobra](https://github.com/spf13/cobra),
+[ripgrep](https://github.com/BurntSushi/ripgrep),
+[axum](https://github.com/tokio-rs/axum),
+[jq](https://github.com/jqlang/jq),
+[jsoup](https://github.com/jhy/jsoup),
+[moshi](https://github.com/square/moshi),
+[MediatR](https://github.com/jbogard/MediatR),
+[Alamofire](https://github.com/Alamofire/Alamofire),
+[Slim](https://github.com/slimphp/Slim) and
+[sinatra](https://github.com/sinatra/sinatra).
+Boss lines in them were written by a local model from that code.
+
+Fonts: [VT323](https://fonts.google.com/specimen/VT323) and
+[Silkscreen](https://fonts.google.com/specimen/Silkscreen), both under the
+SIL Open Font License.
+
 ## License
 
-MIT
+MIT, for HEADCRAWL's own code.
