@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { BOSS_MOVES, bossParams, styleOf } from "../src/game/bossmoves";
+import { callHelper } from "../src/game/combat";
+import { monstersAct } from "../src/game/foes";
 import { Game } from "../src/game/game";
 import { clearMonsters, labSpec, spawnBoss } from "../src/game/lab";
 import type { Monster } from "../src/game/types";
+import { Tile } from "../src/map/grid";
 import { loadSpec, type Boss } from "../src/spec";
 
 const base: Boss = { id: "b1", name: "main", title: "t", signature: "main()", line: 1, hp: 50, damage: 5, speed: 100, xp: 10, ccn: 5, churn: 5, taunts: ["hi"] };
@@ -55,6 +58,34 @@ describe("boss moves", () => {
     const { g } = arena("sprawl");
     for (let i = 0; i < 30; i++) g.act({ type: "wait" });
     expect(g.floor.monsters.some((m) => m.archetype === "spawn")).toBe(true);
+  });
+
+  it("a helper called mid-turn holds its cell against a monster that moves after the boss", () => {
+    const { g, boss } = arena("sprawl");
+    g.cheats.frozen = false;
+    const grid = g.floor.map.grid;
+    // A one-cell pocket east of the boss: the boss calls its helper into C,
+    // and the helper already at H can only get to you through C.
+    const [bx, by] = [boss.x, boss.y];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = 1; dx <= 3; dx++) grid.set(bx + dx, by + dy, Tile.Wall);
+    grid.set(bx + 1, by, Tile.Floor);
+    grid.set(bx + 2, by, Tile.Floor);
+    for (const [dx, dy] of [[0, 1], [0, -1], [-1, 1], [-1, -1]]) grid.set(bx + dx, by + dy, Tile.Wall);
+    grid.set(bx - 1, by, Tile.Floor);
+    expect(callHelper(g, boss)).toBe(true);
+    const old = g.floor.monsters.at(-1)!;
+    [old.x, old.y] = [bx + 2, by];
+    g.player.x = bx - 3;
+    g.player.y = by;
+    grid.set(bx - 2, by, Tile.Floor);
+    grid.set(bx - 3, by, Tile.Floor);
+    boss.turns = BOSS_MOVES.sprawlEvery - 1;
+    boss.energy = 100;
+    old.energy = 0;
+    monstersAct(g);
+    const cells = g.floor.monsters.map((m) => `${m.x},${m.y}`);
+    expect(g.floor.monsters.length).toBe(3);
+    expect(new Set(cells).size).toBe(cells.length);
   });
 
   it("a god function heals while you are away", () => {

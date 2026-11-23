@@ -41,7 +41,13 @@ function monsterTurn(g: Game, m: Monster, chase: Int16Array, taken: Uint8Array):
     return;
   }
   if (m.cooldown > 0) m.cooldown--;
-  if (m.boss && bossTurn(g, m)) return;
+  const before = g.floor.monsters.length;
+  if (m.boss && bossTurn(g, m)) {
+    // A helper called this turn holds its cell, or a monster moving after it walks into it.
+    const grid = g.floor.map.grid;
+    for (const x of g.floor.monsters.slice(before)) taken[grid.idx(x.x, x.y)] = 1;
+    return;
+  }
   if (m.archetype === "remote" && m.cooldown === 0 && aim(g, m)) return;
   if (Math.abs(m.x - p.x) <= 1 && Math.abs(m.y - p.y) <= 1) {
     if (m.archetype === "nest" && m.cooldown === 0) {
